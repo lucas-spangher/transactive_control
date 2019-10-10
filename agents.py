@@ -23,7 +23,7 @@ class Person():
 		inputs: points - list or dataframe of points values. Assumes that the 
 		list will be in the same time increment that energy_output will be. 
 
-		For now, that's in 5 minute increments
+		For now, that's in 1 hour increments
 
 		"""
 		points_df = pd.DataFrame(points)
@@ -46,6 +46,12 @@ class Person():
 			energy_output.append(temp_energy)
 			
 		return pd.DataFrame(energy_output)
+
+	def get_min_demand():
+		return np.quantile(self.baseline_energy, .05)
+
+	def get_max_demand():
+		return np.quantile(self.baseline_energy, .95)
 
 class Person_with_hysteresis(Person):
 	""" Wendy -- Determines the energy output of the person, based on the formula:
