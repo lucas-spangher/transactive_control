@@ -15,7 +15,7 @@ class Person():
 		self.baseline_energy = baseline_energy
 		self.points_multiplier = points_multiplier
 
-	def energy_output_simple_linear(points):
+	def energy_output_simple_linear(self, points):
 		"""Determines the energy output of the person, based on the formula:
 		
 		y[n] = -sum_{rolling window of 5} points + baseline_energy + noise
@@ -39,11 +39,13 @@ class Person():
 		time = points_effect.shape[0]
 		energy_output= []
 
-		for t in time:
-			temp_energy = self.baseline_energy - points_effect[t] + np.random.normal(1)
+		for t in range(time):
+			temp_energy = self.baseline_energy[t] - \
+				points_effect.iloc[t]*self.points_multiplier + \
+				np.random.normal(1)
 			energy_output.append(temp_energy)
 			
-		return energy_output
+		return pd.DataFrame(energy_output)
 
 class Person_with_hysteresis(Person):
 	""" Wendy -- Determines the energy output of the person, based on the formula:
