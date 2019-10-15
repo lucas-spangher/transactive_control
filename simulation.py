@@ -9,11 +9,17 @@ class Office():
 		self._start_timestamp = pd.Timestamp(year=2018,
                                          month=6,
                                          day=1,
-                                         hour=4,
-                                         minute=30)
+                                         hour=0,
+                                         minute=0)		
+
+		self._end_timestamp = pd.Timestamp(year=2018,
+                                         month=7,
+                                         day=1,
+                                         hour=0,
+                                         minute=0)
 		self._timestep= _start_timestamp
 
-    def _create_agents(self):
+    def _create_agents_and_controller(self):
         """Initialize the market agents
 
         Args:
@@ -22,6 +28,13 @@ class Office():
         Return:
           agent_dict: dictionary of the agents
         """
+
+        # controller initialize -- hyperparameters 
+        # different types of controllers, and down the line, pick the one we use.
+
+        controller = Controller()
+        controller.initialize(hyperparameters = hyperparameters) 
+
 
         baseline_energy1 = pd.read_csv("wg1.txt", sep = "\t")
         baseline_energy2 = pd.read_csv("wg2.txt", sep = "\t")
@@ -45,18 +58,49 @@ class Office():
         return players_dict
 
 
-    def step(self, controllers_points):
+    def step(self, prices, controller):
+    	""" 
+    	- get what the controller would output
+    	- controller.update to pass in reward
+    	- controller initiatlization 
+    	"""
+
+    	# get controllers points 
+
+    	controllers_points = controller.get_points(prices)
+
+    	# get the people's energy consumption 
+
+    	end = False 
 
     	while not end: 
     		energy_dict = {}
     		rewards_dict = {}
-    		for player in players_dict:
+    		for player_name in players_dict:
+    			player = players_dict.get(player_name)
     			player_energy = player.energy_output_simple_linear(controllers_points)
-    			energy_dict[player] = player_energy
-    			player_reward = Reward(player_energy, prices, min_demand, max_demand)
-    			rewards_dict[player] = 
+    			energy_dict[player_name] = player_energy
+    			player_min_reward = player.get_min_demand()
+    			player_max_reward = player.get_max_demand()
+    			player_reward = Reward(player_energy, prices, player_min_demand, player_max_demand)
+    			player_ideal_demands = player_reward.ideal_use_calculation()
+    			distance_from_ideal = player_reward.distance_from_ideal(player_ideal_demands)
+    			rewards_dict[player_name] = distance_from_ideal
+
+    		total_distance = sum(rewards_dict.values())
+
+    		# reward goes back into controller as controller update 
+    		controller.update(reward = total_distance)
+
     		self._timestep = _timestep + time_interval
 
+    		if self._timestep>self._end_timestamp:
+    			end = True
+
+
+
+
+    	
 
 
 
