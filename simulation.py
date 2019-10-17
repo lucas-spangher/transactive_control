@@ -47,16 +47,12 @@ class Office():
 
     def step(self, controllers_points):
 
-    	while not end: 
+    	while not end:
     		energy_dict = {}
     		rewards_dict = {}
     		for player in players_dict:
     			player_energy = player.energy_output_simple_linear(controllers_points)
     			energy_dict[player] = player_energy
     			player_reward = Reward(player_energy, prices, min_demand, max_demand)
-    			rewards_dict[player] = 
+    			rewards_dict[player] =
     		self._timestep = _timestep + time_interval
-
-
-
-
