@@ -77,12 +77,13 @@ class Office():
 
     	end = False 
 
-    	while not end: 
+    	while not end:
     		energy_dict = {}
     		rewards_dict = {}
     		for player_name in players_dict:
     			player = players_dict.get(player_name)
     			player_energy = player.energy_output_simple_linear(controllers_points)
+          self._timestep = _timestep + time_interval
     			energy_dict[player_name] = player_energy
     			player_min_reward = player.get_min_demand()
     			player_max_reward = player.get_max_demand()
@@ -96,7 +97,7 @@ class Office():
     		# reward goes back into controller as controller update 
     		controller.update(reward = total_distance)
 
-    		self._timestep = _timestep + time_interval
+    		
 
     		if self._timestep>self._end_timestamp:
     			end = True
@@ -190,7 +191,4 @@ class Office():
 def main():
 	
 
-		    	
-
-
-
+		   
