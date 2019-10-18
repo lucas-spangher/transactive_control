@@ -1,9 +1,8 @@
 import pandas as pd 
 
-def change_wg_into_diff(df):
+def change_wg_to_diff(df):
 
 	# make a difference column that doesn't have negatives 
-	print(df.head())
 	df["net_energy_use"] = df["TOTAL_ENERGY_DESK_TODAY"].diff()
 	df.net_energy_use.loc[df.net_energy_use<0] = 0
 

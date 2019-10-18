@@ -11,8 +11,9 @@ class Person():
 
 	"""
 
-	def __init__(self, baseline_energy, points_multiplier = 1):
-		self.baseline_energy = baseline_energy
+	def __init__(self, baseline_energy_df, points_multiplier = 1):
+		self.baseline_energy_df = baseline_energy_df
+		self.baseline_energy = self.baseline_energy_df["net_energy_use"]
 		self.points_multiplier = points_multiplier
 
 	def energy_output_simple_linear(self, points):
@@ -36,21 +37,22 @@ class Person():
 				.mean()
 			)
 
+
+
 		time = points_effect.shape[0]
 		energy_output= []
 
 		for t in range(time):
-			temp_energy = self.baseline_energy[t] - \
-				points_effect.iloc[t]*self.points_multiplier + \
+			temp_energy = self.baseline_energy[t] - points_effect.iloc[t]*self.points_multiplier + \
 				np.random.normal(1)
 			energy_output.append(temp_energy)
 			
 		return pd.DataFrame(energy_output)
 
-	def get_min_demand():
+	def get_min_demand(self):
 		return np.quantile(self.baseline_energy, .05)
 
-	def get_max_demand():
+	def get_max_demand(self):
 		return np.quantile(self.baseline_energy, .95)
 
 class Person_with_hysteresis(Person):

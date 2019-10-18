@@ -50,9 +50,8 @@ class Reward():
 
 		objective = cvx.Minimize(demands.T * prices)
 		problem = cvx.Problem(objective, constraints)
-		print("The problem is QP: ", problem.is_qp())
 
-		problem.solve(solver = cvx.OSQP, verbose=1)
+		problem.solve(solver = cvx.OSQP, verbose=False)
 
 		return np.array(demands.value)
 
