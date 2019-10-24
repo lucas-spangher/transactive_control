@@ -1,4 +1,5 @@
 import numpy as np
+from torch.distributions.multivariate_normal import MultivariateNormal
 
 class BaseController():
     """
@@ -54,20 +55,40 @@ class BinController(BaseController):
     def update(reward):
         pass
 
+class PG_Controller(BaseController):
+    def __init__(self):
+        self.gamma = .95
+        self.policy_net = SimpleNet()
+        self.action_t_holder = 
+
+    def policy_forward_pass(self, state_t):
+        """Constructs the symbolic operation for the policy network outputs,
+            which are the parameters of the policy distribution p(a|s)
+        """
+        self.policy_net()
+
+    def train(reward_t, state_t, action_t):
+        normal_dist = MultivariateNormal(self.action_t, torch.eye(12))
+        log_probs = normal_dist.log_prob(action_t)
+        grad_J = log_probs*reward
+
+
+    def define_log_proc(self):
 
 
 
 
-# class SimpleNet(nn.Module):
-#     def __init__(self):
-#         super(SimpleNet, self).__init__()
 
-#         self.fc1 = nn.Linear(12, 10)
-#         self.fc2 = nn.Linear(10, 10)
-#         self.fc3 = nn.Linear(10, 12)
+class SimpleNet(nn.Module):
+    def __init__(self):
+        super(SimpleNet, self).__init__()
 
-#     def forward(self, x):
-#         x = F.relu(self.fc1(x))
-#         x = F.relu(self.fc2(x))
-#         x = self.fc3(x)
-#         return x
+        self.fc1 = nn.Linear(12, 10)
+        self.fc2 = nn.Linear(10, 10)
+        self.fc3 = nn.Linear(10, 12)
+
+    def forward(self, x):
+        x = F.relu(self.fc1(x))
+        x = F.relu(self.fc2(x))
+        x = self.fc3(x)
+        return x
