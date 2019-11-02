@@ -26,7 +26,7 @@ class Office():
 		self._time_interval = timedelta(days=1)
 		self.players_dict = self._create_agents()
 		self.controller = self._create_controller()
-		self.num_iters = 1000
+		self.num_iters = 10000
 		self.current_iter = 0
 
 	def _create_agents(self):
@@ -104,11 +104,11 @@ class Office():
 			distance_from_ideal = player_reward.neg_distance_from_ideal(player_ideal_demands)
 			rewards_dict[player_name] = distance_from_ideal
 
-		total_distance = sum(rewards_dict.values())
+		total_distance = sum(rewards_dict.values()) + 115000000
 
 		# reward goes back into controller as controller update
 
-		# controller.update(reward = total_distance)
+		controller.update(total_distance, prices, controllers_points)
 
 		self._timestep = self._timestep + self._time_interval
 
@@ -118,6 +118,7 @@ class Office():
 		if self.current_iter >= self.num_iters:
 			end = True
 
+		self.current_iter += 1
 		return controllers_points, total_distance, end
 
 	def price_signal(self, day = 45):
@@ -214,8 +215,10 @@ def main():
 		prices = test_office.price_signal(day)
 		points, distance, end = test_office.step(prices)
 		print(distance)
-		day+=1
-		if day % 30 == 1:
+		day = ((day + 1) % 365) + 1
+		
+		if day % 1000 == 1:
+
 			point_curves.append(points)
 		distances.append(distance)
 

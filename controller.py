@@ -84,19 +84,20 @@ class PGController(BaseController):
         """
         return self.policy_net(state_t)
 
-    def update(reward_t, state_t, action_t):
-
+    def update(self, reward_t, state_t, action_t):
+        
         normal_dist = MultivariateNormal(self.action_t_holder, torch.eye(self.ac_dim))
         log_probs = normal_dist.log_prob(action_t)
 
         loss = -log_probs * reward_t
-        optimizer.zero_grad()
+        self.optimizer.zero_grad()
         loss.backward()
-        optimizer.step()
+        self.optimizer.step()
 
     def get_points(self, price_signal, *other_state_vars):
         state = self.construct_state(price_signal)
         mean_action = self.policy_net(state.float())
+        self.action_t_holder = mean_action
         # Continuous
         dist = MultivariateNormal(mean_action, torch.eye(self.ac_dim))
         output = dist.sample()
