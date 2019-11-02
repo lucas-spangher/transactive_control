@@ -1,10 +1,10 @@
 from agents import Person
 from reward import Reward
-from controller import BaseController
+from controller import BaseController, PGController
 import pandas as pd
 from utils import *
-import csv  
-import numpy as np 
+import csv
+import numpy as np
 from scipy.optimize import minimize
 import matplotlib.pyplot as plt
 from datetime import timedelta
@@ -13,19 +13,21 @@ import matplotlib.pyplot as plt
 class Office():
 	def __init__(self):
 		self._start_timestamp = pd.Timestamp(year=2012,
-                                         month=10,
-                                         day=30,
+                                         month=1,
+                                         day=2,
                                          hour=0,
-                                         minute=0)		
+                                         minute=0)
 		self._end_timestamp = pd.Timestamp(year=2012,
                                          month=12,
-                                         day=31,
+                                         day=30,
                                          hour=0,
                                          minute=0)
 		self._timestep= self._start_timestamp
 		self._time_interval = timedelta(days=1)
 		self.players_dict = self._create_agents()
 		self.controller = self._create_controller()
+		self.num_iters = 1000
+		self.current_iter = 0
 
 	def _create_agents(self):
 		"""Initialize the market agents
@@ -34,7 +36,7 @@ class Office():
 
 			Return:
 			  agent_dict: dictionary of the agents
-        """ 	
+        """
 
 		print("creating agents")
 		baseline_energy1 = pd.read_csv("wg1.txt", sep = "\t")
@@ -60,11 +62,11 @@ class Office():
 
 	def _create_controller(self):
 		print("creating controller")
-		# controller initialize -- hyperparameters 
+		# controller initialize -- hyperparameters
 		# different types of controllers, and down the line, pick the one we use.
-		# controller.initialize(hyperparameters = hyperparameters) 
+		# controller.initialize(hyperparameters = hyperparameters)
 
-		controller = BaseController()
+		controller = PGController()
 
 		return controller
 
@@ -72,22 +74,23 @@ class Office():
 		return self._timestep
 
 	def step(self, prices):
-		""" 
+		"""
 		- get what the controller would output
 		- controller.update to pass in reward
-		- controller initiatlization 
+		- controller initiatlization
 		"""
 
-		# get controllers points 
+		# get controllers points
+		
 		controller = self.controller
 		controllers_points = controller.get_points(prices)
 
-		end = False 
+		end = False
 
 		energy_dict = {}
 		rewards_dict = {}
 		for player_name in self.players_dict:
-			
+
 			# get the points output from players
 			player = self.players_dict.get(player_name)
 			player_energy = player.energy_output_simple_linear(controllers_points)
@@ -103,26 +106,29 @@ class Office():
 
 		total_distance = sum(rewards_dict.values())
 
-		# reward goes back into controller as controller update 
+		# reward goes back into controller as controller update
 
 		# controller.update(reward = total_distance)
 
 		self._timestep = self._timestep + self._time_interval
 
 		if self._timestep>self._end_timestamp:
+			self._timestep = self._start_timestamp
+
+		if self.current_iter >= self.num_iters:
 			end = True
 
-		return total_distance, end
+		return controllers_points, total_distance, end
 
 	def price_signal(self, day = 45):
 
 		"""
-		Utkarsha's work on price signal from a building with demand and solar 
+		Utkarsha's work on price signal from a building with demand and solar
 
 		Input: Day = an int signifying a 24 hour period. 365 total, all of 2012, start at 1.
 		Output: netdemand_price, a measure of how expensive energy is at each time in the day
 			optionally, we can return the optimized demand, which is the building
-			calculating where the net demand should be allocated 
+			calculating where the net demand should be allocated
 		"""
 
 		pv = np.array([])
@@ -161,12 +167,12 @@ class Office():
 		# Calculate optimal load scheduling. 90% of load is fixed, 10% is controllable.
 		def optimise_24h(netdemand_24, price_24):
 		    currentcost = netdemand_24*price_24
-		    
+
 		    fixed_load = 0.9*netdemand_24
 		    controllable_load = sum(0.1*netdemand_24)
 		    # fixed_load = 0*netdemand_24
 		    # controllable_load = sum(netdemand_24)
-		    
+
 		    def objective(x):
 		        load = fixed_load + x
 		        cost = np.multiply(price_24,load)
@@ -177,9 +183,9 @@ class Office():
 
 		    def constraint_sumofx(x):
 		        return sum(x) - controllable_load
-		    
+
 		    def constraint_x_positive(x):
-		        return x 
+		        return x
 
 		    x0 = np.zeros(24)
 		    cons = [
@@ -201,23 +207,27 @@ def main():
 	end = False
 	distances = []
 	day = 1
+	point_curves = []
 	while not end:
 		timestep = test_office.get_timestep()
 		print("--------" + str(timestep) + "-------")
 		prices = test_office.price_signal(day)
-		distance, end = test_office.step(prices)
+		points, distance, end = test_office.step(prices)
 		print(distance)
 		day+=1
+		if day % 30 == 1:
+			point_curves.append(points)
 		distances.append(distance)
 
 	plt.plot(distances)
+	plt.show()
+	for i, curve in enumerate(point_curves):
+		plt.figure()
+		plt.plot(curve, label="curve " + str(i))
+	plt.legend()
 	plt.show()
 
 
 
 if __name__ == "__main__":
 	main()
-
-	
-
-		   
