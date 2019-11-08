@@ -66,6 +66,18 @@ class Reward():
 
 		return -((demands - self.energy_use)**2).sum()
 
+	def cost_distance(self, demands):
+		"""
+		args: 
+			demands: np.array() of demands from ideal_use_calculation()
+
+		returns: 
+			a cost-based distance metric, negated
+		"""
+		current_cost = self.prices*self.energy_use
+		ideal_cost = self.prices*demands
+
+		return (ideal_cost-current_cost).sum()
 
 
 
