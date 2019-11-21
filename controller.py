@@ -85,7 +85,6 @@ class PGController(BaseController):
         return self.policy_net(state_t)
 
     def update(self, reward_t, state_t, action_t):
-        
         normal_dist = MultivariateNormal(self.action_t_holder, torch.eye(self.ac_dim))
         log_probs = normal_dist.log_prob(action_t)
 
@@ -118,7 +117,7 @@ class SimpleNet(nn.Module):
         self.ac_dim = ac_dim
         self.st_dim = st_dim
         self.fc1 = nn.Linear(self.st_dim, 10)
-        self.fc2 = nn.Linear(10, 10)
+        self.fc2 = nn.Linear(50, 50)
         self.fc3 = nn.Linear(10, self.ac_dim)
 
     def forward(self, x):
