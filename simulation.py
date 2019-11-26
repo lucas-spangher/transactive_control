@@ -1,9 +1,12 @@
-from agents import Person
+from agents import Person, FixedDemandPerson
 from reward import Reward
 from controller import BaseController, PGController
 import pandas as pd
 from utils import *
+<<<<<<< HEAD
 from dataloader import *
+=======
+>>>>>>> cf6e0fd17f6b234617ad72eff7258fae93485603
 import csv
 import numpy as np
 from scipy.optimize import minimize
@@ -14,6 +17,7 @@ import matplotlib.pyplot as plt
 class Office():
 	def __init__(self):
 		self._start_timestamp = pd.Timestamp(year=2012,
+<<<<<<< HEAD
                                          month=1,
                                          day=2,
                                          hour=0,
@@ -23,6 +27,17 @@ class Office():
                                          day=30,
                                          hour=0,
                                          minute=0)
+=======
+                                         	 month=1,
+                                             day=2,
+                                             hour=0,
+                                             minute=0)
+		self._end_timestamp = pd.Timestamp(year=2012,
+                                           month=12,
+                                           day=30,
+                                           hour=0,
+                                           minute=0)
+>>>>>>> cf6e0fd17f6b234617ad72eff7258fae93485603
 		self._timestep= self._start_timestamp
 		self._time_interval = timedelta(days=1)
 		self.players_dict = self._create_agents()
@@ -50,16 +65,23 @@ class Office():
 		be2 = change_wg_to_diff(baseline_energy2)
 		be3 = change_wg_to_diff(baseline_energy3)
 
+		print(be1)
 		players_dict = {}
 
-		players_dict['player_0'] = Person(be1, points_multiplier = 1)
-		players_dict['player_1'] = Person(be1, points_multiplier = 2)
-		players_dict['player_2'] = Person(be1, points_multiplier = 4)
-		players_dict['player_3'] = Person(be2, points_multiplier = 1)
-		players_dict['player_3'] = Person(be2, points_multiplier = 2)
-		players_dict['player_4'] = Person(be2, points_multiplier = 2.5)
-		players_dict['player_7'] = Person(be3, points_multiplier = 1)
-		players_dict['player_8'] = Person(be3, points_multiplier = .5)
+		# I dont trust the data at all
+		# helper comment         [0, 1, 2, 3, 4, 5,  6,  7,  8,   9,  10,  11,  12,  13,  14,  15,  16,  17,  18, 19, 20,  21, 22, 23]
+		sample_energy = np.array([0, 0, 0, 0, 0, 0, 20, 50, 80, 120, 200, 210, 180, 250, 380, 310, 220, 140, 100, 50, 20,  10,  0,  0])
+		my_baseline_energy = pd.DataFrame(data={"net_energy_use": sample_energy})
+
+
+		players_dict['player_0'] = FixedDemandPerson(my_baseline_energy, points_multiplier = 100)
+		players_dict['player_1'] = FixedDemandPerson(my_baseline_energy, points_multiplier = 100)
+		players_dict['player_2'] = FixedDemandPerson(my_baseline_energy, points_multiplier = 100)
+		players_dict['player_3'] = FixedDemandPerson(my_baseline_energy, points_multiplier = 100)
+		players_dict['player_4'] = FixedDemandPerson(my_baseline_energy, points_multiplier = 100)
+		players_dict['player_5'] = FixedDemandPerson(my_baseline_energy, points_multiplier = 100)
+		players_dict['player_6'] = FixedDemandPerson(my_baseline_energy, points_multiplier = 100)
+		players_dict['player_7'] = FixedDemandPerson(my_baseline_energy, points_multiplier = 100)
 
 		return players_dict
 
@@ -84,7 +106,11 @@ class Office():
 		"""
 
 		# get controllers points
+<<<<<<< HEAD
 
+=======
+		
+>>>>>>> cf6e0fd17f6b234617ad72eff7258fae93485603
 		controller = self.controller
 		controllers_points = controller.get_points(prices)
 
@@ -96,7 +122,7 @@ class Office():
 
 			# get the points output from players
 			player = self.players_dict.get(player_name)
-			player_energy = player.energy_output_simple_linear(controllers_points)
+			player_energy = player.demand_from_points(controllers_points)
 			energy_dict[player_name] = player_energy
 
 			# get the reward from the player's output
@@ -104,14 +130,19 @@ class Office():
 			player_max_demand = player.get_max_demand()
 			player_reward = Reward(player_energy, prices, player_min_demand, player_max_demand)
 			player_ideal_demands = player_reward.ideal_use_calculation()
-			distance_from_ideal = player_reward.neg_distance_from_ideal(player_ideal_demands)
-			rewards_dict[player_name] = distance_from_ideal
+			# either distance from ideal or cost distance
+			# distance = player_reward.neg_distance_from_ideal(player_ideal_demands)
 
-		total_distance = sum(rewards_dict.values())
+			# print("Ideal demands: ", player_ideal_demands)
+			# print("Actual demands: ", player_energy)
+			reward = player_reward.scaled_cost_distance(player_ideal_demands)
+			rewards_dict[player_name] = reward
+
+		total_reward = sum(rewards_dict.values())
 
 		# reward goes back into controller as controller update
 
-		# controller.update(reward = total_distance)
+		controller.update(total_reward, prices, controllers_points)
 
 		self._timestep = self._timestep + self._time_interval
 
@@ -121,7 +152,12 @@ class Office():
 		if self.current_iter >= self.num_iters:
 			end = True
 
+<<<<<<< HEAD
 		return controllers_points, total_distance, end
+=======
+		self.current_iter += 1
+		return controllers_points, total_reward, end
+>>>>>>> cf6e0fd17f6b234617ad72eff7258fae93485603
 
 	def price_signal(self, day = 45):
 
@@ -211,6 +247,7 @@ def main():
 	distances = []
 	day = 1
 	point_curves = []
+<<<<<<< HEAD
 	while not end:
 		timestep = test_office.get_timestep()
 		print("--------" + str(timestep) + "-------")
@@ -229,6 +266,34 @@ def main():
 		plt.plot(curve, label="curve " + str(i))
 	plt.legend()
 	plt.show()
+=======
+	total_iterations = 0
+	with open("temp_reward_values.txt", "w") as f:
+		while not end:
+			timestep = test_office.get_timestep()
+			print("--------Iteration: " + str(total_iterations) + " Timestep: " + str(timestep) + "-------")
+			
+			# ALWAYS SAME DAY FOR TESTING
+			prices = test_office.price_signal(10)
+			points, distance, end = test_office.step(prices)
+			print("Controller Points: ", points)
+			print("Reward: ", distance)
+			day = ((day + 1) % 365) + 1
+			total_iterations += 1
+			if day % 1000 == 1:
+
+				point_curves.append(points)
+			distances.append(distance)
+			f.write(str(distance) + "\n")
+			f.flush()
+		plt.plot(distances)
+		plt.show()
+		for i, curve in enumerate(point_curves):
+			plt.figure()
+			plt.plot(curve, label="curve " + str(i))
+		plt.legend()
+		plt.show()
+>>>>>>> cf6e0fd17f6b234617ad72eff7258fae93485603
 
 
 

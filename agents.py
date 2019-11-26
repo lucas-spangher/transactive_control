@@ -13,8 +13,16 @@ class Person():
 
 	def __init__(self, baseline_energy_df, points_multiplier = 1):
 		self.baseline_energy_df = baseline_energy_df
-		self.baseline_energy = self.baseline_energy_df["net_energy_use"]
+		self.baseline_energy = np.array(self.baseline_energy_df["net_energy_use"])
 		self.points_multiplier = points_multiplier
+		
+		baseline_min = self.baseline_energy.min()
+		baseline_max = self.baseline_energy.max()
+		baseline_range = baseline_max - baseline_min
+		
+		self.min_demand = baseline_min + baseline_range * .05
+		self.max_demand = baseline_min + baseline_range * .95
+
 
 	def energy_output_simple_linear(self, points):
 		"""Determines the energy output of the person, based on the formula:
@@ -49,11 +57,33 @@ class Person():
 			
 		return pd.DataFrame(energy_output)
 
+	def pure_linear_signal(self, points, baseline_day=0):
+		"""
+		A linear person. The more points you give them, the less energy they will use
+		(within some bounds) for each hour. No rolling effects or anything. The simplest
+		signal. 
+		"""
+
+		# hack here to always grab the first day from the baseline_energy
+		output = np.array(self.baseline_energy)[baseline_day*24:baseline_day*24+24]
+
+		points_effect = np.array(points * self.points_multiplier)
+		output = output - points_effect
+
+		# impose bounds/constraints
+		output = np.maximum(output, self.min_demand)
+		output = np.minimum(output, self.max_demand)
+		return output
+
+
+
 	def get_min_demand(self):
-		return np.quantile(self.baseline_energy, .05)
+		return self.min_demand
+		# return np.quantile(self.baseline_energy, .05)
 
 	def get_max_demand(self):
-		return np.quantile(self.baseline_energy, .95)
+		return self.max_demand
+		# return np.quantile(self.baseline_energy, .95)
 
 class Person_with_hysteresis(Person):
 	""" Wendy -- Determines the energy output of the person, based on the formula:
@@ -71,12 +101,30 @@ class Person_with_hysteresis(Person):
 		pass
 
 
+class FixedDemandPerson(Person):
+
+	def __init__(self, baseline_energy_df, points_multiplier = 1):
+		super().__init__(baseline_energy_df, points_multiplier)
 
 
+	def demand_from_points(self, points, baseline_day=0):
+		# hack here to always grab the first day from the baseline_energy
+		output = np.array(self.baseline_energy)[baseline_day*24:baseline_day*24+24]
+		total_demand = np.sum(output)
 
 
+		points_effect = np.array(points * self.points_multiplier)
+		output = output - points_effect
 
+		# scale to keep total_demand (almost) constant
+		# almost bc imposing bounds afterwards
+		output = output * (total_demand/np.sum(output))
 
+		# impose bounds/constraints
+		output = np.maximum(output, self.min_demand)
+		output = np.minimum(output, self.max_demand)
+
+		return output
 
 
 

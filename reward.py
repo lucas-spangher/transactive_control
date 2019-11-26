@@ -40,7 +40,6 @@ class Reward():
 		max_demand = self.max_demand
 		total_demand = self.total_demand
 		prices = self.prices
-
 		constraints = [cvx.sum(demands, axis=0, keepdims=True) == total_demand]
 		# constraints = [np.ones(self._num_timesteps).T * demands == total_demand]
 		for i in range(self._num_timesteps):
@@ -52,7 +51,6 @@ class Reward():
 		problem = cvx.Problem(objective, constraints)
 
 		problem.solve(solver = cvx.OSQP, verbose=False)
-
 		return np.array(demands.value)
 
 	def neg_distance_from_ideal(self, demands):
@@ -79,6 +77,22 @@ class Reward():
 
 		return (ideal_cost-current_cost).sum()
 
+	def scaled_cost_distance(self, demands):
+		"""
+		args: 
+			demands: np.array() of demands from ideal_use_calculation()
+
+		returns: 
+			a cost-based distance metric normalized by total ideal cost
+		"""
+		current_cost = self.prices*self.energy_use
+		ideal_cost = self.prices*demands
+
+
+		cost_difference = np.sum(ideal_cost-current_cost)
+		total_ideal_cost = np.sum(ideal_cost)
+
+		return cost_difference/total_ideal_cost
 
 
 
