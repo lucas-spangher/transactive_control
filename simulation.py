@@ -1,6 +1,6 @@
 from agents import Person, FixedDemandPerson
 from reward import Reward
-from controller import BaseController, PGController
+from controller import BaseController, PGController, ShallowNet, SimpleNet
 import pandas as pd
 from utils import *
 import csv
@@ -26,7 +26,7 @@ class Office():
 		self._time_interval = timedelta(days=1)
 		self.players_dict = self._create_agents()
 		self.controller = self._create_controller()
-		self.num_iters = 1000
+		self.num_iters = 10000
 		self.current_iter = 0
 
 	def _create_agents(self):
@@ -72,8 +72,8 @@ class Office():
 		# controller initialize -- hyperparameters
 		# different types of controllers, and down the line, pick the one we use.
 		# controller.initialize(hyperparameters = hyperparameters)
-
-		controller = PGController()
+		policy = ShallowNet().float()
+		controller = PGController(policy=policy)
 
 		return controller
 
