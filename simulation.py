@@ -3,10 +3,7 @@ from reward import Reward
 from controller import BaseController, PGController
 import pandas as pd
 from utils import *
-<<<<<<< HEAD
 from dataloader import *
-=======
->>>>>>> cf6e0fd17f6b234617ad72eff7258fae93485603
 import csv
 import numpy as np
 from scipy.optimize import minimize
@@ -17,7 +14,6 @@ import matplotlib.pyplot as plt
 class Office():
 	def __init__(self):
 		self._start_timestamp = pd.Timestamp(year=2012,
-<<<<<<< HEAD
                                          month=1,
                                          day=2,
                                          hour=0,
@@ -27,7 +23,6 @@ class Office():
                                          day=30,
                                          hour=0,
                                          minute=0)
-=======
                                          	 month=1,
                                              day=2,
                                              hour=0,
@@ -37,7 +32,6 @@ class Office():
                                            day=30,
                                            hour=0,
                                            minute=0)
->>>>>>> cf6e0fd17f6b234617ad72eff7258fae93485603
 		self._timestep= self._start_timestamp
 		self._time_interval = timedelta(days=1)
 		self.players_dict = self._create_agents()
@@ -106,11 +100,6 @@ class Office():
 		"""
 
 		# get controllers points
-<<<<<<< HEAD
-
-=======
-		
->>>>>>> cf6e0fd17f6b234617ad72eff7258fae93485603
 		controller = self.controller
 		controllers_points = controller.get_points(prices)
 
@@ -152,12 +141,9 @@ class Office():
 		if self.current_iter >= self.num_iters:
 			end = True
 
-<<<<<<< HEAD
 		return controllers_points, total_distance, end
-=======
 		self.current_iter += 1
 		return controllers_points, total_reward, end
->>>>>>> cf6e0fd17f6b234617ad72eff7258fae93485603
 
 	def price_signal(self, day = 45):
 
@@ -247,7 +233,6 @@ def main():
 	distances = []
 	day = 1
 	point_curves = []
-<<<<<<< HEAD
 	while not end:
 		timestep = test_office.get_timestep()
 		print("--------" + str(timestep) + "-------")
@@ -266,13 +251,12 @@ def main():
 		plt.plot(curve, label="curve " + str(i))
 	plt.legend()
 	plt.show()
-=======
 	total_iterations = 0
 	with open("temp_reward_values.txt", "w") as f:
 		while not end:
 			timestep = test_office.get_timestep()
 			print("--------Iteration: " + str(total_iterations) + " Timestep: " + str(timestep) + "-------")
-			
+
 			# ALWAYS SAME DAY FOR TESTING
 			prices = test_office.price_signal(10)
 			points, distance, end = test_office.step(prices)
@@ -293,7 +277,6 @@ def main():
 			plt.plot(curve, label="curve " + str(i))
 		plt.legend()
 		plt.show()
->>>>>>> cf6e0fd17f6b234617ad72eff7258fae93485603
 
 
 
