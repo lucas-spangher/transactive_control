@@ -126,6 +126,83 @@ class FixedDemandPerson(Person):
 
 		return output
 
+	def adverserial_linear(self, points, baseline_day=0):
+		# hack here to always grab the first day from the baseline_energy
+		output = np.array(self.baseline_energy)[baseline_day*24:baseline_day*24+24]
+		total_demand = np.sum(output)
+
+
+		points_effect = np.array(points * self.points_multiplier)
+		output = output + points_effect
+
+		# scale to keep total_demand (almost) constant
+		# almost bc imposing bounds afterwards
+		output = output * (total_demand/np.sum(output))
+
+		# impose bounds/constraints
+		output = np.maximum(output, self.min_demand)
+		output = np.minimum(output, self.max_demand)
+
+		return output
+
+class DeterministicFunctionPerson(Person):
+
+	def __init__(self, baseline_energy_df, points_multiplier = 1):
+		super().__init__(baseline_energy_df, points_multiplier)
+
+	def threshold_response_func(self, points):
+		points = np.array(points) * self.points_multiplier
+		threshold = np.mean(points)
+		return [p if p>threshold else 0 for p in points]
+
+	def exponential_response_func(self, points):
+		points = np.array(points) * self.points_multiplier
+		points_effect = [p**2 for p in points]
+
+		return points_effect
+
+	def sin_response_func(self,points):
+		points = np.array(points) * self.points_multiplier
+		x = range(len(points))
+		n = len(points)
+		points = [np.sin((float(i)/float(n))*np.pi) for i in x]
+		return points
+
+	def routine_output_transform(self, points_effect, baseline_day=0):
+		output = np.array(self.baseline_energy)[baseline_day*24:baseline_day*24+24]
+		
+		total_demand = np.sum(output)
+
+		# scale to keep total_demand (almost) constant
+		# almost bc imposing bounds afterwards
+		output = output + points_effect
+		output = output * (total_demand/np.sum(output))
+
+		# impose bounds/constraints
+		output = np.maximum(output, self.min_demand)
+		output = np.minimum(output, self.max_demand)
+		return output
+
+	def threshold_response(self, points):
+		points_effect = self.threshold_response_func(points)
+		output = self.routine_output_transform(points_effect)
+		return output
+
+	def sin_response(self, points):
+		points_effect = self.sin_response_func(points)
+		output = self.routine_output_transform(points_effect)
+		return output
+
+	def exp_response(self, points):
+		points_effect = self.exponential_response_func(points)
+		output = self.routine_output_transform(points_effect)
+		return output
+
+	def threshold_exp_response(self,points):
+		points_effect = self.exponential_response_func(points)
+		points_effect = self.threshold_response_func(points_effect)
+		output = self.routine_output_transform(points_effect)
+		return output
 
 
 
