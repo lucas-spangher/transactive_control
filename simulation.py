@@ -1,4 +1,4 @@
-from agents import Person, FixedDemandPerson
+from agents import Person, FixedDemandPerson, DeterministicFunctionPerson
 from reward import Reward
 from controller import BaseController, PGController
 import pandas as pd
@@ -10,6 +10,8 @@ from scipy.optimize import minimize
 import matplotlib.pyplot as plt
 from datetime import timedelta
 import matplotlib.pyplot as plt
+import IPython
+
 
 class Office():
 	def __init__(self):
@@ -23,10 +25,6 @@ class Office():
                                          day=30,
                                          hour=0,
                                          minute=0)
-                                         	 month=1,
-                                             day=2,
-                                             hour=0,
-                                             minute=0)
 		self._end_timestamp = pd.Timestamp(year=2012,
                                            month=12,
                                            day=30,
@@ -49,8 +47,10 @@ class Office():
         """
 
 		print("creating agents")
+
 		#Skipping rows b/c data is converted to PST, which is 16hours behind
 		# so first 10 hours are actually 7/29 instead of 7/30
+		
 		baseline_energy1 = convert_times(pd.read_csv("wg1.txt", sep = "\t", skiprows=range(1, 41)))
 		baseline_energy2 = convert_times(pd.read_csv("wg2.txt", sep = "\t", skiprows=range(1, 41)))
 		baseline_energy3 = convert_times(pd.read_csv("wg3.txt", sep = "\t", skiprows=range(1, 41)))
@@ -59,7 +59,6 @@ class Office():
 		be2 = change_wg_to_diff(baseline_energy2)
 		be3 = change_wg_to_diff(baseline_energy3)
 
-		print(be1)
 		players_dict = {}
 
 		# I dont trust the data at all
@@ -68,14 +67,14 @@ class Office():
 		my_baseline_energy = pd.DataFrame(data={"net_energy_use": sample_energy})
 
 
-		players_dict['player_0'] = FixedDemandPerson(my_baseline_energy, points_multiplier = 100)
-		players_dict['player_1'] = FixedDemandPerson(my_baseline_energy, points_multiplier = 100)
-		players_dict['player_2'] = FixedDemandPerson(my_baseline_energy, points_multiplier = 100)
-		players_dict['player_3'] = FixedDemandPerson(my_baseline_energy, points_multiplier = 100)
-		players_dict['player_4'] = FixedDemandPerson(my_baseline_energy, points_multiplier = 100)
-		players_dict['player_5'] = FixedDemandPerson(my_baseline_energy, points_multiplier = 100)
-		players_dict['player_6'] = FixedDemandPerson(my_baseline_energy, points_multiplier = 100)
-		players_dict['player_7'] = FixedDemandPerson(my_baseline_energy, points_multiplier = 100)
+		players_dict['player_0'] = DeterministicFunctionPerson(my_baseline_energy, points_multiplier = 100)
+		players_dict['player_1'] = DeterministicFunctionPerson(my_baseline_energy, points_multiplier = 100)
+		players_dict['player_2'] = DeterministicFunctionPerson(my_baseline_energy, points_multiplier = 100)
+		players_dict['player_3'] = DeterministicFunctionPerson(my_baseline_energy, points_multiplier = 100)
+		players_dict['player_4'] = DeterministicFunctionPerson(my_baseline_energy, points_multiplier = 100)
+		players_dict['player_5'] = DeterministicFunctionPerson(my_baseline_energy, points_multiplier = 100)
+		players_dict['player_6'] = DeterministicFunctionPerson(my_baseline_energy, points_multiplier = 100)
+		players_dict['player_7'] = DeterministicFunctionPerson(my_baseline_energy, points_multiplier = 100)
 
 		return players_dict
 
@@ -111,7 +110,7 @@ class Office():
 
 			# get the points output from players
 			player = self.players_dict.get(player_name)
-			player_energy = player.demand_from_points(controllers_points)
+			player_energy = player.exp_response(controllers_points.numpy())
 			energy_dict[player_name] = player_energy
 
 			# get the reward from the player's output
@@ -141,7 +140,6 @@ class Office():
 		if self.current_iter >= self.num_iters:
 			end = True
 
-		return controllers_points, total_distance, end
 		self.current_iter += 1
 		return controllers_points, total_reward, end
 
@@ -233,25 +231,8 @@ def main():
 	distances = []
 	day = 1
 	point_curves = []
-	while not end:
-		timestep = test_office.get_timestep()
-		print("--------" + str(timestep) + "-------")
-		prices = test_office.price_signal(day)
-		points, distance, end = test_office.step(prices)
-		print(distance)
-		day+=1
-		if day % 30 == 1:
-			point_curves.append(points)
-		distances.append(distance)
-
-	plt.plot(distances)
-	plt.show()
-	for i, curve in enumerate(point_curves):
-		plt.figure()
-		plt.plot(curve, label="curve " + str(i))
-	plt.legend()
-	plt.show()
 	total_iterations = 0
+
 	with open("temp_reward_values.txt", "w") as f:
 		while not end:
 			timestep = test_office.get_timestep()
