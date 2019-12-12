@@ -10,7 +10,6 @@ from scipy.optimize import minimize
 import matplotlib.pyplot as plt
 from datetime import timedelta
 import matplotlib.pyplot as plt
-
 import datetime
 import os
 import IPython
