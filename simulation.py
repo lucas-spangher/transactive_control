@@ -11,6 +11,9 @@ import matplotlib.pyplot as plt
 from datetime import timedelta
 import matplotlib.pyplot as plt
 import IPython
+import datetime
+import os
+import torch
 
 
 class Office():
@@ -34,8 +37,14 @@ class Office():
 		self._time_interval = timedelta(days=1)
 		self.players_dict = self._create_agents()
 		self.controller = self._create_controller()
-		self.num_iters = 1000
+		self.num_iters = 10
 		self.current_iter = 0
+
+		filename = str(datetime.date.today()) + ".txt"
+		self.log_file = os.path.join( "simulation_logs/" + filename)
+		
+		nn_filename = str(datetime.date.today()) + ".pth.tar"
+		self.nn_file = os.path.join( "nn_logs/" + nn_filename)
 
 	def _create_agents(self):
 		"""Initialize the market agents
@@ -143,6 +152,22 @@ class Office():
 		self.current_iter += 1
 		return controllers_points, total_reward, end
 
+	def log(self, reward, actions, price_signal):
+		row = {}
+		row["iteration"] = self.current_iter
+		row["timestamp"] = self._timestep
+		row["reward"] = reward
+		row["actions"] = actions
+		row["price_signal"] = price_signal
+		df = pd.DataFrame(data=row)
+		df.index.name = "hour"
+		with open(self.log_file, "a") as f:
+			if row["iteration"] == 1:
+				df.to_csv(f, header=True)
+			else:
+				df.to_csv(f, header=False)
+
+
 	def price_signal(self, day = 45):
 
 		"""
@@ -228,10 +253,13 @@ class Office():
 def main():
 	test_office = Office()
 	end = False
-	distances = []
+	rewards = []
 	day = 1
 	point_curves = []
 	total_iterations = 0
+	log_frequency = 1
+	f = open(test_office.log_file, "w+")
+	f.close()
 
 	with open("temp_reward_values.txt", "w") as f:
 		while not end:
@@ -240,18 +268,27 @@ def main():
 
 			# ALWAYS SAME DAY FOR TESTING
 			prices = test_office.price_signal(10)
-			points, distance, end = test_office.step(prices)
+			points, reward, end = test_office.step(prices)
 			print("Controller Points: ", points)
-			print("Reward: ", distance)
+			print("Reward: ", reward)
 			day = ((day + 1) % 365) + 1
 			total_iterations += 1
 			if day % 1000 == 1:
-
 				point_curves.append(points)
-			distances.append(distance)
-			f.write(str(distance) + "\n")
+			rewards.append(reward)
+
+			if day % log_frequency == 0:
+				test_office.log(reward, points, prices)
+
+			f.write(str(reward) + "\n")
 			f.flush()
-		plt.plot(distances)
+
+		## save neural net parameters 
+		with open(test_office.nn_file,"wb") as nn:
+			IPython.embed()
+			torch.save(test_office.controller.policy_net.state_dict(), nn)
+
+		plt.plot(rewards)
 		plt.show()
 		for i, curve in enumerate(point_curves):
 			plt.figure()
