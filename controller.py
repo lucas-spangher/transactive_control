@@ -132,9 +132,9 @@ class SimpleNet(nn.Module):
         super(SimpleNet, self).__init__()
         self.ac_dim = ac_dim
         self.st_dim = st_dim
-        self.fc0 = nn.Linear(self.st_dim, 5)
-        self.fc1 = nn.Linear(5, 5)
-        self.fcFinal = nn.Linear(5, self.ac_dim)
+        self.fc0 = nn.Linear(self.st_dim, 10)
+        self.fc1 = nn.Linear(10, 10)
+        self.fcFinal = nn.Linear(10, self.ac_dim)
 
     def forward(self, x):
         x = F.relu(self.fc0(x))

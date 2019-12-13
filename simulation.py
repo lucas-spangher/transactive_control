@@ -20,6 +20,7 @@ import torch
 class Office():
 	def __init__(
 		self,
+		iterations = 1000,
 		transfer=False, 
 		nn_filepath = None, 
 		opt_filepath = None,
@@ -53,7 +54,7 @@ class Office():
 				nn_filepath=nn_filepath, 
 				opt_filepath = opt_filepath)
 
-		self.num_iters = 2000
+		self.num_iters = iterations
 		self.current_iter = 0
 
 		filename = str(datetime.date.today()) + ".txt"
@@ -279,11 +280,12 @@ class Office():
 		return(netdemand_price_24)
 
 def main():
-	prefix = "transfer_sday_5_"
+	prefix = "base_dday_5_"
 	test_office = Office(
-		transfer = True, 
-		nn_filepath = "nn_logs/base_sdays_5_2019-12-12.pth", 
-		opt_filepath= "opt_logs/base_sdays_5_2019-12-12.pth",
+		iterations=10000,
+		transfer = False, 
+		nn_filepath = "nn_logs/base_ddays_5_2019-12-12.pth", 
+		opt_filepath= "opt_logs/base_ddays_5_2019-12-12.pth",
 		nn_file_to_name= "nn_logs" + prefix + ,
 		opt_file_to_name= "opt_logs" + prefix + )
 	end = False
@@ -301,7 +303,7 @@ def main():
 			print("--------Iteration: " + str(total_iterations) + " Timestep: " + str(timestep) + "-------")
 
 			# ALWAYS SAME DAY FOR TESTING
-			prices = test_office.price_signal(10)
+			prices = test_office.price_signal(day)
 			points, reward, end = test_office.step(prices)
 			print("Controller Points: ", points)
 			print("Reward: ", reward)
@@ -325,7 +327,7 @@ def main():
 			torch.save(test_office.controller.optimizer.state_dict(), opt_file)
 
 		plt.plot(rewards)
-		plt.title("Same day, transfer, sin, 5 hidden layers")
+		plt.title("Different day, transfer, exp, 5 hidden layers")
 		plt.show()
 
 		for i, curve in enumerate(point_curves):
