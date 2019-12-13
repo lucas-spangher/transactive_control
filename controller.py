@@ -132,14 +132,14 @@ class SimpleNet(nn.Module):
         super(SimpleNet, self).__init__()
         self.ac_dim = ac_dim
         self.st_dim = st_dim
-        self.fc1 = nn.Linear(self.st_dim, 5)
-        self.fc2 = nn.Linear(5, 5)
-        self.fc3 = nn.Linear(5, self.ac_dim)
+        self.fc0 = nn.Linear(self.st_dim, 5)
+        self.fc1 = nn.Linear(5, 5)
+        self.fcFinal = nn.Linear(5, self.ac_dim)
 
     def forward(self, x):
+        x = F.relu(self.fc0(x))
         x = F.relu(self.fc1(x))
-        x = F.relu(self.fc2(x))
-        x = F.relu(self.fc3(x))
+        x = F.relu(self.fcFinal(x))
         return x
 
 class ShallowNet(nn.Module):

@@ -18,7 +18,14 @@ import torch
 
 
 class Office():
-	def __init__(self,transfer=False, nn_filepath = None, opt_filepath = None):
+	def __init__(
+		self,
+		transfer=False, 
+		nn_filepath = None, 
+		opt_filepath = None,
+		nn_file_to_name = None,
+		opt_file_to_name = None):
+
 		self._start_timestamp = pd.Timestamp(year=2012,
                                          month=1,
                                          day=2,
@@ -40,22 +47,23 @@ class Office():
 
 		if not transfer:
 			self.controller = self._create_controller()
-			prefix= "base_sdays_5_" 
 		else: 
-			self.controller = self._create_controller(transfer=True, nn_filepath=nn_filepath, opt_filepath = opt_filepath)
-			prefix="transfer_"
+			self.controller = self._create_controller(
+				transfer=True, 
+				nn_filepath=nn_filepath, 
+				opt_filepath = opt_filepath)
 
-		self.num_iters = 1000
+		self.num_iters = 2000
 		self.current_iter = 0
 
 		filename = str(datetime.date.today()) + ".txt"
-		self.log_file = os.path.join( "simulation_logs/" +prefix+ filename)
+		self.log_file = os.path.join( "simulation_logs/" + filename)
 		
-		nn_filename = str(datetime.date.today()) + ".pth"
-		self.nn_file = os.path.join( "nn_logs/base" +prefix+ nn_filename)
+		nn_date = str(datetime.date.today()) + ".pth"
+		self.nn_file = os.path.join( "nn_logs/base" + nn_file_to_name + nn_date)
 
-		opt_filename = str(datetime.date.today()) + ".pth"
-		self.opt_file = os.path.join( "opt_logs/base" +prefix+ opt_filename)
+		opt_date = str(datetime.date.today()) + ".pth"
+		self.opt_file = os.path.join( "opt_logs/base" + opt_file_to_name + opt_date)
 
 	def _create_agents(self):
 		"""Initialize the market agents
@@ -271,7 +279,13 @@ class Office():
 		return(netdemand_price_24)
 
 def main():
-	test_office = Office(transfer = False, nn_filepath = "nn_logs/2019-12-12.pth", opt_filepath= "opt_logs/2019-12-12.pth")
+	prefix = "transfer_sday_5_"
+	test_office = Office(
+		transfer = True, 
+		nn_filepath = "nn_logs/base_sdays_5_2019-12-12.pth", 
+		opt_filepath= "opt_logs/base_sdays_5_2019-12-12.pth",
+		nn_file_to_name= "nn_logs" + prefix + ,
+		opt_file_to_name= "opt_logs" + prefix + )
 	end = False
 	rewards = []
 	day = 1
@@ -311,6 +325,7 @@ def main():
 			torch.save(test_office.controller.optimizer.state_dict(), opt_file)
 
 		plt.plot(rewards)
+		plt.title("Same day, transfer, sin, 5 hidden layers")
 		plt.show()
 
 		for i, curve in enumerate(point_curves):
