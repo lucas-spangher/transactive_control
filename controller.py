@@ -63,9 +63,22 @@ class BinController(BaseController):
         pass
 
 class PGController(BaseController):
-    def __init__(self, optimizer=None, policy=None, optimizer_params=None):
+    def __init__(self, optimizer=None, policy=None, optimizer_params=None, transfer = None):
+
+        """
+        Vanilla PG controller. If transfer learning is desired, pass in the policy nn as the argument for 
+        policy=? and pass in the layer names as (?) 
+        """
+
+
         if policy != None:
             self.policy_net = policy.float()
+            params_to_freeze = self.policy_net.features.parameters()
+            params_to_freeze = params_to_freeze[:transfer]
+
+            for layer_to_freeze in params_to_freeze:
+                self.policy_net.layer_to_freeze.weight.requires_grad=False
+
         else:
             self.policy_net = SimpleNet().float()
 
@@ -136,3 +149,4 @@ class ShallowNet(nn.Module):
     def forward(self, x):
         x = self.fc1(x)
         return x
+
