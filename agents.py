@@ -20,8 +20,8 @@ class Person():
 		baseline_max = self.baseline_energy.max()
 		baseline_range = baseline_max - baseline_min
 		
-		self.min_demand = baseline_min + baseline_range * .05
-		self.max_demand = baseline_min + baseline_range * .95
+		self.min_demand = np.maximum(0, baseline_min + baseline_range * .05)
+		self.max_demand = np.maximum(0, baseline_min + baseline_range * .95)
 
 
 	def energy_output_simple_linear(self, points):
@@ -175,7 +175,7 @@ class DeterministicFunctionPerson(Person):
 
 		# scale to keep total_demand (almost) constant
 		# almost bc imposing bounds afterwards
-		output = output + points_effect
+		output = output - points_effect
 		output = output * (total_demand/np.sum(output))
 
 		# impose bounds/constraints

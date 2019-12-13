@@ -5,6 +5,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 from torch.distributions import MultivariateNormal
 from torch.autograd import Variable
+import itertools
 
 
 class BaseController():
@@ -67,17 +68,19 @@ class PGController(BaseController):
 
         """
         Vanilla PG controller. If transfer learning is desired, pass in the policy nn as the argument for 
-        policy=? and pass in the layer names as (?) 
+        policy=? and pass transfer in as the layer (and above) that we want to freeze
+
         """
 
 
         if policy != None:
             self.policy_net = policy.float()
-            params_to_freeze = self.policy_net.features.parameters()
-            params_to_freeze = params_to_freeze[:transfer]
 
-            for layer_to_freeze in params_to_freeze:
-                self.policy_net.layer_to_freeze.weight.requires_grad=False
+            params = self.policy_net.parameters()
+            params_to_freeze = itertools.islice(params, 2*(transfer-1))
+
+            for params in params_to_freeze:
+                params.requires_grad=False
 
         else:
             self.policy_net = SimpleNet().float()
@@ -111,7 +114,7 @@ class PGController(BaseController):
         mean_action = self.policy_net(state.float())
         self.action_t_holder = mean_action
         # Continuous
-        dist = MultivariateNormal(mean_action, torch.eye(self.ac_dim))
+        dist = MultivariateNormal(mean_action, torch.eye(self.ac_dim)*1e-6)
         output = dist.sample()
         return self.post_process_output(output)
 
@@ -122,7 +125,7 @@ class PGController(BaseController):
     def post_process_output(self, output):
         # returns action given NN output
         # currently naive
-        return output
+        return np.maximum(output,0)
 
 class SimpleNet(nn.Module):
     def __init__(self, ac_dim=24, st_dim=24):
@@ -136,7 +139,7 @@ class SimpleNet(nn.Module):
     def forward(self, x):
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
-        x = self.fc3(x)
+        x = F.relu(self.fc3(x))
         return x
 
 class ShallowNet(nn.Module):
@@ -149,4 +152,3 @@ class ShallowNet(nn.Module):
     def forward(self, x):
         x = self.fc1(x)
         return x
-

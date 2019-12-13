@@ -77,7 +77,7 @@ class Reward():
 
 		return (ideal_cost-current_cost).sum()
 
-	def scaled_cost_distance(self, demands):
+	def scaled_cost_distance_neg(self, demands):
 		"""
 		args: 
 			demands: np.array() of demands from ideal_use_calculation()
@@ -89,7 +89,7 @@ class Reward():
 		ideal_cost = self.prices*demands
 
 
-		cost_difference = np.sum(ideal_cost-current_cost)
+		cost_difference = np.sum(np.minimum(ideal_cost-current_cost, current_cost - ideal_cost))
 		total_ideal_cost = np.sum(ideal_cost)
 
 		return cost_difference/total_ideal_cost

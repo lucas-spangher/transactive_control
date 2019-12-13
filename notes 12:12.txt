@@ -1,0 +1,41 @@
+notes 12/12
+
+- the controller's actions are still negative. Where to implement the fix? At the level of the neural net (reLu isn't working) or at the points layer? (Could do it at the rewards layer too.)
+- transfer to a situation where the days change over time 
+- train in a situation where the days change over time too 
+
+now (9.56) starting a training trial with a 5 hidden node layer with changing days. Training under the name "base_dday_5_" filepaths
+
+now (10.00) to tackle the negative actions. Trying a third reLu, 10 steps. Unsuccessful: 
+
+Controller Points:  tensor([ 1.1999, -0.6299,  0.6086, -0.0557, -0.3496,  0.7890,  0.0141,  0.0543,
+        -0.1266,  0.5904,  0.5423,  0.9614,  1.9790, -0.5460,  0.3206, -1.6384,
+        -2.0352,  0.2862,  0.5252, -0.1773, -0.9692, -0.0358, -0.0873,  0.0189])
+        Also, reward was strongly positive. (?) Reward:  18.697914649182565
+
+       probably due to the fact that points can be negative... 
+
+       bug: points effect was being added to the output. The output was <1, which, with the exponential response and sampling, is prob expected. 
+
+Trying without large sampling spread, and with a max(0,x) applied to the post-processing. This worked! But still has positive rewards. In fact, there was one reward which was very large
+
+idea: the price output curve is really spikey. Have the neural net output parameters for a polynomial instead? 
+
+overwriting the previous long runs because they were with action outputs that aren't realistic
+
+10.46: Starting a new long run with different days, ddays_5_
+	(wondering - whether the different days needs a different nn structure)
+
+10.47: starting a new long run with the same day, sday_5_
+	goal: at least show this simplified version. 
+
+Modifying the scaled_cost function to always be negative. 
+
+pushing to git 
+
+how to facilitate more curiousity in this work? 
+
+
+
+
+

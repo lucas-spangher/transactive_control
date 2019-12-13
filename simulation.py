@@ -1,6 +1,7 @@
 from agents import Person, FixedDemandPerson, DeterministicFunctionPerson
 from reward import Reward
-from controller import BaseController, PGController
+import controller
+from controller import BaseController, PGController, SimpleNet
 import pandas as pd
 from utils import *
 from dataloader import *
@@ -17,7 +18,7 @@ import torch
 
 
 class Office():
-	def __init__(self):
+	def __init__(self,transfer=False, nn_filepath = None, opt_filepath = None):
 		self._start_timestamp = pd.Timestamp(year=2012,
                                          month=1,
                                          day=2,
@@ -36,15 +37,25 @@ class Office():
 		self._timestep= self._start_timestamp
 		self._time_interval = timedelta(days=1)
 		self.players_dict = self._create_agents()
-		self.controller = self._create_controller()
-		self.num_iters = 10
+
+		if not transfer:
+			self.controller = self._create_controller()
+			prefix= "base_sdays_5_" 
+		else: 
+			self.controller = self._create_controller(transfer=True, nn_filepath=nn_filepath, opt_filepath = opt_filepath)
+			prefix="transfer_"
+
+		self.num_iters = 1000
 		self.current_iter = 0
 
 		filename = str(datetime.date.today()) + ".txt"
-		self.log_file = os.path.join( "simulation_logs/" + filename)
+		self.log_file = os.path.join( "simulation_logs/" +prefix+ filename)
 		
-		nn_filename = str(datetime.date.today()) + ".pth.tar"
-		self.nn_file = os.path.join( "nn_logs/" + nn_filename)
+		nn_filename = str(datetime.date.today()) + ".pth"
+		self.nn_file = os.path.join( "nn_logs/base" +prefix+ nn_filename)
+
+		opt_filename = str(datetime.date.today()) + ".pth"
+		self.opt_file = os.path.join( "opt_logs/base" +prefix+ opt_filename)
 
 	def _create_agents(self):
 		"""Initialize the market agents
@@ -87,13 +98,22 @@ class Office():
 
 		return players_dict
 
-	def _create_controller(self):
+	def _create_controller(self, transfer = False, nn_filepath = None, opt_filepath = None):
 		print("creating controller")
 		# controller initialize -- hyperparameters
 		# different types of controllers, and down the line, pick the one we use.
 		# controller.initialize(hyperparameters = hyperparameters)
 
-		controller = PGController()
+		if transfer:
+			model = SimpleNet()
+			model.load_state_dict(torch.load("base_" + nn_filepath))
+			opt = torch.load("base_" + opt_filepath)
+			controller = PGController(policy = model, transfer = 3)
+
+			# controller.optimizer.load_state_dict(torch.load(opt_filepath))
+		
+		else:
+			controller = PGController()
 
 		return controller
 
@@ -132,7 +152,7 @@ class Office():
 
 			# print("Ideal demands: ", player_ideal_demands)
 			# print("Actual demands: ", player_energy)
-			reward = player_reward.scaled_cost_distance(player_ideal_demands)
+			reward = player_reward.scaled_cost_distance_neg(player_ideal_demands)
 			rewards_dict[player_name] = reward
 
 		total_reward = sum(rewards_dict.values())
@@ -251,7 +271,7 @@ class Office():
 		return(netdemand_price_24)
 
 def main():
-	test_office = Office()
+	test_office = Office(transfer = False, nn_filepath = "nn_logs/2019-12-12.pth", opt_filepath= "opt_logs/2019-12-12.pth")
 	end = False
 	rewards = []
 	day = 1
@@ -285,11 +305,14 @@ def main():
 
 		## save neural net parameters 
 		with open(test_office.nn_file,"wb") as nn:
-			IPython.embed()
 			torch.save(test_office.controller.policy_net.state_dict(), nn)
+
+		with open(test_office.opt_file, "wb") as opt_file:
+			torch.save(test_office.controller.optimizer.state_dict(), opt_file)
 
 		plt.plot(rewards)
 		plt.show()
+
 		for i, curve in enumerate(point_curves):
 			plt.figure()
 			plt.plot(curve, label="curve " + str(i))
