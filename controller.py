@@ -114,7 +114,7 @@ class PGController(BaseController):
         mean_action = self.policy_net(state.float())
         self.action_t_holder = mean_action
         # Continuous
-        dist = MultivariateNormal(mean_action, torch.eye(self.ac_dim)*1e-6)
+        dist = MultivariateNormal(mean_action, torch.eye(self.ac_dim))
         output = dist.sample()
         return self.post_process_output(output)
 
@@ -132,14 +132,14 @@ class SimpleNet(nn.Module):
         super(SimpleNet, self).__init__()
         self.ac_dim = ac_dim
         self.st_dim = st_dim
-        self.fc0 = nn.Linear(self.st_dim, 10)
-        self.fc1 = nn.Linear(10, 10)
-        self.fcFinal = nn.Linear(10, self.ac_dim)
+        self.fc0 = nn.Linear(self.st_dim, 1)
+        self.fc1 = nn.Linear(1, 1)
+        self.fcFinal = nn.Linear(1, self.ac_dim)
 
     def forward(self, x):
         x = F.relu(self.fc0(x))
         x = F.relu(self.fc1(x))
-        x = F.relu(self.fcFinal(x))
+        x = self.fcFinal(x)
         return x
 
 class ShallowNet(nn.Module):
@@ -152,3 +152,4 @@ class ShallowNet(nn.Module):
     def forward(self, x):
         x = self.fc1(x)
         return x
+

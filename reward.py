@@ -11,7 +11,7 @@ class Reward():
 		"""
 		Args: 
 			energy_use: list returned by Person class signifying energy use 
-			prices: list returned by minigrid or building resources signifying cost throughout day 
+			prices: list returned by grid signifying cost throughout day 
 			min_demand: value computed by Person class signifying minimum energy use long term
 			max_demand: value computed by Person class signifying maximum energy use long term
 		"""
@@ -89,7 +89,7 @@ class Reward():
 		ideal_cost = self.prices*demands
 
 
-		cost_difference = np.sum(np.minimum(ideal_cost-current_cost, current_cost - ideal_cost))
+		cost_difference = np.sum(np.minimum(ideal_cost - current_cost, current_cost - ideal_cost))
 		total_ideal_cost = np.sum(ideal_cost)
 
 		return cost_difference/total_ideal_cost

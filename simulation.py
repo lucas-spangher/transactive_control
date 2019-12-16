@@ -22,8 +22,8 @@ class Office():
 		self,
 		iterations = 1000,
 		transfer=False, 
-		nn_filepath = None, 
-		opt_filepath = None,
+		nn_filepath_transfer = None, 
+		opt_filepath_transfer = None,
 		nn_file_to_name = None,
 		opt_file_to_name = None):
 
@@ -51,20 +51,20 @@ class Office():
 		else: 
 			self.controller = self._create_controller(
 				transfer=True, 
-				nn_filepath=nn_filepath, 
-				opt_filepath = opt_filepath)
+				nn_filepath=nn_filepath_transfer, 
+				opt_filepath = opt_filepath_transfer)
 
 		self.num_iters = iterations
 		self.current_iter = 0
 
 		filename = str(datetime.date.today()) + ".txt"
-		self.log_file = os.path.join( "simulation_logs/" + filename)
+		self.log_file = os.path.join( "simulation_logs/" + nn_file_to_name + filename)
 		
 		nn_date = str(datetime.date.today()) + ".pth"
-		self.nn_file = os.path.join( "nn_logs/base" + nn_file_to_name + nn_date)
+		self.nn_file = os.path.join( "nn_logs/" + nn_file_to_name + nn_date)
 
 		opt_date = str(datetime.date.today()) + ".pth"
-		self.opt_file = os.path.join( "opt_logs/base" + opt_file_to_name + opt_date)
+		self.opt_file = os.path.join( "opt_logs/" + opt_file_to_name + opt_date)
 
 	def _create_agents(self):
 		"""Initialize the market agents
@@ -80,13 +80,13 @@ class Office():
 		#Skipping rows b/c data is converted to PST, which is 16hours behind
 		# so first 10 hours are actually 7/29 instead of 7/30
 		
-		baseline_energy1 = convert_times(pd.read_csv("wg1.txt", sep = "\t", skiprows=range(1, 41)))
-		baseline_energy2 = convert_times(pd.read_csv("wg2.txt", sep = "\t", skiprows=range(1, 41)))
-		baseline_energy3 = convert_times(pd.read_csv("wg3.txt", sep = "\t", skiprows=range(1, 41)))
+		# baseline_energy1 = convert_times(pd.read_csv("wg1.txt", sep = "\t", skiprows=range(1, 41)))
+		# baseline_energy2 = convert_times(pd.read_csv("wg2.txt", sep = "\t", skiprows=range(1, 41)))
+		# baseline_energy3 = convert_times(pd.read_csv("wg3.txt", sep = "\t", skiprows=range(1, 41)))
 
-		be1 = change_wg_to_diff(baseline_energy1)
-		be2 = change_wg_to_diff(baseline_energy2)
-		be3 = change_wg_to_diff(baseline_energy3)
+		# be1 = change_wg_to_diff(baseline_energy1)
+		# be2 = change_wg_to_diff(baseline_energy2)
+		# be3 = change_wg_to_diff(baseline_energy3)
 
 		players_dict = {}
 
@@ -115,8 +115,8 @@ class Office():
 
 		if transfer:
 			model = SimpleNet()
-			model.load_state_dict(torch.load("base_" + nn_filepath))
-			opt = torch.load("base_" + opt_filepath)
+			model.load_state_dict(torch.load(nn_filepath))
+			opt = torch.load(opt_filepath)
 			controller = PGController(policy = model, transfer = 3)
 
 			# controller.optimizer.load_state_dict(torch.load(opt_filepath))
@@ -148,7 +148,8 @@ class Office():
 
 			# get the points output from players
 			player = self.players_dict.get(player_name)
-			player_energy = player.exp_response(controllers_points.numpy())
+			player_energy = player.threshold_exp_response(controllers_points.numpy())
+			last_player_energy = player_energy
 			energy_dict[player_name] = player_energy
 
 			# get the reward from the player's output
@@ -156,6 +157,7 @@ class Office():
 			player_max_demand = player.get_max_demand()
 			player_reward = Reward(player_energy, prices, player_min_demand, player_max_demand)
 			player_ideal_demands = player_reward.ideal_use_calculation()
+			last_player_ideal = player_ideal_demands
 			# either distance from ideal or cost distance
 			# distance = player_reward.neg_distance_from_ideal(player_ideal_demands)
 
@@ -179,12 +181,14 @@ class Office():
 			end = True
 
 		self.current_iter += 1
-		return controllers_points, total_reward, end
+		return controllers_points, last_player_energy, last_player_ideal, total_reward, end
 
-	def log(self, reward, actions, price_signal):
+	def log(self, reward, actions, price_signal, demands, ideal_demands):
 		row = {}
 		row["iteration"] = self.current_iter
 		row["timestamp"] = self._timestep
+		row["demands"] = demands
+		row["ideal_demands"] = ideal_demands
 		row["reward"] = reward
 		row["actions"] = actions
 		row["price_signal"] = price_signal
@@ -280,14 +284,15 @@ class Office():
 		return(netdemand_price_24)
 
 def main():
-	prefix = "base_dday_5_"
+	prefix = "base_sday_threshexp_with_exp_trained_1_"
+	# prefix = "base_sday_linear_"
 	test_office = Office(
-		iterations=10000,
-		transfer = False, 
-		nn_filepath = "nn_logs/base_ddays_5_2019-12-12.pth", 
-		opt_filepath= "opt_logs/base_ddays_5_2019-12-12.pth",
-		nn_file_to_name= "nn_logs" + prefix + ,
-		opt_file_to_name= "opt_logs" + prefix + )
+		iterations=2000,
+		transfer = True, 
+		nn_filepath_transfer = "nn_logs/nn_logs_base_sday_exp_1_2019-12-16.pth", 
+		opt_filepath_transfer= "opt_logs/opt_logs_base_sday_exp_1_2019-12-16.pth",
+		nn_file_to_name= "nn_logs_" + prefix,
+		opt_file_to_name= "opt_logs_" + prefix)
 	end = False
 	rewards = []
 	day = 1
@@ -303,9 +308,9 @@ def main():
 			print("--------Iteration: " + str(total_iterations) + " Timestep: " + str(timestep) + "-------")
 
 			# ALWAYS SAME DAY FOR TESTING
-			prices = test_office.price_signal(day)
-			points, reward, end = test_office.step(prices)
-			print("Controller Points: ", points)
+			prices = test_office.price_signal(20)
+			points, last_demand, last_player_ideal, reward, end = test_office.step(prices)
+			print("Controller Action: ", points)
 			print("Reward: ", reward)
 			day = ((day + 1) % 365) + 1
 			total_iterations += 1
@@ -314,20 +319,28 @@ def main():
 			rewards.append(reward)
 
 			if day % log_frequency == 0:
-				test_office.log(reward, points, prices)
+				test_office.log(
+					reward = reward, 
+					actions = points, 
+					price_signal = prices, 
+					demands = last_demand, 
+					ideal_demands = last_player_ideal
+					)
 
 			f.write(str(reward) + "\n")
 			f.flush()
 
-		## save neural net parameters 
-		with open(test_office.nn_file,"wb") as nn:
-			torch.save(test_office.controller.policy_net.state_dict(), nn)
+			if total_iterations % 100 ==0:
 
-		with open(test_office.opt_file, "wb") as opt_file:
-			torch.save(test_office.controller.optimizer.state_dict(), opt_file)
+				## save neural net parameters every 100 iterations
+				with open(test_office.nn_file,"wb") as nn:
+					torch.save(test_office.controller.policy_net.state_dict(), nn)
+
+				with open(test_office.opt_file, "wb") as opt_file:
+					torch.save(test_office.controller.optimizer.state_dict(), opt_file)
 
 		plt.plot(rewards)
-		plt.title("Different day, transfer, exp, 5 hidden layers")
+		plt.title("Same day, base, thresh, 2 hidden nodes")
 		plt.show()
 
 		for i, curve in enumerate(point_curves):

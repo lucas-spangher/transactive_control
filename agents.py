@@ -162,15 +162,15 @@ class DeterministicFunctionPerson(Person):
 		return points_effect
 
 	def sin_response_func(self,points):
-		points = np.array(points) * self.points_multiplier
-		x = range(len(points))
-		n = len(points)
-		points = [np.sin((float(i)/float(n))*np.pi) for i in x]
+		points = np.array(points) 
+		# n = np.max(points)
+		# points = [np.sin((float(i)/float(n))*np.pi) for i in points]	
+		points = [np.sin(float(i)*np.pi)*self.points_multiplier for i in points]	
+		points = points 
 		return points
 
 	def routine_output_transform(self, points_effect, baseline_day=0):
 		output = np.array(self.baseline_energy)[baseline_day*24:baseline_day*24+24]
-		
 		total_demand = np.sum(output)
 
 		# scale to keep total_demand (almost) constant
@@ -201,6 +201,11 @@ class DeterministicFunctionPerson(Person):
 	def threshold_exp_response(self,points):
 		points_effect = self.exponential_response_func(points)
 		points_effect = self.threshold_response_func(points_effect)
+		output = self.routine_output_transform(points_effect)
+		return output
+
+	def linear_response(self, points):
+		points_effect = points*self.points_multiplier
 		output = self.routine_output_transform(points_effect)
 		return output
 
