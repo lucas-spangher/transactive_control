@@ -1,0 +1,85 @@
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+!_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+!_TAG_PROGRAM_NAME	Exuberant Ctags	//
+!_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+!_TAG_PROGRAM_VERSION	5.8	//
+BaseController	../controller.py	/^class BaseController():$/;"	kind:class	line:10
+BaseController	../simulation.py	/^from controller import BaseController, PGController$/;"	kind:namespace	line:3
+BinController	../controller.py	/^class BinController(BaseController):$/;"	kind:class	line:38
+F	../controller.py	/^import torch.nn.functional as F$/;"	kind:namespace	line:4
+MultivariateNormal	../controller.py	/^from torch.distributions import MultivariateNormal$/;"	kind:namespace	line:6
+Office	../simulation.py	/^class Office():$/;"	kind:class	line:13
+PGController	../controller.py	/^class PGController(BaseController):$/;"	kind:class	line:65
+PGController	../simulation.py	/^from controller import BaseController, PGController$/;"	kind:namespace	line:3
+Person	../agents.py	/^class Person():$/;"	kind:class	line:7
+Person	../simulation.py	/^from agents import Person$/;"	kind:namespace	line:1
+Person_with_hysteresis	../agents.py	/^class Person_with_hysteresis(Person):$/;"	kind:class	line:71
+Reward	../reward.py	/^class Reward():$/;"	kind:class	line:9
+Reward	../simulation.py	/^from reward import Reward$/;"	kind:namespace	line:2
+SimpleNet	../controller.py	/^class SimpleNet(nn.Module):$/;"	kind:class	line:114
+Variable	../controller.py	/^from torch.autograd import Variable$/;"	kind:namespace	line:7
+__init__	../agents.py	/^	def __init__(self, baseline_energy, points_multiplier = 1):$/;"	kind:member	line:83
+__init__	../agents.py	/^	def __init__(self, baseline_energy_df, points_multiplier = 1):$/;"	kind:member	line:14
+__init__	../controller.py	/^    def __init__(self):$/;"	kind:member	line:16
+__init__	../controller.py	/^    def __init__(self, ac_dim=24, st_dim=24):$/;"	kind:member	line:115
+__init__	../controller.py	/^    def __init__(self, action_dimension=3, scaling_factor=1, vertical_shift=10):$/;"	kind:member	line:43
+__init__	../controller.py	/^    def __init__(self, optimizer=None, policy=None, optimizer_params=None):$/;"	kind:member	line:66
+__init__	../reward.py	/^	def __init__(self, energy_use, prices, min_demand, max_demand):$/;"	kind:member	line:10
+__init__	../simulation.py	/^	def __init__(self):$/;"	kind:member	line:14
+_create_agents	../simulation.py	/^	def _create_agents(self):$/;"	kind:member	line:32
+_create_controller	../simulation.py	/^	def _create_controller(self):$/;"	kind:member	line:63
+_process_price_signal	../controller.py	/^    def _process_price_signal(self, price_signal):$/;"	kind:member	line:48
+agents.py	../agents.py	1;"	kind:file	line:1
+change_wg_to_diff	../utils.py	/^def change_wg_to_diff(df):$/;"	kind:function	line:3
+constraint_sumofx	../simulation.py	/^		    def constraint_sumofx(x):$/;"	kind:function	line:184
+constraint_x_positive	../simulation.py	/^		    def constraint_x_positive(x):$/;"	kind:function	line:187
+construct_state	../controller.py	/^    def construct_state(self, price_signal):$/;"	kind:member	line:106
+controller.py	../controller.py	1;"	kind:file	line:1
+csv	../simulation.py	/^import csv$/;"	kind:namespace	line:6
+cvx	../reward.py	/^import cvxpy as cvx$/;"	kind:namespace	line:1
+energy_output_simple_linear	../agents.py	/^	def energy_output_simple_linear(self, points):$/;"	kind:member	line:30
+forward	../controller.py	/^    def forward(self, x):$/;"	kind:member	line:123
+get_max_demand	../agents.py	/^	def get_max_demand(self):$/;"	kind:member	line:68
+get_min_demand	../agents.py	/^	def get_min_demand(self):$/;"	kind:member	line:65
+get_points	../controller.py	/^    def get_points(price_signal):$/;"	kind:member	line:55
+get_points	../controller.py	/^    def get_points(self, price_signal, **kwargs):$/;"	kind:member	line:19
+get_points	../controller.py	/^    def get_points(self, price_signal, *other_state_vars):$/;"	kind:member	line:97
+get_timestep	../simulation.py	/^	def get_timestep(self):$/;"	kind:member	line:73
+ideal_use_calculation	../reward.py	/^	def ideal_use_calculation(self):$/;"	kind:member	line:26
+main	../simulation.py	/^def main():$/;"	kind:function	line:205
+matplotlib	../simulation.py	/^import matplotlib.pyplot as plt$/;"	kind:namespace	line:11
+matplotlib	../simulation.py	/^import matplotlib.pyplot as plt$/;"	kind:namespace	line:9
+minimize	../simulation.py	/^from scipy.optimize import minimize$/;"	kind:namespace	line:8
+neg_distance_from_ideal	../reward.py	/^	def neg_distance_from_ideal(self, demands):$/;"	kind:member	line:58
+nn	../controller.py	/^import torch.nn as nn$/;"	kind:namespace	line:3
+nn	../controller.py	/^import torch.nn.functional as F$/;"	kind:namespace	line:4
+np	../agents.py	/^import numpy as np$/;"	kind:namespace	line:2
+np	../controller.py	/^import numpy as np$/;"	kind:namespace	line:1
+np	../reward.py	/^import numpy as np$/;"	kind:namespace	line:3
+np	../simulation.py	/^import numpy as np$/;"	kind:namespace	line:7
+objective	../simulation.py	/^		    def objective(x):$/;"	kind:function	line:176
+optim	../controller.py	/^import torch.optim as optim$/;"	kind:namespace	line:5
+optimise_24h	../simulation.py	/^		def optimise_24h(netdemand_24, price_24):$/;"	kind:function	line:168
+osqp	../reward.py	/^import osqp$/;"	kind:namespace	line:2
+pd	../agents.py	/^import pandas as pd$/;"	kind:namespace	line:1
+pd	../simulation.py	/^import pandas as pd$/;"	kind:namespace	line:4
+pd	../utils.py	/^import pandas as pd $/;"	kind:namespace	line:1
+plt	../simulation.py	/^import matplotlib.pyplot as plt$/;"	kind:namespace	line:11
+plt	../simulation.py	/^import matplotlib.pyplot as plt$/;"	kind:namespace	line:9
+policy	../controller.py	/^    def policy(state):$/;"	kind:member	line:59
+policy_forward_pass	../controller.py	/^    def policy_forward_pass(self, state_t):$/;"	kind:member	line:81
+post_process_output	../controller.py	/^    def post_process_output(self, output):$/;"	kind:member	line:109
+price_signal	../simulation.py	/^	def price_signal(self, day = 45):$/;"	kind:member	line:123
+reward.py	../reward.py	1;"	kind:file	line:1
+simulation.py	../simulation.py	1;"	kind:file	line:1
+step	../simulation.py	/^	def step(self, prices):$/;"	kind:member	line:76
+timedelta	../simulation.py	/^from datetime import timedelta$/;"	kind:namespace	line:10
+torch	../controller.py	/^import torch$/;"	kind:namespace	line:2
+torch	../controller.py	/^import torch.nn as nn$/;"	kind:namespace	line:3
+torch	../controller.py	/^import torch.nn.functional as F$/;"	kind:namespace	line:4
+torch	../controller.py	/^import torch.optim as optim$/;"	kind:namespace	line:5
+update	../controller.py	/^    def update(reward):$/;"	kind:member	line:62
+update	../controller.py	/^    def update(reward_t, state_t, action_t):$/;"	kind:member	line:87
+update	../controller.py	/^    def update(self, reward):$/;"	kind:member	line:30
+utils.py	../utils.py	1;"	kind:file	line:1
