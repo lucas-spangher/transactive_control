@@ -107,7 +107,7 @@ class Person:
 
     def get_predicted_energy(self, baseline):
         """Gives the predicted energy distribution, as a function of baseline energy usage and a delta 
-        function that is proportional to the behavior state."""
+        function that is proportional to the behavior state. Will use the average of the three previous weeks"""
 
         # what does baseline refer to?
 
