@@ -2,6 +2,12 @@ import numpy as np
 import random
 from collections import defaultdict
 
+# things to do:
+# create functions for out of office, energy saturation weights
+# fill in function for energy baseline, and predicted energy
+# move away from workstation
+# build in hourly updates 
+
 
 class Person:
     """The Person class contains the bulk of the simulation -- the main
@@ -13,10 +19,9 @@ class Person:
      The flow weights between different weights, as well as the exogenous variables
      at each time step, have been assigned to be random values between 0 and 1."""
 
-    def __init__(self, workstation, baseline, states=[], weights=[]):
+    def __init__(self, workstation, states=[], weights=[]):
         self.workstation = workstation
         self.curr_timestep = 0
-        self.baseline = baseline
 
         # set the out of office value as a boolean, zero out the delta if you are out of the office
         # this would have to change the structure of the matrices as well
@@ -72,19 +77,21 @@ class Person:
             ]
         )
 
-    def exogenous_inputs(self, timestep):
-        vicarious_learning = self.workstation.vicarious_learning_average(timestep - 1)
-        weekly_poll = random.random()
-        pretreatment_survey = random.random()
-        points = random.random()
-        email_indicator = random.random()
+    def exogenous_inputs(self, timestamp):
+        week, day, hourly_timestep = self.extract_time_info(timestamp)
+        vicarious_learning = self.workstation.vicarious_learning_average(hourly_timestep - 1)
+        weekly_poll = self.get_weekly_poll(week)
+        pretreatment_survey = self.get_pretreatment_from_csv()
+        points = self.get_points(day, hourly_timestep)
+        email_indicator = self.get_email_indicator(timestamp)
 
         # to be discussed - how out of office and energy saturation can be integrated as part of the workstation class
 
-        out_of_office = random.random()
-        energy_saturation_measure = random.random()
+        out_of_office = self.get_out_of_office_score(day, hourly_timestep)
+        energy_saturation_measure = self.get_energy_saturation_baseline(timestamp)
 
-        predicted_energy = random.random()
+        predicted_energy_baseline = self.get_baseline(timestamp)
+        predicted_energy = self.get_predicted_energy(predicted_energy_baseline)
         return np.array(
             [
                 vicarious_learning,
@@ -105,6 +112,12 @@ class Person:
             self.input_weights, self.exogenous_inputs(self.curr_timestep)
         )
 
+    def get_energy_at_time(self, timestamp):
+        return
+
+    def get_energy_saturation_baseline(self, timestamp):
+        return 
+
     def get_predicted_energy(self, baseline):
         """Gives the predicted energy distribution, as a function of baseline energy usage and a delta 
         function that is proportional to the behavior state. Will use the average of the three previous weeks"""
@@ -112,6 +125,25 @@ class Person:
         # what does baseline refer to?
 
         return 0
+
+    def extract_time_info(self, timestamp):
+        return
+
+    def get_weekly_poll(self, week):
+        return
+
+    def get_pretreatment_from_csv(self):
+        return
+
+    def get_points(self, hourly_timestep):
+        return
+
+    def get_email_indicator(self, timestamp):
+        return
+
+    def get_predicted_energy_baseline(self, timestamp):
+        pass
+
 
 
 class Workstation:
@@ -137,7 +169,7 @@ to determine the impact of vicarious learning."""
         for person in self.people:
             person.update()
             self.energy_used[self.curr_timestep][person] = person.get_predicted_energy(
-                person.baseline
+                person.get_baseline()
             )
 
         self.curr_timestep += 1

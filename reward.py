@@ -6,7 +6,7 @@ import numpy as np
 #### class Rewards should have several different functions by Dec 2019
 
 
-class Reward():
+seclass Reward():
 	def __init__(self, energy_use, prices, min_demand, max_demand):
 		"""
 		Args: 
