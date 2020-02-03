@@ -21,11 +21,11 @@ class Office():
 	def __init__(
 		self,
 		iterations = 1000,
-		transfer=False, 
-		nn_filepath_transfer = None, 
-		opt_filepath_transfer = None,
-		nn_file_to_name = None,
-		opt_file_to_name = None):
+		transfer=False,
+		nn_filepath_transfer = "",
+		opt_filepath_transfer = "",
+		nn_file_to_name = "",
+		opt_file_to_name = ""):
 
 		self._start_timestamp = pd.Timestamp(year=2012,
                                          month=1,
@@ -48,23 +48,23 @@ class Office():
 
 		if not transfer:
 			self.controller = self._create_controller()
-		else: 
+		else:
 			self.controller = self._create_controller(
-				transfer=True, 
-				nn_filepath=nn_filepath_transfer, 
+				transfer=True,
+				nn_filepath=nn_filepath_transfer,
 				opt_filepath = opt_filepath_transfer)
 
-		self.num_iters = iterations
-		self.current_iter = 0
-
-		filename = str(datetime.date.today()) + ".txt"
-		self.log_file = os.path.join( "simulation_logs/" + nn_file_to_name + filename)
-		
-		nn_date = str(datetime.date.today()) + ".pth"
-		self.nn_file = os.path.join( "nn_logs/" + nn_file_to_name + nn_date)
-
-		opt_date = str(datetime.date.today()) + ".pth"
-		self.opt_file = os.path.join( "opt_logs/" + opt_file_to_name + opt_date)
+		# self.num_iters = iterations
+		# self.current_iter = 0
+		#
+		# filename = str(datetime.date.today()) + ".txt"
+		# self.log_file = os.path.join( "simulation_logs/" + nn_file_to_name + filename)
+		#
+		# nn_date = str(datetime.date.today()) + ".pth"
+		# self.nn_file = os.path.join( "nn_logs/" + nn_file_to_name + nn_date)
+		#
+		# opt_date = str(datetime.date.today()) + ".pth"
+		# self.opt_file = os.path.join( "opt_logs/" + opt_file_to_name + opt_date)
 
 	def _create_agents(self):
 		"""Initialize the market agents
@@ -79,7 +79,7 @@ class Office():
 
 		#Skipping rows b/c data is converted to PST, which is 16hours behind
 		# so first 10 hours are actually 7/29 instead of 7/30
-		
+
 		# baseline_energy1 = convert_times(pd.read_csv("wg1.txt", sep = "\t", skiprows=range(1, 41)))
 		# baseline_energy2 = convert_times(pd.read_csv("wg2.txt", sep = "\t", skiprows=range(1, 41)))
 		# baseline_energy3 = convert_times(pd.read_csv("wg3.txt", sep = "\t", skiprows=range(1, 41)))
@@ -120,7 +120,7 @@ class Office():
 			controller = PGController(policy = model, transfer = 3)
 
 			# controller.optimizer.load_state_dict(torch.load(opt_filepath))
-		
+
 		else:
 			controller = PGController()
 
@@ -281,6 +281,8 @@ class Office():
 
 		netdemand_price_24 = netdemand_24*price_24
 
+		#Clipping price so that price is always >=0 for each hour
+		netdemand_price_24 = np.clip(netdemand_price_24, 0, None)
 		return(netdemand_price_24)
 
 def main():
@@ -288,8 +290,8 @@ def main():
 	# prefix = "base_sday_linear_"
 	test_office = Office(
 		iterations=2000,
-		transfer = True, 
-		nn_filepath_transfer = "nn_logs/nn_logs_base_sday_exp_1_2019-12-16.pth", 
+		transfer = True,
+		nn_filepath_transfer = "nn_logs/nn_logs_base_sday_exp_1_2019-12-16.pth",
 		opt_filepath_transfer= "opt_logs/opt_logs_base_sday_exp_1_2019-12-16.pth",
 		nn_file_to_name= "nn_logs_" + prefix,
 		opt_file_to_name= "opt_logs_" + prefix)
@@ -320,10 +322,10 @@ def main():
 
 			if day % log_frequency == 0:
 				test_office.log(
-					reward = reward, 
-					actions = points, 
-					price_signal = prices, 
-					demands = last_demand, 
+					reward = reward,
+					actions = points,
+					price_signal = prices,
+					demands = last_demand,
 					ideal_demands = last_player_ideal
 					)
 
