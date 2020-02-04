@@ -1,12 +1,16 @@
+#%%
 import numpy as np
 import random
 from collections import defaultdict
+import csv
+import pandas as pd
+from datetime import datetime, timedelta
 
 # things to do:
 # create functions for out of office, energy saturation weights
 # fill in function for energy baseline, and predicted energy
 # move away from workstation
-# build in hourly updates 
+# build in hourly updates
 
 
 class Person:
@@ -19,9 +23,21 @@ class Person:
      The flow weights between different weights, as well as the exogenous variables
      at each time step, have been assigned to be random values between 0 and 1."""
 
-    def __init__(self, workstation, states=[], weights=[]):
+    def __init__(self, workstation, name, df_data, states=[], weights=[]):
         self.workstation = workstation
         self.curr_timestep = 0
+        self.name = name
+        self.states = []
+        self.weights = []
+        self.email_data = df_data[0]
+        self.energy_data = df_data[1]
+        self.points_data = df_data[2]
+        self.presurvey_data = df_data[3]
+        self.weekly_survey_data = df_data[4]
+        self.baseline_data = df_data[5]
+        self.ooo_data = df_data[6]
+
+        # put filepaths of the CSV here
 
         # set the out of office value as a boolean, zero out the delta if you are out of the office
         # this would have to change the structure of the matrices as well
@@ -32,7 +48,7 @@ class Person:
 
         # assume price signal is a twelve-key dataframe
 
-        if not states:
+        if not self.states:
             outcome_expectancy = random.random()
             self_efficacy = random.random()
             behavior = random.random()
@@ -79,22 +95,24 @@ class Person:
 
     def exogenous_inputs(self, timestamp):
         week, day, hourly_timestep = self.extract_time_info(timestamp)
-        vicarious_learning = self.workstation.vicarious_learning_average(hourly_timestep - 1)
-        weekly_poll = self.get_weekly_poll(week)
-        pretreatment_survey = self.get_pretreatment_from_csv()
-        points = self.get_points(day, hourly_timestep)
+        # vicarious_learning = self.workstation.vicarious_learning_average(
+        #     hourly_timestep - 1
+        # )
+        weekly_poll = self.get_weekly_poll(timestamp)
+        pretreatment_survey = self.get_pretreatment_from_csv(timestamp)
+        points = self.get_points(timestamp)
         email_indicator = self.get_email_indicator(timestamp)
 
         # to be discussed - how out of office and energy saturation can be integrated as part of the workstation class
 
-        out_of_office = self.get_out_of_office_score(day, hourly_timestep)
-        energy_saturation_measure = self.get_energy_saturation_baseline(timestamp)
+        out_of_office = self.get_out_of_office_score(timestamp)
+        energy_saturation_measure = self.get_energy_saturation_daily_baseline(timestamp)
 
-        predicted_energy_baseline = self.get_baseline(timestamp)
+        predicted_energy_baseline = self.get_hourly_baseline(timestamp)
         predicted_energy = self.get_predicted_energy(predicted_energy_baseline)
         return np.array(
             [
-                vicarious_learning,
+                # vicarious_learning,
                 weekly_poll,
                 pretreatment_survey,
                 points,
@@ -112,38 +130,103 @@ class Person:
             self.input_weights, self.exogenous_inputs(self.curr_timestep)
         )
 
-    def get_energy_at_time(self, timestamp):
-        return
+    def get_energy_at_time(self, date, hour):
+        val = self.energy_data[
+            (self.energy_data["Date"] == date) & (self.energy_data["Hour"] == hour)
+        ]["HourlyEnergy"].iloc[0]
+        return val
 
-    def get_energy_saturation_baseline(self, timestamp):
-        return 
+    def get_energy_saturation_daily_baseline(self, timestamp):
+        baseline_times = []
+        energy = []
+
+        for _ in range(3):
+            timestamp = timestamp - timedelta(weeks=1)
+            baseline_times.append(self.extract_time_info(timestamp))
+
+        for datetime in baseline_times:
+            daily_sum = []
+            for hour in range(8, 21):
+                print(datetime[0], hour)
+                daily_sum.append(
+                    self.energy_data[
+                        (self.energy_data["Date"] == datetime[0])
+                        & (self.energy_data["Hour"] == hour)
+                    ]["HourlyEnergy"].iloc[0]
+                )
+            energy.append(sum(daily_sum))
+
+        return sum(energy) / len(energy)
+
+    def get_energy_saturation(self, timestamp):
+        date, hour, week = self.extract_time_info(timestamp)
+        cume_energy = []
+        for hour in range(8, hour + 1):
+            cume_energy.append(self.get_energy_at_time(date, hour))
+
+        return sum(cume_energy) / self.get_energy_saturation_daily_baseline(timestamp)
 
     def get_predicted_energy(self, baseline):
         """Gives the predicted energy distribution, as a function of baseline energy usage and a delta 
         function that is proportional to the behavior state. Will use the average of the three previous weeks"""
+        return True
 
         # what does baseline refer to?
-
-        return 0
+        # how to calculate the predicted energy relative to baseline
 
     def extract_time_info(self, timestamp):
-        return
+        return timestamp.date(), timestamp.hour, int(timestamp.week)
 
-    def get_weekly_poll(self, week):
-        return
+    def get_weekly_poll(self, timestamp):
+        date, hour, week = self.extract_time_info(timestamp)
+        val = self.weekly_survey_data[self.weekly_survey_data["Week_Number"] == week][
+            "WeeklySurvey"
+        ].iloc[0]
+        return val
 
-    def get_pretreatment_from_csv(self):
-        return
+    def get_pretreatment_from_csv(self, timestamp):
+        date, hour, week = self.extract_time_info(timestamp)
+        val = self.presurvey_data["PreSurvey"].iloc[0]
+        return val
 
-    def get_points(self, hourly_timestep):
-        return
+    def get_points(self, timestamp):
+        date, hour, week = self.extract_time_info(timestamp)
+        val = self.points_data[
+            (self.points_data["Date"] == date) & (self.points_data["Hour"] == hour)
+        ]["Points"].iloc[0]
+        return val
 
     def get_email_indicator(self, timestamp):
-        return
+        date, hour, week = self.extract_time_info(timestamp)
+        val = self.email_data[
+            (self.email_data["Date"] == date) & (self.email_data["Hour"] == hour)
+        ]["Email"].iloc[0]
+        return val
 
-    def get_predicted_energy_baseline(self, timestamp):
-        pass
+    def get_hourly_baseline(self, timestamp):
+        baseline_times = []
+        energy = []
 
+        for _ in range(3):
+            timestamp = timestamp - timedelta(weeks=1)
+            baseline_times.append(self.extract_time_info(timestamp))
+
+        for time in baseline_times:
+            energy.append(
+                self.energy_data[
+                    (self.energy_data["Date"] == time[0])
+                    & (self.energy_data["Hour"] == time[1])
+                ]["HourlyEnergy"].iloc[0]
+            )
+
+        return sum(energy) / len(energy)
+
+    def get_out_of_office_score(self, timestamp):
+        date, hour, week = self.extract_time_info(timestamp)
+        val = self.ooo_data[
+            (self.ooo_data["Date"] == date) & (self.ooo_data["Hour"] == hour)
+        ]["OutOfOffice"].iloc[0]
+        return val
 
 
 class Workstation:
@@ -152,24 +235,94 @@ When conducting the exogenous variable update, We use the list of people
 in a given workstation, along with the energy used at the previous timestep,
 to determine the impact of vicarious learning."""
 
-    def __init__(self, num_people=5, people_list=[]):
-        self.people = [Person(self)] * num_people
+    def __init__(self, name, people_list):
+        # self.people = [Person(self)] * num_people
+        self.name = name
+        self.people_list = people_list
         self.energy_used = defaultdict(dict)
         self.curr_timestep = 0
 
     def vicarious_learning_average(self, timestep):
-        if timestep not in self.energy_used:
-            return 0
-        vicarious_learning_list = [
-            self.energy_used[timestep - 1][person] for person in self.people
-        ]
-        return sum(vicarious_learning_list) / len(vicarious_learning_list)
+        # if timestep not in self.energy_used:
+        #     return 0
+        # vicarious_learning_list = [
+        #     self.energy_used[timestep - 1][person] for person in self.people
+        # ]
+        # return sum(vicarious_learning_list) / len(vicarious_learning_list)
+        pass
 
     def update(self):
-        for person in self.people:
-            person.update()
-            self.energy_used[self.curr_timestep][person] = person.get_predicted_energy(
-                person.get_baseline()
-            )
+        # for person in self.people:
+        #     person.update()
+        #     self.energy_used[self.curr_timestep][person] = person.get_predicted_energy(
+        #         person.get_baseline(self.curr_timestep)
+        #     )
 
-        self.curr_timestep += 1
+        # self.curr_timestep += 1
+        pass
+
+
+class Simulation:
+    def __init__(
+        self,
+        email_csv="email_dummy.csv",
+        energy_csv="energy_dummy.csv",
+        points_csv="points_dummy.csv",
+        presurvey_csv="presurvey_dummy.csv",
+        weekly_survey_csv="weekly_survey_dummy.csv",
+        baseline_csv="BaselineHourlyData.csv",
+        out_of_office_csv="OOO_dummy.csv",
+    ):
+        self.emails_df = pd.read_csv(email_csv)
+        self.energy_df = pd.read_csv(energy_csv)
+        self.points_df = pd.read_csv(points_csv)
+        self.presurvey_df = pd.read_csv(presurvey_csv)
+        self.weekly_survey_df = pd.read_csv(weekly_survey_csv)
+        self.baseline_df = pd.read_csv(baseline_csv)
+        self.ooo_df = pd.read_csv(out_of_office_csv)
+
+        dfs = [
+            self.emails_df,
+            self.energy_df,
+            self.points_df,
+            self.presurvey_df,
+            self.weekly_survey_df,
+            self.baseline_df,
+            self.ooo_df,
+        ]
+
+        for df in dfs:
+            df.Date = pd.to_datetime(df.Date).dt.date
+
+        self.workstations = []
+
+        for workstation_name in self.emails_df["WorkGroup"].unique():
+            filtered_df = self.emails_df[
+                self.emails_df["WorkGroup"] == workstation_name
+            ]
+            curr_person_list = []
+            for person_name in filtered_df["Name"].unique():
+                curr_person_list.append(
+                    Person(
+                        workstation=workstation_name,
+                        name=person_name,
+                        df_data=[
+                            df[
+                                (df["Name"] == person_name)
+                                & (df["WorkGroup"] == workstation_name)
+                            ]
+                            for df in dfs
+                        ],
+                    )
+                )
+
+            self.workstations.append(Workstation(workstation_name, curr_person_list))
+
+
+#%%
+simulation = Simulation()
+person = simulation.workstations[0].people_list[0]
+dummy_date = pd.Timestamp("2018-09-20T10")
+person.exogenous_inputs(dummy_date)
+
+# %%
