@@ -25,7 +25,6 @@ class Person:
 
     def __init__(self, workstation, name, df_data, states=[], weights=[]):
         self.workstation = workstation
-        self.curr_timestep = 0
         self.name = name
         self.states = []
         self.weights = []
@@ -94,10 +93,7 @@ class Person:
         )
 
     def exogenous_inputs(self, timestamp):
-        week, day, hourly_timestep = self.extract_time_info(timestamp)
-        # vicarious_learning = self.workstation.vicarious_learning_average(
-        #     hourly_timestep - 1
-        # )
+        vicarious_learning = self.workstation.vicarious_learning_average(timestamp)
         weekly_poll = self.get_weekly_poll(timestamp)
         pretreatment_survey = self.get_pretreatment_from_csv(timestamp)
         points = self.get_points(timestamp)
@@ -112,7 +108,7 @@ class Person:
         predicted_energy = self.get_predicted_energy(predicted_energy_baseline)
         return np.array(
             [
-                # vicarious_learning,
+                vicarious_learning,
                 weekly_poll,
                 pretreatment_survey,
                 points,
@@ -123,11 +119,11 @@ class Person:
             ]
         )
 
-    def update(self):
+    def update(self, timestamp):
         """Final update of the form:
         state_vector_{t+1} = state_weights * state_vector_{t} + input_weights * exogenous_inputs_{t}"""
         self.states = np.dot(self.state_weights, self.states) + np.dot(
-            self.input_weights, self.exogenous_inputs(self.curr_timestep)
+            self.input_weights, self.exogenous_inputs(timestamp)
         )
 
     def get_energy_at_time(self, date, hour):
@@ -147,7 +143,6 @@ class Person:
         for datetime in baseline_times:
             daily_sum = []
             for hour in range(8, 21):
-                print(datetime[0], hour)
                 daily_sum.append(
                     self.energy_data[
                         (self.energy_data["Date"] == datetime[0])
@@ -169,7 +164,10 @@ class Person:
     def get_predicted_energy(self, baseline):
         """Gives the predicted energy distribution, as a function of baseline energy usage and a delta 
         function that is proportional to the behavior state. Will use the average of the three previous weeks"""
-        return True
+
+        c = 0.5
+
+        return baseline + self.states[2] * c
 
         # what does baseline refer to?
         # how to calculate the predicted energy relative to baseline
@@ -235,31 +233,39 @@ When conducting the exogenous variable update, We use the list of people
 in a given workstation, along with the energy used at the previous timestep,
 to determine the impact of vicarious learning."""
 
-    def __init__(self, name, people_list):
+    counter = 1
+
+    def __init__(self, name):
         # self.people = [Person(self)] * num_people
         self.name = name
-        self.people_list = people_list
+        # self.people_list = people_list
         self.energy_used = defaultdict(dict)
         self.curr_timestep = 0
+        self.counter = 1
 
-    def vicarious_learning_average(self, timestep):
-        # if timestep not in self.energy_used:
-        #     return 0
-        # vicarious_learning_list = [
-        #     self.energy_used[timestep - 1][person] for person in self.people
-        # ]
-        # return sum(vicarious_learning_list) / len(vicarious_learning_list)
-        pass
+    def extract_time_info(self, timestamp):
+        return timestamp.date(), timestamp.hour, int(timestamp.week)
 
-    def update(self):
-        # for person in self.people:
-        #     person.update()
-        #     self.energy_used[self.curr_timestep][person] = person.get_predicted_energy(
-        #         person.get_baseline(self.curr_timestep)
-        #     )
+    def vicarious_learning_average(self, timestamp):
+        date, hour, week = self.extract_time_info(timestamp)
+        print(date)
+        print(hour - 1)
+        prev_hour_energy = [
+            person.get_energy_at_time(date, hour - 1) for person in self.people_list
+        ]
+        return sum(prev_hour_energy) / len(prev_hour_energy)
 
-        # self.curr_timestep += 1
-        pass
+    def update(self, timestamp):
+        for person in self.people_list:
+            print(
+                person.name,
+                timestamp,
+                person.get_predicted_energy(person.get_hourly_baseline(timestamp)),
+                Workstation.counter,
+            )
+            person.update(timestamp)
+
+            Workstation.counter += 1
 
 
 class Simulation:
@@ -297,6 +303,7 @@ class Simulation:
         self.workstations = []
 
         for workstation_name in self.emails_df["WorkGroup"].unique():
+            curr_workstation = Workstation(workstation_name)
             filtered_df = self.emails_df[
                 self.emails_df["WorkGroup"] == workstation_name
             ]
@@ -304,7 +311,7 @@ class Simulation:
             for person_name in filtered_df["Name"].unique():
                 curr_person_list.append(
                     Person(
-                        workstation=workstation_name,
+                        workstation=curr_workstation,
                         name=person_name,
                         df_data=[
                             df[
@@ -316,13 +323,18 @@ class Simulation:
                     )
                 )
 
-            self.workstations.append(Workstation(workstation_name, curr_person_list))
+            curr_workstation.people_list = curr_person_list
+            self.workstations.append(curr_workstation)
+
+    def daily_update(self, starting_datetime):
+        for hour in range(12):
+            for workstation in self.workstations:
+                workstation.update(starting_datetime + timedelta(hours=hour))
 
 
 #%%
 simulation = Simulation()
-person = simulation.workstations[0].people_list[0]
-dummy_date = pd.Timestamp("2018-09-20T10")
-person.exogenous_inputs(dummy_date)
+dummy_date = pd.Timestamp("2018-09-20T08")
+simulation.daily_update(dummy_date)
 
 # %%
