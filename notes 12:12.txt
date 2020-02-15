@@ -29,11 +29,202 @@ overwriting the previous long runs because they were with action outputs that ar
 10.47: starting a new long run with the same day, sday_5_
 	goal: at least show this simplified version. 
 
-Modifying the scaled_cost function to always be negative. 
+Modifying the scaled_cost function to always be negative. Restarting both long runs. Adding titles to the plots that come out. 
 
 pushing to git 
 
 how to facilitate more curiousity in this work? 
+
+10.57: starting a new short run with same day, negative distance. 100 iterations. 
+	Conclusion: the reward is always negative, and the learning seems to be very smooth. Still on exponential function. 
+
+
+11:05: starting a 2000 iteration run with a single day. 
+11:11: starting a 2000 iteration run with multiple days and 10 hidden nodes. 
+
+
+11:18: starting a 2000 iteration sweep. 
+	1. 15 hidden nodes, 1 layers
+	2. 20 hidden nodes, 1 layers
+	3. 5,5 hidden nodes, 2 layers 
+	4. 10,10 hidden nodes, 2 layers 
+	(renaming the net layers so that they correspond 0 to input, 1,2,...n, to hidden layers, Final to output layer)
+
+	the simulations are starting to fail due to OSQP solver failing. I'm guessing it's just lack of computing. 
+
+	Plotting the different neural nets. Doesn't appear that the complex nets are better. 
+
+
+12:01: trying a simple transfer approach with a single day. 
+
+
+------------------------------------
+
+Friday, 12/13
+
+1:10 -- Trying a longer, 5000 iteration approach for different days. 
+Figuring out Castle system
+Castle = success. Trying a 10000 iteration 10 hidden node different day network. 
+installed python 3.7 correctly. Use python3.7 and pip3.7 to call the various packages
+
+Starting a long simulation for the base of a learning agent. 
+
+Maybe sample between 10 days for a long simulation to run on Castle 
+
+* try to investigate why the huge spikes in reward are happening 
+* would be helpful to record demand as well 
+	saving demand in the log function, but not sure whether that's going to actually save it pointwise with actions, or not. Testing with a short run.
+	Success! Adding ideal demand too  
+
+7:21 -- sticking with single day runs 
+	* Akash's idea: sample the three most recent price runs and then run the simulation on that to train the net a lot -- good idea. Should implement some sort of search.  
+
+seeming bug: the points are not resulting in the resposes from the players that we expect 
+	unclear. Keep this in mind. Need to move on.
+
+8:59 -- starting a 1000 iteration run with exp fnc, 5 layer net named prefix = "base_sday_5_"
+
+9:01 -- starting a 1000 iteration run with sin fnc, 5 layer net named prefix = "base_sday_5_sin"
+
+problem: rewards are the same. 
+
+	current_cost remains the same in reward calculation
+	output and points_effect remains the same in determining response,
+	points passed into agents.py to determine points is NOT the same. 
+		trying to see if sin_response_func changes them. 
+		it DOES change different points to the same points system. why?
+			checking again to see if exp transform does the same. 
+			it doesn't 
+		it was prob the points multiplier! 
+			took points multiplier out, no effect. 
+		even more dumb. the function wasn't actually using the points. 
+
+		reward is changing now. 
+
+		add points multiplier to the end of the sin fnc instead of not having it effect it at all....
+		9:53 --> 	prefix = "base_sday_5_sin_pts_"
+			took out and now adding back in 10 "different" ppl 
+
+
+try thresh as well 
+	9:58 --> 	prefix = "base_sday_5_thresh"
+
+
+..... is it even learning at all? 
+	- nn architecture, even simpler
+
+
+-------------------------------
+
+10:08 -- trying a controller with sampling capabilities again (i.e. variance = 1, not 1e-6) on threshhold 
+10:09 -- trying a controller with a shallow net on the exponential function
+	seems to have learned almost immediately. 
+
+10:25 -- Trying one with only 2 hidden nodes. "sday_exp_2_"
+ (and on a different day "sday_exp_2a")
+
+10:28 -- trying one with only 2 hidden layers on threshhold 
+			the threshold function is definitely being learned. 
+
+10:38 -- trying 2 hidden layers on the sin function 
+			prefix = "base_sday_sin_2_"
+
+
+Now, transfer learning? 
+	(can try a trained net on the threshold or the threshold's net on the exp function)
+
+	trying -- threshold on exp function first 
+
+	saving nn parameters every 100 iterations now. 
+
+	base net -- threshold on day 15 has saved well. 
+	prefix = "base_sday_thresh_2a_"
+
+...... was training with ShallowNew(). 
+
+trying threshold with 1 hidden layer 
+trying exp with 1 hidden layer 
+
+---------------------------------
+
+10:31p - running the thresh-exp response with a 1 hidden node net
+			taking out the ReLU 
+			could be argued that this learned
+
+			- try: exp with this trained on it, then 
+			threshexp with the starting exp net  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
