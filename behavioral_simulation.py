@@ -136,7 +136,7 @@ class Person:
         )
 
 
-    def daily_weight_update(self, date):
+    def daily_weight_fit(self, date):
         """ 
         Update function to the weights of the dynamic system, this will be called 
         once a day after the data has arrived. 
