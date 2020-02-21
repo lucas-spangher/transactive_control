@@ -5,6 +5,7 @@ from collections import defaultdict
 import csv
 import pandas as pd
 from datetime import datetime, timedelta
+import cvxpy as cvx
 
 # things to do:
 # create functions for out of office, energy saturation weights
@@ -66,6 +67,7 @@ class Person:
         beta_23 = random.random()
         beta_34 = random.random()
 
+        ### A matrix
         self.state_weights = np.array(
             [
                 [alpha, 0, 0, beta_41],
@@ -83,7 +85,8 @@ class Person:
         w_6 = random.random()
         w_7 = random.random()
 
-        self.input_weights = np.array(
+        ### B matrix
+        self.input_weights = np.array(  
             [
                 [1, w_1, 0, 0, 0, 0, 0, 0],
                 [1, 0, w_2, 0, 0, 0, 0, 0],
@@ -91,6 +94,8 @@ class Person:
                 [0, 0, 0, 0, 0, 0, 0, w_7],
             ]
         )
+
+        # TODO: Manan great job on this code! It's fantastic, very professional. 
 
     def exogenous_inputs(self, timestamp):
         vicarious_learning = self.workstation.vicarious_learning_average(timestamp)
@@ -120,11 +125,56 @@ class Person:
         )
 
     def update(self, timestamp):
-        """Final update of the form:
-        state_vector_{t+1} = state_weights * state_vector_{t} + input_weights * exogenous_inputs_{t}"""
+        """ Should this actually be the step function? 
+
+        Final update of the form:
+        state_vector_{t+1} = state_weights * state_vector_{t} +
+             input_weights * exogenous_inputs_{t}"""
+
         self.states = np.dot(self.state_weights, self.states) + np.dot(
             self.input_weights, self.exogenous_inputs(timestamp)
         )
+
+
+    def daily_weight_update(self, date):
+        """ 
+        Update function to the weights of the dynamic system, this will be called 
+        once a day after the data has arrived. 
+        """
+        A = cvx.Variable(self.state_weights.shape)
+        B = cvx.Variable(self.input_weights.shape)
+
+        y = self.get_energy_at_time(date)
+        timesteps = y.shape
+
+        u = self.get_exogenous_inputs_of_day(date)
+        z = cvx.Variable(timesteps)
+
+        c = cvx.Variable(1) 
+        objective = cvx.Minimize(sqrt(np.sum([y[i] - cz[i] for i in range(len(y))])**2))
+        constraints = []
+        
+        for i in (range(timesteps)-1):
+            constraints += [z[i+1] == Az[i] + Bu[i]]
+
+
+        problem = cvx.Problem(objective, constraints)
+
+        problem.solve(solver = cvx.OSQP, verbose=True)
+        return np.array(A.value), np.array(B.value), np.array(z.value), np.array(c.value)
+
+    def get_exogenous_inputs_of_day(date):
+        
+        # TODO: Manan, please help with this 
+
+        """
+        queries the self.exogenous_inputs function for each timestamp in the 
+        date given, and returns an 2D (or higher D?) array that can be stepped 
+        through in the update function
+        """
+
+        val = self.exogenous_inputs(timestamp in date)
+
 
     def get_energy_at_time(self, date, hour):
         val = self.energy_data[
@@ -263,6 +313,10 @@ to determine the impact of vicarious learning."""
                 person.get_predicted_energy(person.get_hourly_baseline(timestamp)),
                 Workstation.counter,
             )
+
+            # TODO: Manan, please reformat this a bit -- the daily_weight_update 
+            # should be called once a day, so this might need minor rethinking  
+
             person.update(timestamp)
 
             Workstation.counter += 1
@@ -327,6 +381,9 @@ class Simulation:
             self.workstations.append(curr_workstation)
 
     def daily_update(self, starting_datetime):
+
+        # TODO: Manan -- as 
+
         for hour in range(12):
             for workstation in self.workstations:
                 workstation.update(starting_datetime + timedelta(hours=hour))
