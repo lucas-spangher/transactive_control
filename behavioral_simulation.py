@@ -145,18 +145,27 @@ class Person:
         B = cvx.Variable(self.input_weights.shape)
 
         y = self.get_energy_at_time(date)
+
+        ## TODO: subtract the baseline energy for that day from y
         timesteps = y.shape
 
         u = self.get_exogenous_inputs_of_day(date)
-        z = cvx.Variable(timesteps)
 
+        # z should be all latent states (check with Alex)
+        z = cvx.Variable((timesteps,4))
+
+        # c should be (0,0,c,0)
         c = cvx.Variable(1) 
-        objective = cvx.Minimize(sqrt(np.sum([y[i] - cz[i] for i in range(len(y))])**2))
+        C = np.array([0,0,1,0])
+
+        # are all the states decision variables, and if so, 
+        # how does that work with the step function
+        objective = cvx.Minimize(sqrt(np.sum([y[i] - np.dot(c, z[i]) for i in range(len(y))])**2))
         constraints = []
         
         for i in (range(timesteps)-1):
-            constraints += [z[i+1] == Az[i] + Bu[i]]
-
+            constraints += [z[i+1] == np.dot(A, z[i]) + np.dot(B,u[i])] # change/test these 
+            # should these be np.dot(A.T,z[i]) ? 
 
         problem = cvx.Problem(objective, constraints)
 
@@ -382,7 +391,7 @@ class Simulation:
 
     def daily_update(self, starting_datetime):
 
-        # TODO: Manan -- as 
+        # TODO: Manan -- 
 
         for hour in range(12):
             for workstation in self.workstations:
