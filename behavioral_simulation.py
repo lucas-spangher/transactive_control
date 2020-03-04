@@ -86,7 +86,7 @@ class Person:
         w_7 = random.random()
 
         ### B matrix
-        self.input_weights = np.array(  
+        self.input_weights = np.array(
             [
                 [1, w_1, 0, 0, 0, 0, 0, 0],
                 [1, 0, w_2, 0, 0, 0, 0, 0],
@@ -95,7 +95,7 @@ class Person:
             ]
         )
 
-        # TODO: Manan great job on this code! It's fantastic, very professional. 
+        # TODO: Manan great job on this code! It's fantastic, very professional.
 
     def exogenous_inputs(self, timestamp):
         vicarious_learning = self.workstation.vicarious_learning_average(timestamp)
@@ -135,7 +135,6 @@ class Person:
             self.input_weights, self.exogenous_inputs(timestamp)
         )
 
-
     def daily_weight_fit(self, date):
         """ 
         Update function to the weights of the dynamic system, this will be called 
@@ -145,27 +144,35 @@ class Person:
         B = cvx.Variable(self.input_weights.shape)
 
         y = self.get_energy_at_time(date)
+
+        # subtract baseline from y
         timesteps = y.shape
 
         u = self.get_exogenous_inputs_of_day(date)
         z = cvx.Variable(timesteps)
 
-        c = cvx.Variable(1) 
-        objective = cvx.Minimize(sqrt(np.sum([y[i] - cz[i] for i in range(len(y))])**2))
+        c = cvx.Variable(1)
+        objective = cvx.Minimize(
+            sqrt(np.sum([y[i] - cz[i] for i in range(len(y))]) ** 2)
+        )
         constraints = []
-        
-        for i in (range(timesteps)-1):
-            constraints += [z[i+1] == Az[i] + Bu[i]]
 
+        for i in range(timesteps) - 1:
+            constraints += [z[i + 1] == Az[i] + Bu[i]]
 
         problem = cvx.Problem(objective, constraints)
 
-        problem.solve(solver = cvx.OSQP, verbose=True)
-        return np.array(A.value), np.array(B.value), np.array(z.value), np.array(c.value)
+        problem.solve(solver=cvx.OSQP, verbose=True)
+        return (
+            np.array(A.value),
+            np.array(B.value),
+            np.array(z.value),
+            np.array(c.value),
+        )
 
     def get_exogenous_inputs_of_day(date):
-        
-        # TODO: Manan, please help with this 
+
+        # TODO: Manan, please help with this
 
         """
         queries the self.exogenous_inputs function for each timestamp in the 
@@ -174,7 +181,6 @@ class Person:
         """
 
         val = self.exogenous_inputs(timestamp in date)
-
 
     def get_energy_at_time(self, date, hour):
         val = self.energy_data[
@@ -314,8 +320,8 @@ to determine the impact of vicarious learning."""
                 Workstation.counter,
             )
 
-            # TODO: Manan, please reformat this a bit -- the daily_weight_update 
-            # should be called once a day, so this might need minor rethinking  
+            # TODO: Manan, please reformat this a bit -- the daily_weight_update
+            # should be called once a day, so this might need minor rethinking
 
             person.update(timestamp)
 
@@ -382,7 +388,7 @@ class Simulation:
 
     def daily_update(self, starting_datetime):
 
-        # TODO: Manan -- as 
+        # TODO: Manan -- as
 
         for hour in range(12):
             for workstation in self.workstations:
