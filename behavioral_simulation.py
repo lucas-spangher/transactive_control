@@ -6,6 +6,7 @@ import csv
 import pandas as pd
 from datetime import datetime, timedelta
 import cvxpy as cvx
+import IPython
 
 # things to do:
 # create functions for out of office, energy saturation weights
@@ -24,11 +25,18 @@ class Person:
      The flow weights between different weights, as well as the exogenous variables
      at each time step, have been assigned to be random values between 0 and 1."""
 
-    def __init__(self, workstation, name, df_data, states=[], weights=[]):
+    def __init__(
+        self, workstation, name, df_data, starting_date, states=[], weights=[]
+    ):
         self.workstation = workstation
         self.name = name
         self.states = []
         self.weights = []
+        self.starting_date = (
+            starting_date  ## TODO: Manan, is there a way to infer this from
+        )
+        # df_data instead? If so, please feel free to take it
+        # out of the init and modify accordingly.
         self.email_data = df_data[0]
         self.energy_data = df_data[1]
         self.points_data = df_data[2]
@@ -98,6 +106,9 @@ class Person:
         # TODO: Manan great job on this code! It's fantastic, very professional.
 
     def exogenous_inputs(self, timestamp):
+
+        ## Question: where does vicarious_learning_average get called when it references a prior hour?
+
         vicarious_learning = self.workstation.vicarious_learning_average(timestamp)
         weekly_poll = self.get_weekly_poll(timestamp)
         pretreatment_survey = self.get_pretreatment_from_csv(timestamp)
@@ -120,12 +131,16 @@ class Person:
                 email_indicator,
                 out_of_office,
                 energy_saturation_measure,
-                predicted_energy,
+                predicted_energy,  ## TODO: This is turning back nans :/
             ]
         )
 
-    def update(self, timestamp):
-        """ Should this actually be the step function? 
+    def step(self, timestamp):
+        """ Function to step through the hours of the day based on the various 
+        weight matrices 
+
+        Note: used to be called "update", but I changed it because we 
+        were overusing that word 
 
         Final update of the form:
         state_vector_{t+1} = state_weights * state_vector_{t} +
@@ -143,34 +158,49 @@ class Person:
         A = cvx.Variable(self.state_weights.shape)
         B = cvx.Variable(self.input_weights.shape)
 
-        y = self.get_energy_at_time(date)
+        dates = pd.date_range(start=self.starting_date, end=date)
+        date_list = dates.tolist()
+        hours = list(range(1, 24))
 
-        # subtract baseline from y
-        timesteps = y.shape
+        y = [
+            [self.get_energy_at_time(date=date, hour=hour) for hour in hours]
+            for date in dates
+        ]
 
-        u = self.get_exogenous_inputs_of_day(date)
-        z = cvx.Variable(timesteps)
+        flat_y = [i for ys in y for i in ys]
 
-        c = cvx.Variable(1)
+        ## TODO: subtract the baseline energy for that day from y
+
+        timesteps = len(flat_y)
+
+        u = [self.get_exogenous_inputs_of_day(date) for date in dates for hour in hours]
+
+        # z should be all latent states (check with Alex)
+        z = cvx.Variable((timesteps, 4))
+
+        # c should be (0,0,c,0)
+        C = np.array([0, 0, 1, 0])
+
+        # are all the states decision variables, and if so,
+        # how does that work with the step function
         objective = cvx.Minimize(
-            sqrt(np.sum([y[i] - cz[i] for i in range(len(y))]) ** 2)
+            cvx.sqrt(
+                cvx.sum([cvx.square(flat_y[i] - C @ z[i]) for i in range(len(flat_y))])
+            )
         )
         constraints = []
 
-        for i in range(timesteps) - 1:
-            constraints += [z[i + 1] == Az[i] + Bu[i]]
+        for i in range(timesteps - 2):
+            constraints += [z[i + 1] == A @ z[i] + B @ u[i]]  # change/test these
+
+        IPython.embed()
 
         problem = cvx.Problem(objective, constraints)
 
         problem.solve(solver=cvx.OSQP, verbose=True)
-        return (
-            np.array(A.value),
-            np.array(B.value),
-            np.array(z.value),
-            np.array(c.value),
-        )
+        return np.array(A.value), np.array(B.value), np.array(z.value)
 
-    def get_exogenous_inputs_of_day(date):
+    def get_exogenous_inputs_of_day(self, date):
 
         # TODO: Manan, please help with this
 
@@ -180,13 +210,15 @@ class Person:
         through in the update function
         """
 
-        val = self.exogenous_inputs(timestamp in date)
+        val = self.exogenous_inputs(date)
+        return val
 
     def get_energy_at_time(self, date, hour):
         val = self.energy_data[
-            (self.energy_data["Date"] == date) & (self.energy_data["Hour"] == hour)
-        ]["HourlyEnergy"].iloc[0]
-        return val
+            (self.energy_data["Date"] == datetime.date(date))  # changed the format
+            & (self.energy_data["Hour"] == hour)
+        ]["HourlyEnergy"]
+        return val.iloc[0]
 
     def get_energy_saturation_daily_baseline(self, timestamp):
         baseline_times = []
@@ -304,28 +336,46 @@ to determine the impact of vicarious learning."""
 
     def vicarious_learning_average(self, timestamp):
         date, hour, week = self.extract_time_info(timestamp)
-        print(date)
-        print(hour - 1)
+        if hour > 0:
+            print(date)
+            print(hour - 1)
+        if hour == 0:
+            return 0  ## TODO: Manan... is this ok? What did you return when hour was 0?
         prev_hour_energy = [
-            person.get_energy_at_time(date, hour - 1) for person in self.people_list
+            person.get_energy_at_time(timestamp, hour - 1)
+            for person in self.people_list
         ]
         return sum(prev_hour_energy) / len(prev_hour_energy)
 
-    def update(self, timestamp):
+    def predict(self, timestamp):
         for person in self.people_list:
             print(
                 person.name,
                 timestamp,
                 person.get_predicted_energy(person.get_hourly_baseline(timestamp)),
-                Workstation.counter,
+                Workstation.counter,  ## <-- will this work if we just call "Workstation"?
+                ## TODO: Manan: Workstation.counter prints as "None"
+                print(Workstation.counter),
             )
 
-            # TODO: Manan, please reformat this a bit -- the daily_weight_update
-            # should be called once a day, so this might need minor rethinking
-
-            person.update(timestamp)
-
+            person.step(timestamp)
             Workstation.counter += 1
+
+    def daily_weight_fit(self, date):
+        """
+        Wrapper for the workstation implementation of the person-level daily_weight_update
+        function
+
+        """
+
+        for person in self.people_list:
+            print(person.name)
+            (
+                person.state_weights,
+                person.input_weights,
+                person.states,
+            ) = person.daily_weight_fit(date)
+            print(person.state_weights, person.input_weights, person.states)
 
 
 class Simulation:
@@ -373,6 +423,9 @@ class Simulation:
                     Person(
                         workstation=curr_workstation,
                         name=person_name,
+                        starting_date=pd.Timestamp(
+                            "2018-09-06"
+                        ),  ## TODO: not hard coded
                         df_data=[
                             df[
                                 (df["Name"] == person_name)
@@ -386,18 +439,25 @@ class Simulation:
             curr_workstation.people_list = curr_person_list
             self.workstations.append(curr_workstation)
 
-    def daily_update(self, starting_datetime):
+    def daily_prediction(self, starting_datetime):
 
-        # TODO: Manan -- as
+        # TODO: Manan -- This is future looking?
+
+        # steps through the simulation for the day
 
         for hour in range(12):
             for workstation in self.workstations:
-                workstation.update(starting_datetime + timedelta(hours=hour))
+                workstation.predict(starting_datetime + timedelta(hours=hour))
 
+    def daily_weight_fits(self, ending_datetime):
+        for workstation in self.workstations:
+            workstation.daily_weight_fit(ending_datetime)
 
-#%%
-simulation = Simulation()
-dummy_date = pd.Timestamp("2018-09-20T08")
-simulation.daily_update(dummy_date)
 
 # %%
+simulation = Simulation()
+dummy_date = pd.Timestamp("2018-09-20T08")
+# simulation.daily_prediction(dummy_date)
+simulation.daily_weight_fits(dummy_date)
+# %%
+
