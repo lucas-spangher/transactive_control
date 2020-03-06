@@ -193,7 +193,7 @@ class Person:
         for i in range(timesteps - 2):
             constraints += [z[i + 1] == A @ z[i] + B @ u[i]]  # change/test these
 
-        IPython.embed()
+        # IPython.embed()
 
         problem = cvx.Problem(objective, constraints)
 
