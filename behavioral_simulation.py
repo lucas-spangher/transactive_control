@@ -162,10 +162,8 @@ class Person:
         date_list = dates.tolist()
         hours = list(range(1, 24))
 
-        y = [
-            [self.get_energy_at_time(date=date, hour=hour) for hour in hours]
-            for date in dates
-        ]
+        y = [[self.get_energy_at_time(timestamp) for hour in hours] for date in dates]
+        raise NotImplementedError
 
         flat_y = [i for ys in y for i in ys]
 
@@ -213,9 +211,10 @@ class Person:
         val = self.exogenous_inputs(date)
         return val
 
-    def get_energy_at_time(self, date, hour):
+    def get_energy_at_time(self, timestamp):
+        date, hour, week = self.extract_time_info(timestamp)
         val = self.energy_data[
-            (self.energy_data["Date"] == datetime.date(date))  # changed the format
+            (self.energy_data["Date"] == date)  # changed the format
             & (self.energy_data["Hour"] == hour)
         ]["HourlyEnergy"]
         return val.iloc[0]
@@ -245,7 +244,7 @@ class Person:
         date, hour, week = self.extract_time_info(timestamp)
         cume_energy = []
         for hour in range(8, hour + 1):
-            cume_energy.append(self.get_energy_at_time(date, hour))
+            cume_energy.append(self.get_energy_at_time(timestamp))
 
         return sum(cume_energy) / self.get_energy_saturation_daily_baseline(timestamp)
 
@@ -336,30 +335,28 @@ to determine the impact of vicarious learning."""
 
     def vicarious_learning_average(self, timestamp):
         date, hour, week = self.extract_time_info(timestamp)
-        if hour > 0:
-            print(date)
-            print(hour - 1)
         if hour == 0:
             return 0  ## TODO: Manan... is this ok? What did you return when hour was 0?
         prev_hour_energy = [
-            person.get_energy_at_time(timestamp, hour - 1)
-            for person in self.people_list
+            person.get_energy_at_time(timestamp) for person in self.people_list
         ]
         return sum(prev_hour_energy) / len(prev_hour_energy)
 
     def predict(self, timestamp):
+        errors = []
         for person in self.people_list:
-            print(
-                person.name,
-                timestamp,
-                person.get_predicted_energy(person.get_hourly_baseline(timestamp)),
-                Workstation.counter,  ## <-- will this work if we just call "Workstation"?
-                ## TODO: Manan: Workstation.counter prints as "None"
-                print(Workstation.counter),
+            errors.append(
+                abs(
+                    person.get_energy_at_time(timestamp)
+                    - person.get_predicted_energy(person.get_hourly_baseline(timestamp))
+                )
+                / person.get_predicted_energy(person.get_hourly_baseline(timestamp))
             )
 
-            person.step(timestamp)
-            Workstation.counter += 1
+        person.step(timestamp)
+        Workstation.counter += 1
+        print(errors)
+        return sum(errors) / len(errors)
 
     def daily_weight_fit(self, date):
         """
@@ -444,10 +441,16 @@ class Simulation:
         # TODO: Manan -- This is future looking?
 
         # steps through the simulation for the day
-
+        global_errors = []
         for hour in range(12):
             for workstation in self.workstations:
-                workstation.predict(starting_datetime + timedelta(hours=hour))
+                global_errors.append(
+                    workstation.predict(starting_datetime + timedelta(hours=hour))
+                )
+
+        # print(sum(global_errors) / len(global_errors))
+        # print(global_errors)
+        # return
 
     def daily_weight_fits(self, ending_datetime):
         for workstation in self.workstations:
@@ -457,7 +460,5 @@ class Simulation:
 # %%
 simulation = Simulation()
 dummy_date = pd.Timestamp("2018-09-20T08")
-# simulation.daily_prediction(dummy_date)
-simulation.daily_weight_fits(dummy_date)
-# %%
-
+simulation.daily_prediction(dummy_date)
+# simulation.daily_weight_fits(dummy_date)
