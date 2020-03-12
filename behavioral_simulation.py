@@ -7,6 +7,8 @@ import pandas as pd
 from datetime import datetime, timedelta
 import cvxpy as cvx
 import IPython
+from gekko import GEKKO
+import math
 
 # things to do:
 # create functions for out of office, energy saturation weights
@@ -120,8 +122,18 @@ class Person:
         out_of_office = self.get_out_of_office_score(timestamp)
         energy_saturation_measure = self.get_energy_saturation_daily_baseline(timestamp)
 
+        if math.isnan(energy_saturation_measure):
+            print("energy_saturation_measure is nan, replacing with 0")
+            energy_saturation_measure = 0
+
         predicted_energy_baseline = self.get_hourly_baseline(timestamp)
         predicted_energy = self.get_predicted_energy(predicted_energy_baseline)
+
+        # TODO: Manan, please eliminate this once predicted_energy is not returning nans 
+        if math.isnan(predicted_energy):
+            print("energy_saturation_measure is nan, replacing with 0")
+            predicted_energy = 0
+
         return np.array(
             [
                 vicarious_learning,
@@ -134,7 +146,6 @@ class Person:
                 predicted_energy,  ## TODO: This is turning back nans :/
             ]
         )
-
     def step(self, timestamp):
         """ Function to step through the hours of the day based on the various 
         weight matrices 
@@ -155,17 +166,36 @@ class Person:
         Update function to the weights of the dynamic system, this will be called 
         once a day after the data has arrived. 
         """
-        A = cvx.Variable(self.state_weights.shape)
-        B = cvx.Variable(self.input_weights.shape)
+
+        # # comments in cvx code
+        # A = cvx.Variable(self.state_weights.shape)
+        # B = cvx.Variable(self.input_weights.shape)
+
+        m = GEKKO(remote = False)
+        A = m.Array(
+                m.Var, 
+                (self.state_weights.shape), 
+                value = 1, 
+                lb = -10, 
+                ub = 10, 
+                # name = "A"
+            )
+        B = m.Array(
+                m.Var, 
+                (self.input_weights.shape), 
+                value = 1, 
+                lb = -100, 
+                ub = 100, 
+                # name = "B"
+            )
 
         dates = pd.date_range(start=self.starting_date, end=date)
         date_list = dates.tolist()
-        hours = list(range(1, 24))
+        hours = list(range(24))
 
-        y = [[self.get_energy_at_time(timestamp) for hour in hours] for date in dates]
-        raise NotImplementedError
-
-        flat_y = [i for ys in y for i in ys]
+        y = [[self.get_days_energy(date = date)] for date in dates]
+ 
+        flat_y = np.reshape(y, -1)
 
         ## TODO: subtract the baseline energy for that day from y
 
@@ -173,30 +203,55 @@ class Person:
 
         u = [self.get_exogenous_inputs_of_day(date) for date in dates for hour in hours]
 
-        # z should be all latent states (check with Alex)
-        z = cvx.Variable((timesteps, 4))
+        # # z should be all latent states (check with Alex)
+        # z = cvx.Variable((timesteps, 4))
 
-        # c should be (0,0,c,0)
+        z = m.Array(m.Var, (timesteps, 4), lb = -1, ub = 1)
+
+        # # c should be (0,0,c,0)
+        
         C = np.array([0, 0, 1, 0])
 
-        # are all the states decision variables, and if so,
-        # how does that work with the step function
-        objective = cvx.Minimize(
-            cvx.sqrt(
-                cvx.sum([cvx.square(flat_y[i] - C @ z[i]) for i in range(len(flat_y))])
+        # # are all the states decision variables, and if so,
+        # # how does that work with the step function
+        
+        # objective = cvx.Minimize(
+        #     cvx.sqrt(
+        #         cvx.sum([cvx.square(flat_y[i] - C @ z[i]) for i in range(len(flat_y))])
+        #     )
+        # )
+        # constraints = []
+
+        m.Obj(
+            m.sqrt(
+                m.sum([(flat_y[i] - z[i][3])**2 for i in range(len(flat_y))])
+                )
             )
-        )
-        constraints = []
+
+        # for i in range(timesteps - 2):
+        #     constraints += [z[i + 1] == A @ z[i] + B @ u[i]]  # change/test these
 
         for i in range(timesteps - 2):
-            constraints += [z[i + 1] == A @ z[i] + B @ u[i]]  # change/test these
+            state_contribution = np.dot(A, z[i])
+            ex_contribution = np.dot(B, u[i])
+            for j in range(4):
+                m.Equation(z[i + 1][j] == state_contribution[j] + ex_contribution[j])
 
-        # IPython.embed()
 
-        problem = cvx.Problem(objective, constraints)
+        # # IPython.embed()
 
-        problem.solve(solver=cvx.OSQP, verbose=True)
-        return np.array(A.value), np.array(B.value), np.array(z.value)
+        # problem = cvx.Problem(objective, constraints)
+
+        # problem.solve(solver=cvx.OSQP, verbose=True)
+        # m.open_folder()
+        m.options.solver = 3
+
+        m.solve()
+
+        IPython.embed()
+        
+        return A, B, z
+        # return np.array(A.value), np.array(B.value), np.array(z.value)
 
     def get_exogenous_inputs_of_day(self, date):
 
@@ -211,13 +266,20 @@ class Person:
         val = self.exogenous_inputs(date)
         return val
 
-    def get_energy_at_time(self, timestamp):
+    def get_energy_at_time(self, timestamp = None):
         date, hour, week = self.extract_time_info(timestamp)
         val = self.energy_data[
             (self.energy_data["Date"] == date)  # changed the format
             & (self.energy_data["Hour"] == hour)
         ]["HourlyEnergy"]
         return val.iloc[0]
+
+    def get_days_energy(self, date = None):
+        date, hour, week = self.extract_time_info(date)
+        val = self.energy_data[
+            self.energy_data["Date"] == date  # changed the format
+        ]["HourlyEnergy"].fillna(value=0)
+        return val
 
     def get_energy_saturation_daily_baseline(self, timestamp):
         baseline_times = []
@@ -448,8 +510,6 @@ class Simulation:
                     workstation.predict(starting_datetime + timedelta(hours=hour))
                 )
 
-        # print(sum(global_errors) / len(global_errors))
-        # print(global_errors)
         # return
 
     def daily_weight_fits(self, ending_datetime):
@@ -460,5 +520,5 @@ class Simulation:
 # %%
 simulation = Simulation()
 dummy_date = pd.Timestamp("2018-09-20T08")
-simulation.daily_prediction(dummy_date)
-# simulation.daily_weight_fits(dummy_date)
+#simulation.daily_prediction(dummy_date)
+simulation.daily_weight_fits(dummy_date)
