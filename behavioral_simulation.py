@@ -80,10 +80,10 @@ class Person:
         ### A matrix
         self.state_weights = np.array(
             [
-                [alpha, 0, 0, beta_41],
-                [0, alpha, beta_32, 0],
-                [beta_13, beta_23, alpha, 0],
-                [0, 0, beta_34, alpha],
+                [alpha,   0,       0,       beta_41],
+                [0,       alpha,   beta_32, 0],
+                [beta_13, beta_23, alpha,   0],
+                [0,       0,       beta_34, alpha],
             ]
         )
 
@@ -124,6 +124,7 @@ class Person:
 
         if math.isnan(energy_saturation_measure):
             print("energy_saturation_measure is nan, replacing with 0")
+            print(energy_saturation_measure)
             energy_saturation_measure = 0
 
         predicted_energy_baseline = self.get_hourly_baseline(timestamp)
@@ -131,7 +132,7 @@ class Person:
 
         # TODO: Manan, please eliminate this once predicted_energy is not returning nans 
         if math.isnan(predicted_energy):
-            print("energy_saturation_measure is nan, replacing with 0")
+            print("predicted_energy is nan, replacing with 0")
             predicted_energy = 0
 
         return np.array(
@@ -174,20 +175,96 @@ class Person:
         m = GEKKO(remote = False)
         A = m.Array(
                 m.Var, 
-                (self.state_weights.shape), 
-                value = 1, 
-                lb = -10, 
-                ub = 10, 
-                # name = "A"
+                (self.state_weights.shape),
+                value = .5,
+                lb = -1,
+                ub = 1
             )
+
+        ## diagonal entries
+        # 0, 0
+        A[0][0].value = -.5; A[0][0].lower = -1; A[0][0].upper = 1
+        
+        # 1, 1
+        A[1][1].value = -.5; A[1][1].lower = -1; A[1][1].upper = 1
+
+        # 2, 2
+        A[2][2].value = -.5; A[2][2].lower = -1; A[2][2].upper = 1
+
+        # 3, 3
+        A[3][3].value = -.5; A[3][3].lower = -1; A[3][3].upper = 1
+
+        ## non-zero entries
+        # for the beta labelled 4, 1 
+        A[0][3].value = random.random(); A[0][3].upper = 1; A[0][3].lower = -1
+
+        # beta32
+        A[1][2].value = random.random(); A[1][2].upper = 1; A[1][2].lower = -1
+
+        # beta13 
+        A[2][0].value = random.random(); A[2][0].upper = 1; A[2][0].lower = -1
+
+        # beta23
+        A[1][2].value = random.random(); A[1][2].upper = 1; A[1][2].lower = -1
+
+        # beta34
+        A[3][2].value = random.random(); A[3][2].upper = 1; A[3][2].lower = -1
+
+        ## zero entries 
+        A[0][1].value = A[0][1].upper = A[0][1].lower = 0
+        A[0][2].value = A[0][2].upper = A[0][2].lower = 0
+        A[1][0].value = A[1][0].upper = A[1][0].lower = 0
+        A[1][3].value = A[1][3].upper = A[1][3].lower = 0
+        A[2][1].value = A[2][1].upper = A[2][1].lower = 0
+        A[2][3].value = A[2][3].upper = A[2][3].lower = 0
+        A[3][0].value = A[3][0].upper = A[3][0].lower = 0
+        A[3][1].value = A[3][1].upper = A[3][1].lower = 0
+
+        ############ B matrix
+   
         B = m.Array(
                 m.Var, 
                 (self.input_weights.shape), 
-                value = 1, 
-                lb = -100, 
-                ub = 100, 
-                # name = "B"
             )
+
+        # 1 entries: 
+        # B_11 and B_21
+        B[0][0].value = 1; B[0][0].upper = 1; B[0][0].lower = 1
+        B[1][0].value = 1; B[1][0].upper = 1; B[1][0].lower = 1
+
+        # weights w1, w2, w3, w4,..., w7
+        B[0][1].value = random.random(); B[0][1].upper = 1; B[0][1].lower = -1
+        B[1][2].value = random.random(); B[1][2].upper = 1; B[1][2].lower = -1
+        B[2][3].value = random.random(); B[2][3].upper = 1; B[2][3].lower = -1
+        B[2][4].value = random.random(); B[2][4].upper = 1; B[2][4].lower = -1
+        B[2][5].value = random.random(); B[2][5].upper = 1; B[2][5].lower = -1
+        B[2][6].value = random.random(); B[2][6].upper = 1; B[2][6].lower = -1
+        B[3][7].value = random.random(); B[3][7].upper = 1; B[3][7].lower = -1
+
+        # zeros
+        B[0][2].value = B[0][2].upper = B[0][2].lower = 0
+        B[0][3].value = B[0][3].upper = B[0][3].lower = 0
+        B[0][4].value = B[0][4].upper = B[0][4].lower = 0
+        B[0][5].value = B[0][5].upper = B[0][5].lower = 0
+        B[0][6].value = B[0][6].upper = B[0][6].lower = 0
+        B[0][7].value = B[0][7].upper = B[0][7].lower = 0
+        B[1][1].value = B[1][1].upper = B[1][1].lower = 0
+        B[1][3].value = B[1][3].upper = B[1][3].lower = 0
+        B[1][4].value = B[1][4].upper = B[1][4].lower = 0
+        B[1][5].value = B[1][5].upper = B[1][5].lower = 0
+        B[1][6].value = B[1][6].upper = B[1][6].lower = 0
+        B[1][7].value = B[1][7].upper = B[1][7].lower = 0
+        B[2][0].value = B[2][0].upper = B[2][0].lower = 0
+        B[2][1].value = B[2][1].upper = B[2][1].lower = 0
+        B[2][2].value = B[2][2].upper = B[2][2].lower = 0
+        B[2][7].value = B[2][7].upper = B[2][7].lower = 0
+        B[3][0].value = B[3][0].upper = B[3][0].lower = 0
+        B[3][1].value = B[3][1].upper = B[3][1].lower = 0
+        B[3][2].value = B[3][2].upper = B[3][2].lower = 0
+        B[3][3].value = B[3][3].upper = B[3][3].lower = 0
+        B[3][4].value = B[3][4].upper = B[3][4].lower = 0
+        B[3][5].value = B[3][5].upper = B[3][5].lower = 0
+        B[3][6].value = B[3][6].upper = B[3][6].lower = 0
 
         dates = pd.date_range(start=self.starting_date, end=date)
         date_list = dates.tolist()
@@ -201,6 +278,8 @@ class Person:
 
         timesteps = len(flat_y)
 
+
+        # TODO: ask Alex, should this be a Param? Or Const? Or nothing?  
         u = [self.get_exogenous_inputs_of_day(date) for date in dates for hour in hours]
 
         # # z should be all latent states (check with Alex)
@@ -212,40 +291,19 @@ class Person:
         
         C = np.array([0, 0, 1, 0])
 
-        # # are all the states decision variables, and if so,
-        # # how does that work with the step function
-        
-        # objective = cvx.Minimize(
-        #     cvx.sqrt(
-        #         cvx.sum([cvx.square(flat_y[i] - C @ z[i]) for i in range(len(flat_y))])
-        #     )
-        # )
-        # constraints = []
-
         m.Obj(
             m.sqrt(
                 m.sum([(flat_y[i] - z[i][3])**2 for i in range(len(flat_y))])
                 )
             )
 
-        # for i in range(timesteps - 2):
-        #     constraints += [z[i + 1] == A @ z[i] + B @ u[i]]  # change/test these
-
         for i in range(timesteps - 2):
             state_contribution = np.dot(A, z[i])
             ex_contribution = np.dot(B, u[i])
-            for j in range(4):
+            for j in range(len(z[i])):
                 m.Equation(z[i + 1][j] == state_contribution[j] + ex_contribution[j])
 
-
-        # # IPython.embed()
-
-        # problem = cvx.Problem(objective, constraints)
-
-        # problem.solve(solver=cvx.OSQP, verbose=True)
-        # m.open_folder()
-        m.options.solver = 3
-
+        m.options.solver = 2
         m.solve()
 
         IPython.embed()
@@ -298,9 +356,10 @@ class Person:
                         & (self.energy_data["Hour"] == hour)
                     ]["HourlyEnergy"].iloc[0]
                 )
-            energy.append(sum(daily_sum))
+            energy.append(np.nansum(daily_sum))
 
-        return sum(energy) / len(energy)
+        len_energy = np.count_nonzero(~np.isnan(energy))
+        return np.nansum(energy) / len_energy
 
     def get_energy_saturation(self, timestamp):
         date, hour, week = self.extract_time_info(timestamp)
