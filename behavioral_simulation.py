@@ -46,6 +46,32 @@ class Person:
         self.weekly_survey_data = df_data[4]
         self.baseline_data = df_data[5]
         self.ooo_data = df_data[6]
+        self.generic_energy_day = np.array(
+            [0.000000, 
+            0.960, 
+            1.50, 
+            1.210, 
+            1.220, 
+            1.290, 
+            1.290, 
+            1.20, 
+            1.269,
+            1.210001,
+            114.290000,
+            93.4100,
+            97.730000,
+            71.470000,
+            112.520000,
+            82.030000,
+            77.800000,
+            0.840000,
+            86.760000, 
+            59.820000, 
+            24.230000, 
+             0.330000, 
+             0.330000, 
+             0.400000
+             ])
 
         # put filepaths of the CSV here
 
@@ -147,6 +173,7 @@ class Person:
                 predicted_energy,  ## TODO: This is turning back nans :/
             ]
         )
+
     def step(self, timestamp):
         """ Function to step through the hours of the day based on the various 
         weight matrices 
@@ -184,31 +211,16 @@ class Person:
         ## diagonal entries
         # 0, 0
         A[0][0].value = -.5; A[0][0].lower = -1; A[0][0].upper = 1
-        
-        # 1, 1
         A[1][1].value = -.5; A[1][1].lower = -1; A[1][1].upper = 1
-
-        # 2, 2
         A[2][2].value = -.5; A[2][2].lower = -1; A[2][2].upper = 1
-
-        # 3, 3
         A[3][3].value = -.5; A[3][3].lower = -1; A[3][3].upper = 1
 
         ## non-zero entries
-        # for the beta labelled 4, 1 
-        A[0][3].value = random.random(); A[0][3].upper = 1; A[0][3].lower = -1
-
-        # beta32
-        A[1][2].value = random.random(); A[1][2].upper = 1; A[1][2].lower = -1
-
-        # beta13 
-        A[2][0].value = random.random(); A[2][0].upper = 1; A[2][0].lower = -1
-
-        # beta23
-        A[1][2].value = random.random(); A[1][2].upper = 1; A[1][2].lower = -1
-
-        # beta34
-        A[3][2].value = random.random(); A[3][2].upper = 1; A[3][2].lower = -1
+        A[0][3].value = random.random(); A[0][3].upper = 1; A[0][3].lower = -1 # for the beta labelled 4, 1 
+        A[1][2].value = random.random(); A[1][2].upper = 1; A[1][2].lower = -1 # beta32
+        A[2][0].value = random.random(); A[2][0].upper = 1; A[2][0].lower = -1 # beta13         
+        A[1][2].value = random.random(); A[1][2].upper = 1; A[1][2].lower = -1 # beta23
+        A[3][2].value = random.random(); A[3][2].upper = 1; A[3][2].lower = -1 # beta34
 
         ## zero entries 
         A[0][1].value = A[0][1].upper = A[0][1].lower = 0
@@ -266,21 +278,31 @@ class Person:
         B[3][5].value = B[3][5].upper = B[3][5].lower = 0
         B[3][6].value = B[3][6].upper = B[3][6].lower = 0
 
-        dates = pd.date_range(start=self.starting_date, end=date)
-        date_list = dates.tolist()
+        # dates = pd.date_range(start=self.starting_date, end=date)
+        dates = date
         hours = list(range(24))
 
-        y = [[self.get_days_energy(date = date)] for date in dates]
- 
+
+        # y = [[self.get_days_energy(date = date)] for date in dates]
+        y = self.get_days_energy(date = date)
+        # baseline_energies = [self.get_hourly_baseline_for_day(date) for date in dates]
+        baseline_energies = self.get_hourly_baseline_for_day(date)
+
+        flat_baseline_energies = np.reshape(baseline_energies, -1)
         flat_y = np.reshape(y, -1)
 
-        ## TODO: subtract the baseline energy for that day from y
+        flat_diff = np.subtract(flat_y, flat_baseline_energies).values
 
+        ## TODO: subtract the baseline energy for that day from y
         timesteps = len(flat_y)
 
-
         # TODO: ask Alex, should this be a Param? Or Const? Or nothing?  
-        u = [self.get_exogenous_inputs_of_day(date) for date in dates for hour in hours]
+        u = [self.get_exogenous_inputs_of_day(date) for hour in hours]
+        # u = m.Array(m.Param, 
+        #         (len(self.get_exogenous_inputs_of_day(date)), len(hours)), 
+        #         [(self.get_exogenous_inputs_of_day(date) for hour in hours)]
+        #     )
+            
 
         # # z should be all latent states (check with Alex)
         # z = cvx.Variable((timesteps, 4))
@@ -290,26 +312,241 @@ class Person:
         # # c should be (0,0,c,0)
         
         C = np.array([0, 0, 1, 0])
+        gammas = m.Array(m.Var, (timesteps-1), lb = -5, ub = 5)
 
         m.Obj(
             m.sqrt(
-                m.sum([(flat_y[i] - z[i][3])**2 for i in range(len(flat_y))])
+                m.sum([(flat_diff[i] - z[i][3])**2 for i in range(len(flat_y))] + 
+                    [gammas[i] * 
+                        (z[i+1][j] - np.dot(A, z[i])[j] - np.dot(B, u[i])[j])
+                            for i in range(timesteps - 1)
+                        for j in range(len(z[i])) 
+                    ])
                 )
             )
 
-        for i in range(timesteps - 2):
-            state_contribution = np.dot(A, z[i])
-            ex_contribution = np.dot(B, u[i])
-            for j in range(len(z[i])):
-                m.Equation(z[i + 1][j] == state_contribution[j] + ex_contribution[j])
-
         m.options.solver = 2
+        m.options.MAX_ITER = 1000
         m.solve()
 
-        IPython.embed()
+        # IPython.embed()
         
         return A, B, z
         # return np.array(A.value), np.array(B.value), np.array(z.value)
+
+    def step_helper(self, A, B, u):
+        """ Function to step through the hours of the day based on the various 
+        weight matrices 
+
+        Note: used to be called "update", but I changed it because we 
+        were overusing that word 
+
+        Final update of the form:
+        state_vector_{t+1} = state_weights * state_vector_{t} +
+             input_weights * exogenous_inputs_{t}"""
+
+        timesteps = len(u)
+
+        z = np.zeros((timesteps, 4))
+
+        # try: introducing non-linearity, like the A could be a probability vector 
+            # like a square or a log term 
+            # look into how hierarchical regression solves things 
+            # make an RNN instead. Guide it so that 
+
+        for i in range(timesteps-1):
+            z[i+1] = np.dot(
+                A, z[i]
+            ) + np.dot(
+                B, u[i]
+            )
+
+        return z 
+
+
+    def parameter_fit_step_helper(self, A, B, u, flat_diff, timesteps):
+        """ Function to step through the hours of the day based on the various 
+        weight matrices and optimize these steps.
+
+        Note: used to be called "update", but I changed it because we 
+        were overusing that word 
+
+        Final update of the form:
+        state_vector_{t+1} = state_weights * state_vector_{t} +
+             input_weights * exogenous_inputs_{t}"""
+
+        z = cvx.Variable((timesteps, 4))
+
+        errors = []
+
+        for i in range(timesteps):
+            errors.append(cvx.square(flat_diff[i] - z[i][2]))
+
+        objective = cvx.Minimize(
+                cvx.sum(
+                        errors
+                    )
+                )
+
+
+        constraints = []
+
+        for i in range(timesteps-1):
+            constraints.append(z[i + 1] == A @ z[i] + B @ u[i])
+
+        problem = cvx.Problem(objective, constraints)
+        problem.solve(solver = cvx.OSQP, verbose=True)
+
+        return z.value
+
+    def parameter_fit_paramter_helper(self, z_old, u, flat_diff, flat_y, timesteps):
+        """
+        Helper function to resolve the parameters, once the z are computed 
+
+        z_old: the z variables computed from the previous round, shape (timesteps, 4)
+        u: exogenous inputs, shape (7, 24), (# exogenous inputs, hours)
+        flat_diff: difference between actual energy and actual baseline
+        flat_y: actual observed energy 
+        timesteps: number of timesteps to feed in
+
+        returns: parameters 
+
+        """
+
+        A = cvx.Variable(self.state_weights.shape)
+        B = cvx.Variable(self.input_weights.shape)
+
+        def objective_zs(A, B, z_old, timesteps):
+            z = {}
+            z[0] = [0,0,0,0]
+            for i in range(timesteps-1):
+                z[i + 1] = A @ z_old[i] + B @ u[i] 
+            return z
+        
+        z_list = objective_zs(A, B, z_old, timesteps)
+
+        errors = []
+
+        for i in range(timesteps):
+            errors.append(
+                cvx.square(
+                    flat_diff[i] - z_list[i][2]
+                    )
+            )
+
+        objective = cvx.Minimize(
+            cvx.sum(
+                    errors
+                )
+            )
+            
+        constraints = [A[0][0] >= -.5, A[1][1] >= -.5, A[2][2] >= -.5, A[3][3] >= -.5, 
+                A[0][1]  == 0,  A[0][2] == 0,  
+                A[1][0] == 0,  A[1][3] == 0,  A[2][1] == 0, 
+                A[2][3] == 0,  A[3][0] == 0,  A[3][1] == 0, 
+                B[0][0] == 1,  B[1][0] == 1,  B[0][2] == 0,  
+                B[0][3] == 0,  B[0][4] == 0,  B[0][5] == 0, 
+                B[0][6] == 0,  B[0][7] == 0, 
+                B[1][1] == 0,  B[1][3] == 0, 
+                B[1][4] == 0,  B[1][5] == 0,  B[1][6] == 0, 
+                B[1][7] == 0,  B[2][0] == 0, 
+                B[2][1] == 0,  B[2][2] == 0,  B[2][7] == 0, 
+                B[3][0] == 0,  B[3][1] == 0, 
+                B[3][2] == 0,  B[3][3] == 0, 
+                B[3][4] == 0,  B[3][5] == 0, B[3][6] == 0]
+
+        problem = cvx.Problem(objective, constraints)
+        problem.solve(solver = cvx.OSQP, verbose=True)
+
+        return A.value, B.value
+
+    def iterative_convex_parameter_fit(self, date):
+        """
+        Attempting to update the A, B matrices with a convex objective
+        
+        """
+
+        y = self.get_days_energy(date = date)
+        baseline_energies = self.get_hourly_baseline_for_day(date)
+
+        flat_baseline_energies = np.reshape(baseline_energies, -1)
+        flat_y = np.reshape(y, -1)
+
+        hours = list(range(24))
+
+        u = [self.get_exogenous_inputs_of_day(date) for hour in hours]
+        flat_diff = np.subtract(flat_y, flat_baseline_energies).values
+        
+        timesteps = len(flat_y)
+
+        A = self.state_weights
+        B = self.input_weights
+
+        zs_to_save = []
+
+        for i in range(50):
+
+            ## try one single optimization 
+
+            zs = self.parameter_fit_step_helper(A, B, u, flat_diff, timesteps)
+            A, B = self.parameter_fit_paramter_helper(zs, u, flat_diff, flat_y, timesteps)
+            zs_to_save.append(zs)
+
+        IPython.embed()
+
+        return A, B
+
+    def convex_parameter_fit(self, date):
+        """
+        Attempting to update the A, B matrices with a convex objective
+        
+        """
+
+        y = self.get_days_energy(date = date)
+        baseline_energies = self.get_hourly_baseline_for_day(date)
+
+        flat_baseline_energies = np.reshape(baseline_energies, -1)
+        flat_y = np.reshape(y, -1)
+
+        hours = list(range(24))
+
+        u = [self.get_exogenous_inputs_of_day(date) for hour in hours]
+        flat_diff = np.subtract(flat_y, flat_baseline_energies).values
+        
+        timesteps = len(flat_y)
+
+        A = cvx.Variable(self.state_weights.shape)
+        B = cvx.Variable(self.input_weights.shape)
+
+        def objective_zs(A, B, timesteps):
+            z = {}
+            z[0] = [0,0,0,0]
+            for i in range(timesteps-1):
+                z[i + 1] = A @ z[i] + B @ u[i] 
+            return z
+        
+        z_list = objective_zs(A, B, timesteps)
+
+        errors = []
+
+        for i in range(timesteps):
+            errors.append(cvx.square(flat_diff[i] - z_list[i][2]))
+
+        objective = cvx.Minimize(
+            cvx.sum(
+                    errors
+                )
+            )
+
+        IPython.embed()
+
+        constraints = []
+
+        problem = cvx.Problem(objective, constraints)
+        problem.solve(solver = cvx.OSQP, verbose=True)
+
+        return A, B
+
 
     def get_exogenous_inputs_of_day(self, date):
 
@@ -427,6 +664,27 @@ class Person:
 
         return sum(energy) / len(energy)
 
+    def get_hourly_baseline_for_day(self, timestamp):
+        baseline_times = []
+        energy = {}
+
+        for _ in range(3):
+            timestamp = timestamp - timedelta(weeks=1)
+            d, _, _ = self.extract_time_info(timestamp)
+            baseline_times.append(d)
+
+        for i, date in enumerate(baseline_times):
+            to_append = self.energy_data[
+                    (self.energy_data["Date"] == date)
+                ]["HourlyEnergy"].fillna(value = 0) 
+            energy[i] = to_append
+            if i == 0:
+                summed_energy = to_append
+            else:
+                summed_energy = np.add(summed_energy, to_append)
+
+        return summed_energy / len(energy)
+
     def get_out_of_office_score(self, timestamp):
         date, hour, week = self.extract_time_info(timestamp)
         val = self.ooo_data[
@@ -492,7 +750,7 @@ to determine the impact of vicarious learning."""
                 person.state_weights,
                 person.input_weights,
                 person.states,
-            ) = person.daily_weight_fit(date)
+            ) = person.iterative_convex_parameter_fit(date)
             print(person.state_weights, person.input_weights, person.states)
 
 
