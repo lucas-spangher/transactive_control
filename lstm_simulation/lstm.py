@@ -48,9 +48,12 @@ class LSTM(nn.Module):
         self.hidden =  (torch.zeros(self.num_layers, self.batch_size, self.hidden_dim),
                         torch.zeros(self.num_layers, self.batch_size, self.hidden_dim))
     
+    #Reference: https://pytorch.org/tutorials/beginner/nlp/sequence_models_tutorial.html
     def forward(self, input):
         seq_length = len(input[0])
         input_reshaped = input.view(seq_length, self.batch_size, -1)
         output, self.hidden = self.lstm(input_reshaped, self.hidden)
+        
+        #By pytorch convention, the last slice of output is the output we want.
         output = self.output_layer(output[-1].view(self.batch_size, -1))
         return output.view((1,-1))
