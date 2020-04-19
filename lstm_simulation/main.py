@@ -10,6 +10,9 @@ sys.path.append("..")
 from new_action_energy_data.dataset import Action_Energy_Dataset
 
 def main(args):
+    
+    #Args Recap
+    print(args, end="\n\n")
 
     #Checks that paths exist before starting
     if(args.train_data_path == args.test_data_path):
