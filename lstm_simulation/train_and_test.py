@@ -24,7 +24,8 @@ class Optimizer:
      Before you run main.py, in another terminal tab/window cd into the lstm_simulation dir
      and run: tensorboard --logdir=runs
 
-     You can replace that tells Tensorboard to start and saves the logs in lstm_simulation/runs (you can change runs to any other name)
+     That ^ command tells Tensorboard to start and saves the logs in lstm_simulation/runs 
+     (you can change runs to any other name)
      If you wish to save outside of lstm_simulation, insert the path in line 44
      Either way, you will have to call tensorboard from this directory (atleast I believe so)
 
