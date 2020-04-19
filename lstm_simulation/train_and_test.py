@@ -95,7 +95,7 @@ class Optimizer:
 
             elapsed = time.time() - start_time
             print(
-                "Epoch {:d} Train loss: {:.2f}. Train Accuracy: {:.2f}. Validation loss: {:.2f}. Validation Accuracy: {:.2f}. Elapsed time: {:.2f}ms.".format(
+                "Epoch {:d} Train loss: {:.2f}. Train Accuracy: {:.2f}. Validation loss: {:.2f}. Validation Accuracy: {:.2f}. Elapsed time: {:.2f}ms. \n".format(
                 epoch + 1, train_loss, train_acc, validation_loss, validation_acc, elapsed)
                 )
 
