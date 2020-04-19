@@ -9,6 +9,7 @@ import numpy as np
 import datetime as dt
 
 
+
 def init():
     # Init States
     outcome_expectancy = 0
