@@ -114,23 +114,23 @@ class Optimizer:
         Note: This function returns the self.model's loss and accuracy on the data in dataloader
         """
             
-            self.model.eval()
-            total_loss = 0
-            correct_ct = 0
-            with torch.no_grad():
-                for batch_number, (x,y) in enumerate(dataloader):
-                    x = x.to(device = self.device)
-                    y = y.to(device = self.device)
+        self.model.eval()
+        total_loss = 0
+        correct_ct = 0
+        with torch.no_grad():
+            for batch_number, (x,y) in enumerate(dataloader):
+                x = x.to(device = self.device)
+                y = y.to(device = self.device)
 
-                    predicted_y = self.model(x)
-                    correct_ct += predicted_y.eq(y.data).sum().item()
-                    loss = self.loss_fn(predicted_y,y)
-                    total_loss += loss
+                predicted_y = self.model(x)
+                correct_ct += predicted_y.eq(y.data).sum().item()
+                loss = self.loss_fn(predicted_y,y)
+                total_loss += loss
 
-            total_loss = total_loss / len(dataloader)
-            acc = correct_ct / len(dataloader.dataset)
+        total_loss = total_loss / len(dataloader)
+        acc = correct_ct / len(dataloader.dataset)
 
-            return total_loss, acc
+        return total_loss, acc
     
     def test(self, test_dataloader: DataLoader):
 
