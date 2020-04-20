@@ -41,7 +41,7 @@ class LSTM(nn.Module):
 
         self.lstm = nn.LSTM(input_dim, hidden_dim, num_layers)
         self.output_layer = nn.Linear(self.hidden_dim, output_dim)
-        self.hidden = self.init_hidden()
+        self.init_hidden()
     
     #resets hidden state
     def init_hidden(self):
@@ -49,8 +49,9 @@ class LSTM(nn.Module):
                         torch.zeros(self.num_layers, self.batch_size, self.hidden_dim))
     
     def forward(self, input):
-        seq_length = len(input[0])
-        input_reshaped = input.view(seq_length, self.batch_size, -1)
-        output, self.hidden = self.lstm(input_reshaped, self.hidden)
-        output = self.output_layer(output[-1].view(self.batch_size, -1))
-        return output.view((1,-1))
+        batch_sz, seq_length = input.size()
+
+        input_reshaped = input.view(seq_length, batch_sz, -1)
+        output, self.hidden = self.lstm(input_reshaped)
+        output = self.output_layer(output[-1].view(batch_sz, -1))
+        return output

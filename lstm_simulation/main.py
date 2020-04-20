@@ -10,6 +10,9 @@ sys.path.append("..")
 from new_action_energy_data.dataset import Action_Energy_Dataset
 
 def main(args):
+    
+    #Args Recap
+    print(args, end="\n\n")
 
     #Checks that paths exist before starting
     if(args.train_data_path == args.test_data_path):
@@ -38,7 +41,13 @@ def main(args):
 
 
     # Init model and helper class
-    model = LSTM(args.input_size, args.hidden_size, args.num_layers, batch_sz)
+    model = LSTM(input_dim = args.input_size, 
+                hidden_dim = args.hidden_size, 
+                batch_size = batch_sz,
+                num_layers = args.num_layers,
+                output_dim = 10) 
+                #Up to you if you want output_dim = 10 or 1, if 1 need to tweak dataloader
+
     helper = Optimizer(model, device = args.device)
 
     # Trains model

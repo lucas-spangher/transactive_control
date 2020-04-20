@@ -24,7 +24,8 @@ class Optimizer:
      Before you run main.py, in another terminal tab/window cd into the lstm_simulation dir
      and run: tensorboard --logdir=runs
 
-     You can replace that tells Tensorboard to start and saves the logs in lstm_simulation/runs (you can change runs to any other name)
+     That ^ command tells Tensorboard to start and saves the logs in lstm_simulation/runs 
+     (you can change runs to any other name)
      If you wish to save outside of lstm_simulation, insert the path in line 44
      Either way, you will have to call tensorboard from this directory (atleast I believe so)
 
@@ -80,7 +81,6 @@ class Optimizer:
                 y = y.to(device = self.device)
 
                 predicted_y = self.model(x)
-
                 self.optimizer.zero_grad()
                 loss = self.loss_fn(predicted_y, y)
                 loss.backward(retain_graph = True)
@@ -95,7 +95,7 @@ class Optimizer:
 
             elapsed = time.time() - start_time
             print(
-                "Epoch {:d} Train loss: {:.2f}. Train Accuracy: {:.2f}. Validation loss: {:.2f}. Validation Accuracy: {:.2f}. Elapsed time: {:.2f}ms.".format(
+                "Epoch {:d} Train loss: {:.2f}. Train Accuracy: {:.2f}. Validation loss: {:.2f}. Validation Accuracy: {:.2f}. Elapsed time: {:.2f}ms. \n".format(
                 epoch + 1, train_loss, train_acc, validation_loss, validation_acc, elapsed)
                 )
 
@@ -114,23 +114,23 @@ class Optimizer:
         Note: This function returns the self.model's loss and accuracy on the data in dataloader
         """
             
-            self.model.eval()
-            total_loss = 0
-            correct_ct = 0
-            with torch.no_grad():
-                for batch_number, (x,y) in enumerate(dataloader):
-                    x = x.to(device = self.device)
-                    y = y.to(device = self.device)
+        self.model.eval()
+        total_loss = 0
+        correct_ct = 0
+        with torch.no_grad():
+            for batch_number, (x,y) in enumerate(dataloader):
+                x = x.to(device = self.device)
+                y = y.to(device = self.device)
 
-                    predicted_y = self.model(x)
-                    correct_ct += predicted_y.eq(y.data).sum().item()
-                    loss = self.loss_fn(predicted_y,y)
-                    total_loss += loss
+                predicted_y = self.model(x)
+                correct_ct += predicted_y.eq(y.data).sum().item()
+                loss = self.loss_fn(predicted_y,y)
+                total_loss += loss
 
-            total_loss = total_loss / len(dataloader)
-            acc = correct_ct / len(dataloader.dataset)
+        total_loss = total_loss / len(dataloader)
+        acc = correct_ct / len(dataloader.dataset)
 
-            return total_loss, acc
+        return total_loss, acc
     
     def test(self, test_dataloader: DataLoader):
 
