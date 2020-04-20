@@ -46,7 +46,8 @@ def main(args):
                 batch_size = batch_sz,
                 num_layers = args.num_layers,
                 output_dim = 10) 
-                #Up to you if you want output_dim = 10 or 1, if 1 need to tweak dataloader
+                #Up to you if you want input / output_dim = 10 or 1, 
+                # if you change it, will need to tweak dataloader
 
     helper = Optimizer(model, device = args.device)
 
@@ -75,7 +76,7 @@ if __name__ == "__main__":
     parser.add_argument('--input_size', type=int, default=1,
                         help='Size of input at each time step')
 
-    parser.add_argument('--hidden_size', type=int, default = 5, 
+    parser.add_argument('--hidden_size', type=int, default = 10, 
                         help = 'size of hidden dimension')
 
     parser.add_argument('--num_layers', type=int, default=1,

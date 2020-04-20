@@ -30,7 +30,7 @@ class LSTM(nn.Module):
                 hidden_dim: int, 
                 batch_size:int,
                 num_layers = 1, 
-                output_dim = 10):
+                output_dim = 1):
                 
         super(LSTM, self).__init__()
         self.input_dim = input_dim
@@ -51,8 +51,12 @@ class LSTM(nn.Module):
     #Reference: https://pytorch.org/tutorials/beginner/nlp/sequence_models_tutorial.html
     def forward(self, input):
         batch_sz, seq_length = input.size()
-
         input_reshaped = input.view(seq_length, batch_sz, -1)
         output, self.hidden = self.lstm(input_reshaped)
-        output = self.output_layer(output[-1].view(batch_sz, -1))
+
+        #By torch default, the output we want is the last slice of output
+        #This reshapes allow us to pass into our output layer
+        output_reshaped = output[-1].view(batch_sz,-1)
+
+        output = self.output_layer(output_reshaped)
         return output
