@@ -48,6 +48,7 @@ class LSTM(nn.Module):
         self.hidden =  (torch.zeros(self.num_layers, self.batch_size, self.hidden_dim),
                         torch.zeros(self.num_layers, self.batch_size, self.hidden_dim))
     
+    #Reference: https://pytorch.org/tutorials/beginner/nlp/sequence_models_tutorial.html
     def forward(self, input):
         batch_sz, seq_length = input.size()
 
