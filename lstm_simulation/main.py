@@ -3,7 +3,7 @@ import torch
 from lstm import LSTM
 from train_and_test import Optimizer
 from torch.utils.data import DataLoader
-from train_and_test import Optimizer
+import IPython
 
 import sys
 sys.path.append("..")
@@ -26,7 +26,7 @@ def main(args):
         raise ValueError(("Batch Size {:d} cannot be greater than size of dataset {:d}".format(args.batch_sz, len(train_dataset))))
     
     #Initializes validation and "dummy test" dataset
-    valid_dataset = Action_Energy_Dataset(args.train_data_path,'valid')
+    valid_dataset = Action_Energy_Dataset(args.train_data_path, 'valid')
     test_dataset = Action_Energy_Dataset(args.test_data_path, 'dummy_test')
 
     batch_sz = args.batch_size
@@ -49,7 +49,9 @@ def main(args):
                 #Up to you if you want input / output_dim = 10 or 1, 
                 # if you change it, will need to tweak dataloader
 
-    helper = Optimizer(model, device = args.device)
+    helper = Optimizer(model, 
+        device = args.device,
+        output_file_name = args.output_file_name)
 
     # Trains model
     helper.train(train_dataloader, valid_dataloader, args.num_epochs)
@@ -59,17 +61,18 @@ def main(args):
 
     print("Test Accuracy: {:f}".format((test_acc)))
 
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser('LSTM Model')
 
     #Data
     parser.add_argument('--train_data_path', type=str, 
                     default="../new_action_energy_data/0_extra_train/linear_extratrain_0.csv",
+                    # default = "../simulation_data_train.csv",
                     help='Filepath of  training data csv.')
 
     parser.add_argument('--test_data_path', type=str, 
                     default="../new_action_energy_data/99_extra_train/linear_extratrain_99.csv",
+                    # default = "../simulation_data_test.csv",          
                     help='Filepath of  dummy test data csv.')
 
     # Model
@@ -86,6 +89,9 @@ if __name__ == "__main__":
 
     parser.add_argument('--num_epochs', type=int, default=10,
                         help='number of epochs')
+
+    parser.add_argument("--output_file_name", type = str, default = "model_out", 
+                        help = "what to name the output")
 
 
     args = parser.parse_args()

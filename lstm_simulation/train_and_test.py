@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
+import IPython
 
 import time
 from lstm import LSTM
@@ -36,10 +37,11 @@ class Optimizer:
 
     def __init__(self, 
                 model: LSTM,
-                loss_function = nn.MSELoss(),
+                loss_function = nn.MSELoss(),  ##### standard for regression 
                 learning_rate= 1e-3,
-                optimizer = torch.optim.Adam,
-                device = 'cpu'):
+                optimizer = torch.optim.Adam, # search other optimizers 
+                device = 'cpu',
+                output_file_name = None):
         
         self.model = model
         self.loss_fn = loss_function
@@ -48,7 +50,7 @@ class Optimizer:
         self.device = torch.device(device)
 
         #If you want to save logs somewhere else insert path in SummaryWriter(path)
-        self.writer = SummaryWriter()
+        self.writer = SummaryWriter(log_dir = "runs/" + output_file_name)
     
     def train(self,
             train_dataloader: DataLoader,
@@ -73,6 +75,7 @@ class Optimizer:
             start_time = time.time()
             train_loss = 0
             train_correct_ct = 0
+            rmse = 0
 
             #resets hidden state
             self.model.hidden = self.model.init_hidden()
@@ -87,11 +90,22 @@ class Optimizer:
                 self.optimizer.step()
 
                 train_loss += loss
-                train_correct_ct += predicted_y.eq(y.data).sum().item()
+                train_correct_ct += predicted_y.eq(y.data).sum().item() # <-- 
+
+                print("predicted_y")
+                print(predicted_y)
+
+                print("y data")
+                print(y.data)
+
+                ### ^--- ?? should maybe be rounded -- a bit. 
+
             
-            train_loss = train_loss /  len(train_dataloader)
+            train_loss = train_loss / len(train_dataloader)
             train_acc= train_correct_ct / len(train_dataloader.dataset)
             validation_loss, validation_acc = self.eval_(val_dataloader)
+
+            IPython.embed()
 
             elapsed = time.time() - start_time
             print(
