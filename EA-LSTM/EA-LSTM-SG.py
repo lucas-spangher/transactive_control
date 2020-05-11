@@ -174,31 +174,33 @@ def select(pop, n_selected, step):
                 rmse = get_rmse(get_param(each, 18, 6), reframed)
                 fit_temp.append(rmse)
                 c_pop2rmse[c_pop] = rmse
+
+                # logging info
                 logging_dict["population_name"] = c_pop
                 logging_dict["rmse"] = rmse[0]
                 logging_dict["mae"] = rmse[1]
                 logging_dict["index"] = c_pop
 
-            with open(("logs/log_runs" + str(pd.to_datetime('today')) + ".csv"), "a") as f:
-                df = pd.DataFrame(data = logging_dict)
-                if step == 1:
-                    df.to_csv(f, header = True)
-                else: 
-                    df.to_csv(f, header = False)
+            # IPython.embed()
+
+            # with open(("logs/log_runs" + str(pd.to_datetime('today')) + ".csv"), "a") as f:
+            #     df = pd.DataFrame([logging_dict])
+            #     if step == 1:
+            #         df.to_csv(f, header = True)
+            #     else: 
+            #         df.to_csv(f, header = False)
 
             # IPython.embed()
 
         pop_selected.append(each_group[fit_temp.index(min(fit_temp))])
         fitness_selected.append(min(fit_temp))
 
-    with open(("logs/log_runs" + str(pd.to_datetime('today').date())), "a") as f:
-        df = pd.DataFrame(data = logging_dict)
-
+    with open(("logs/log_runs" + str(pd.to_datetime('today')) + ".csv"), "a") as f:
+        df = pd.DataFrame([logging_dict])
         if step == 1:
             df.to_csv(f, header = True)
         else: 
             df.to_csv(f, header = False)
-
             
     selected = []
     selected.append(pop_selected)
