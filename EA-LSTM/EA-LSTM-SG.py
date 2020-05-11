@@ -175,11 +175,17 @@ def select(pop, n_selected, step):
                 fit_temp.append(rmse)
                 c_pop2rmse[c_pop] = rmse
 
-                # logging info
-                logging_dict["population_name"] = c_pop
-                logging_dict["rmse"] = rmse[0]
-                logging_dict["mae"] = rmse[1]
-                logging_dict["index"] = c_pop
+                with open(("logs/log_runs" + str(pd.to_datetime('today')) + ".csv"), "a") as f:
+                    # logging info
+                    logging_dict["population_name"] = c_pop
+                    logging_dict["rmse"] = rmse[0]
+                    logging_dict["mae"] = rmse[1]
+
+                    df = pd.DataFrame([logging_dict])
+                    if step == 0 & c1 == 1 & c2 == 1:
+                        df.to_csv(f, header = True)
+                    else: 
+                        df.to_csv(f, header = False)
 
             # IPython.embed()
 
@@ -194,13 +200,6 @@ def select(pop, n_selected, step):
 
         pop_selected.append(each_group[fit_temp.index(min(fit_temp))])
         fitness_selected.append(min(fit_temp))
-
-    with open(("logs/log_runs" + str(pd.to_datetime('today')) + ".csv"), "a") as f:
-        df = pd.DataFrame([logging_dict])
-        if step == 1:
-            df.to_csv(f, header = True)
-        else: 
-            df.to_csv(f, header = False)
             
     selected = []
     selected.append(pop_selected)
@@ -318,7 +317,7 @@ def get_rmse(param, reframed):
     model.compile(loss = 'mse', optimizer = 'adam')
 
     # training
-    history = model.fit(train_X, train_y, epochs = 5, batch_size = 4096, validation_data = (valid_X, valid_y), verbose = 1, shuffle = True)
+    history = model.fit(train_X, train_y, epochs = 25, batch_size = 1024, validation_data = (valid_X, valid_y), verbose = 1, shuffle = True)
 
     # make a prediction
     yhat = model.predict(valid_X)
