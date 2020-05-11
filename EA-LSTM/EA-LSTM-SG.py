@@ -1,5 +1,5 @@
 # coding: utf-8
-from __future__ import division 
+ 
 import random
 from itertools import combinations
 import keras.backend.tensorflow_backend as KTF
@@ -28,7 +28,7 @@ import IPython
 # Initialize random population
 def get_first_pop(pop_size, param_num, encode_length):
     
-    print "Get first population"
+    print("Get first population")
     pop = []
     for i in range(pop_size):
         individual = []
@@ -68,11 +68,11 @@ def pop2param(pop):
 # Initialization parameter population
 def get_first_param(pop_size, param_num, encode_length):
     
-    print "Initialization of parameter population"
-    print ("pop size "+ str(pop_size) + 
+    print("Initialization of parameter population")
+    print(("pop size "+ str(pop_size) + 
         "param_num"+ str(param_num) + 
         "encode_length " + str(encode_length)
-        )
+        ))
 
     first_pop = get_first_pop(pop_size, param_num, encode_length)
     param = []
@@ -86,7 +86,7 @@ def get_first_param(pop_size, param_num, encode_length):
 # Get random index
 def get_cross_seg_id(param_num):
 
-    print "Getting random index"
+    print("Getting random index")
     index = []
     while(1):
         for i in range(param_num):
@@ -135,7 +135,7 @@ def variation(individual_code):
 
 # Population grouping
 def pop2group(pop,group_num):
-    group_index = random.sample(range(0, group_num * 6), group_num * 6)
+    group_index = random.sample(list(range(0, group_num * 6)), group_num * 6)
     group_pop = []
     for i in range(group_num):
         temp_index = group_index[i * group_num:(i + 1) * group_num]
@@ -163,13 +163,13 @@ def select(pop, n_selected, step):
         c2 = 0
         for each in each_group:
             c2 += 1 
-            print '----------------------------------------------------------'
-            print 'Step:',step,'-',c1,'-',c2
+            print('----------------------------------------------------------')
+            print('Step:',step,'-',c1,'-',c2)
 
             c_pop = c_pop2str(each)
-            if c_pop2rmse.has_key(c_pop):
+            if c_pop in c_pop2rmse:
                 fit_temp.append(c_pop2rmse[c_pop])
-                print 'Get RMSE from Hash...'
+                print('Get RMSE from Hash...')
             else:
                 rmse = get_rmse(get_param(each, 18, 6), reframed)
                 fit_temp.append(rmse)
@@ -215,11 +215,11 @@ def pop_reconstruct(pop_selected,target_num):
     for i in range(len(new_pop)):
         temp_pop_map[c_pop2str(new_pop[i])] = i
         
-    index = [c for c in combinations(range(len(pop_selected)), 2)]
+    index = [c for c in combinations(list(range(len(pop_selected))), 2)]
     while(len(new_pop) < target_num):
         for each in index:
             new = cross_over(pop_selected[each[0]],pop_selected[each[1]])
-            if temp_pop_map.has_key(c_pop2str(new)) == False:
+            if (c_pop2str(new) in temp_pop_map) == False:
                 new_pop.append(new)
                 temp_pop_map[c_pop2str(new)] = len(new_pop)
             if len(new_pop) == target_num:
@@ -257,7 +257,7 @@ def series_to_supervised(data, col_names, n_in = 1, n_out = 1, dropnan = True):
 # produce attention weights 
 def get_attenton_rate_df(param, df, n_feature, time_step):
     attention_rate = param
-    print 'attention_rate:', attention_rate
+    print('attention_rate:', attention_rate)
     new_reframed = df.copy()
 
     # IPython.embed()
@@ -291,7 +291,7 @@ def get_rmse(param, reframed):
     
     # Training set and validation set data
     values = get_attenton_rate_df(param, reframed, 8, 18).values
-    print "got attention rate"
+    print("got attention rate")
     n_train_hours = int(16779*0.8)
     train = values[:n_train_hours, :]
     valid = values[n_train_hours:16779, :]
@@ -336,17 +336,17 @@ def get_rmse(param, reframed):
 
     # metric
     rmse = sp.sqrt(mean_squared_error(inv_y, inv_yhat))
-    print 'The RMSE:', rmse
+    print('The RMSE:', rmse)
 
     mae = mean_absolute_error(inv_y, inv_yhat)
-    print 'The MAE:', mae
+    print('The MAE:', mae)
     
     return rmse, mae
 
 def search_best_attention_rate(max_step):
     step = 0
     while (step != max_step):
-        print 'Epoch:', step 
+        print('Epoch:', step) 
         
         # initialize  
         if step == 0:
@@ -381,7 +381,7 @@ dataset['Day of Week'] = values[:,2]
 
 # rearrange to put "energy" last 
 cols = dataset.columns.tolist()
-new_cols = list(filter(lambda x: x!='Energy', cols)) + [cols[1]]
+new_cols = list([x for x in cols if x!='Energy']) + [cols[1]]
 dataset = dataset[new_cols]
 
 # saving the dataset 
