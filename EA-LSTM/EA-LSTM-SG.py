@@ -174,12 +174,12 @@ def select(pop, n_selected, step):
                 rmse = get_rmse(get_param(each, 18, 6), reframed)
                 fit_temp.append(rmse)
                 c_pop2rmse[c_pop] = rmse
-
-
+                
                 if not flat_preds: 
                     file_name = ("logs/log_runs" + str(pd.to_datetime('today')) + ".csv")
                 else: 
                     file_name  = ("logs/log_runs_flat_preds" + str(pd.to_datetime('today')) + ".csv")
+
                 with open(file_name, "a") as f:
                     # logging info
                     logging_dict["population_name"] = c_pop
@@ -317,9 +317,6 @@ def get_rmse(param, reframed):
         valid_X = valid_X.reshape((valid_X.shape[0], n_hours, n_features))
     
     # 2. split into intputs and output, with all 151 columns predicting y_t
-
-
-
     else:
         n_obs = len(reframed.columns) - 1 
         train_X, train_y = train[:, :n_obs], train[:, n_obs:]
@@ -337,6 +334,7 @@ def get_rmse(param, reframed):
         model.add(Dense(n_features))
     else:
         model.add(Dense(1))
+
     model.compile(loss = 'mse', optimizer = 'adam')
 
     # training
@@ -364,8 +362,7 @@ def get_rmse(param, reframed):
     inv_y = scaler.inverse_transform(inv_y)
     inv_y = inv_y[:, inv_y.shape[1] - 1]
 
-    IPython.embed()
-
+    
     # metric
     rmse = sp.sqrt(mean_squared_error(inv_y, inv_yhat))
     print('The RMSE:', rmse)
