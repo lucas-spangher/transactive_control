@@ -175,7 +175,12 @@ def select(pop, n_selected, step):
                 fit_temp.append(rmse)
                 c_pop2rmse[c_pop] = rmse
 
-                with open(("logs/log_runs" + str(pd.to_datetime('today')) + ".csv"), "a") as f:
+
+                if not flat_preds: 
+                    file_name = ("logs/log_runs" + str(pd.to_datetime('today')) + ".csv")
+                else: 
+                    file_name  = ("logs/log_runs_flat_preds" + str(pd.to_datetime('today')) + ".csv")
+                with open(file_name, "a") as f:
                     # logging info
                     logging_dict["population_name"] = c_pop
                     logging_dict["rmse"] = rmse[0]
@@ -300,39 +305,66 @@ def get_rmse(param, reframed):
     n_hours = 18
     n_features = 8
 
-    # split into input and outputs
-    n_obs = n_hours * n_features
-    train_X, train_y = train[:, :n_obs], train[:, n_obs:]
-    valid_X, valid_y = valid[:, :n_obs], valid[:, n_obs:]
+    # # 1. split into input and outputs, with all of the previous timesteps predicting all (X,y) of time t 
 
-    # reshape input to be 3D [samples, timesteps, features]
-    train_X = train_X.reshape((train_X.shape[0], n_hours, n_features))
-    valid_X = valid_X.reshape((valid_X.shape[0], n_hours, n_features))
+    if not flat_preds:
+        n_obs = n_hours * n_features
+        train_X, train_y = train[:, :n_obs], train[:, n_obs:]
+        valid_X, valid_y = valid[:, :n_obs], valid[:, n_obs:]
+
+        # reshape input to be 3D [samples, timesteps, features]
+        train_X = train_X.reshape((train_X.shape[0], n_hours, n_features))
+        valid_X = valid_X.reshape((valid_X.shape[0], n_hours, n_features))
     
+    # 2. split into intputs and output, with all 151 columns predicting y_t
+
+
+
+    else:
+        n_obs = len(reframed.columns) - 1 
+        train_X, train_y = train[:, :n_obs], train[:, n_obs:]
+        valid_X, valid_y = valid[:, :n_obs], valid[:, n_obs:]
+
+        # # reshape input to be 3D [samples, timesteps, features]
+        train_X = train_X.reshape((train_X.shape[0], 1, n_obs))
+        valid_X = valid_X.reshape((valid_X.shape[0], 1, n_obs))
+
     # design model
     model = Sequential()
     model.add(LSTM(128, input_shape = (train_X.shape[1], train_X.shape[2]), return_sequences=True))
     model.add(LSTM(128, return_sequences = False))
-    model.add(Dense(n_features))
+    if not flat_preds:
+        model.add(Dense(n_features))
+    else:
+        model.add(Dense(1))
     model.compile(loss = 'mse', optimizer = 'adam')
 
     # training
-    history = model.fit(train_X, train_y, epochs = 25, batch_size = 1024, validation_data = (valid_X, valid_y), verbose = 1, shuffle = True)
+    history = model.fit(train_X, train_y, epochs = 40, batch_size = 1024, validation_data = (valid_X, valid_y), verbose = 1, shuffle = True)
 
     # make a prediction
     yhat = model.predict(valid_X)
-    valid_X = valid_X.reshape((valid_X.shape[0], n_hours * n_features))
+    valid_y = valid_y.reshape((len(valid_y), -1))
+
+    if flat_preds:
+        valid_X = valid_X.reshape((valid_X.shape[0], -1))
+        inv_yhat = concatenate((valid_X[:, -7:], yhat), axis = 1)
+        inv_y = concatenate((valid_X[:, -7:], valid_y), axis = 1)
+    else: 
+        valid_X = valid_X.reshape((valid_X.shape[0], n_obs))
+        inv_yhat = yhat 
+        inv_y = valid_y
 
     # inverse transform of prediction
-    inv_yhat = yhat # concatenate((yhat, valid_X[:, -n_features:]), axis=1)
+       
     inv_yhat = scaler.inverse_transform(inv_yhat)
     inv_yhat = inv_yhat[:, inv_yhat.shape[1] - 1]
 
     # inverse transform of real value
-    valid_y = valid_y.reshape((len(valid_y), -1))
-    inv_y = valid_y #concatenate((valid_y, valid_X[:, -n_features:]), axis=1)
     inv_y = scaler.inverse_transform(inv_y)
     inv_y = inv_y[:, inv_y.shape[1] - 1]
+
+    IPython.embed()
 
     # metric
     rmse = sp.sqrt(mean_squared_error(inv_y, inv_yhat))
@@ -365,7 +397,7 @@ def search_best_attention_rate(max_step):
 
         
 # Loading preprocessed data
-base_path = 'dataset/simulation_data/'
+base_path = 'Dataset/simulation_data/'
 dataset = read_csv(base_path + 'simulation_data_v2.csv', header=0, index_col=0)
 dataset.dropna(inplace = True, axis = 0)
 dataset.set_index("Timestamp", inplace = True)
@@ -404,6 +436,8 @@ c_pop2rmse = {}
 step_param = []
 step_fitness = []
 logging_dict = {}
+    
+flat_preds = True
 
 # let's begin
 search_best_attention_rate(20)
