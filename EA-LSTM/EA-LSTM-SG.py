@@ -176,9 +176,9 @@ def select(pop, n_selected, step):
                 c_pop2rmse[c_pop] = rmse
                 
                 if not flat_preds: 
-                    file_name = ("logs/log_runs" + str(pd.to_datetime('today')) + ".csv")
+                    file_name = ("logs/log_runs" + log_file_name + ".csv")
                 else: 
-                    file_name  = ("logs/log_runs_flat_preds" + str(pd.to_datetime('today')) + ".csv")
+                    file_name  = ("logs/log_runs_flat_preds"+ log_file_name + ".csv")
 
                 with open(file_name, "a") as f:
                     # logging info
@@ -395,7 +395,7 @@ def search_best_attention_rate(max_step):
         
 # Loading preprocessed data
 base_path = 'Dataset/simulation_data/'
-dataset = read_csv(base_path + 'simulation_data_v2.csv', header=0, index_col=0)
+dataset = read_csv(base_path + 'simulation_data_v2_latent_state.csv', header=0, index_col=0)
 dataset.dropna(inplace = True, axis = 0)
 dataset.set_index("Timestamp", inplace = True)
 dataset.drop(["Date"], inplace = True, axis = 1)
@@ -435,6 +435,7 @@ step_fitness = []
 logging_dict = {}
     
 flat_preds = True
+log_file_name =  str(pd.to_datetime('today')
 
 # let's begin
 search_best_attention_rate(20)
