@@ -175,7 +175,7 @@ def select(pop, n_selected, step):
                 fit_temp.append(rmse)
                 c_pop2rmse[c_pop] = rmse
 
-                with open(("logs/log_runs" + str(pd.to_datetime('today')) + ".csv"), "a") as f:
+                with open(("logs/log_runs" + str(pd.to_datetime('today').date()) + ".csv"), "a") as f:
                     # logging info
                     logging_dict["population_name"] = c_pop
                     logging_dict["rmse"] = rmse[0]
@@ -317,7 +317,7 @@ def get_rmse(param, reframed):
     model.compile(loss = 'mse', optimizer = 'adam')
 
     # training
-    history = model.fit(train_X, train_y, epochs = 25, batch_size = 1024, validation_data = (valid_X, valid_y), verbose = 1, shuffle = True)
+    history = model.fit(train_X, train_y, epochs = 50, batch_size = 1024, validation_data = (valid_X, valid_y), verbose = 1, shuffle = True)
 
     # make a prediction
     yhat = model.predict(valid_X)
@@ -365,7 +365,7 @@ def search_best_attention_rate(max_step):
 
         
 # Loading preprocessed data
-base_path = 'dataset/simulation_data/'
+base_path = 'Dataset/simulation_data/'
 dataset = read_csv(base_path + 'simulation_data_v2.csv', header=0, index_col=0)
 dataset.dropna(inplace = True, axis = 0)
 dataset.set_index("Timestamp", inplace = True)
