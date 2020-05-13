@@ -193,17 +193,6 @@ def select(pop, n_selected, step):
                     else: 
                         df.to_csv(f, header = False)
 
-            # IPython.embed()
-
-            # with open(("logs/log_runs" + str(pd.to_datetime('today')) + ".csv"), "a") as f:
-            #     df = pd.DataFrame([logging_dict])
-            #     if step == 1:
-            #         df.to_csv(f, header = True)
-            #     else: 
-            #         df.to_csv(f, header = False)
-
-            # IPython.embed()
-
         pop_selected.append(each_group[fit_temp.index(min(fit_temp))])
         fitness_selected.append(min(fit_temp))
             
@@ -340,7 +329,7 @@ def get_rmse(param, reframed):
 
     # training
     history = model.fit(train_X, train_y, 
-        epochs = 40, 
+        epochs = 50, 
         batch_size = 1024, 
         validation_data = (valid_X, valid_y), 
         verbose = 1, 
@@ -352,8 +341,8 @@ def get_rmse(param, reframed):
 
     if flat_preds:
         valid_X = valid_X.reshape((valid_X.shape[0], -1))
-        inv_yhat = concatenate((valid_X[:, -7:], yhat), axis = 1)
-        inv_y = concatenate((valid_X[:, -7:], valid_y), axis = 1)
+        inv_yhat = concatenate((valid_X[:, -n_features:], yhat), axis = 1)
+        inv_y = concatenate((valid_X[:, -n_features:], valid_y), axis = 1)
     else: 
         valid_X = valid_X.reshape((valid_X.shape[0], n_obs))
         inv_yhat = yhat 
@@ -414,7 +403,7 @@ values = dataset.values
 
 # rearrange to put "energy" last 
 cols = dataset.columns.tolist()
-new_cols = list([x for x in cols if x!='Energy']) + [cols[1]]
+new_cols = list([x for x in cols if x!='Energy']) + ["Energy"]
 dataset = dataset[new_cols]
 
 # saving the dataset 
