@@ -185,6 +185,7 @@ def select(pop, n_selected, step):
                     logging_dict["population_name"] = c_pop
                     logging_dict["rmse"] = rmse[0]
                     logging_dict["mae"] = rmse[1]
+                    logging_dict["count"] = int(str(step) + str(c1) + str(c2))
 
                     df = pd.DataFrame([logging_dict])
                     if step == 0 & c1 == 1 & c2 == 1:
@@ -338,7 +339,12 @@ def get_rmse(param, reframed):
     model.compile(loss = 'mse', optimizer = 'adam')
 
     # training
-    history = model.fit(train_X, train_y, epochs = 40, batch_size = 1024, validation_data = (valid_X, valid_y), verbose = 1, shuffle = True)
+    history = model.fit(train_X, train_y, 
+        epochs = 40, 
+        batch_size = 1024, 
+        validation_data = (valid_X, valid_y), 
+        verbose = 1, 
+        shuffle = False)
 
     # make a prediction
     yhat = model.predict(valid_X)
