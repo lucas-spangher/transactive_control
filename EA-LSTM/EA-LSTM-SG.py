@@ -407,12 +407,10 @@ dataset.set_index("Timestamp", inplace = True)
 dataset.drop(["Date"], inplace = True, axis = 1)
 
 # load values
+encoder = LabelEncoder()
+dataset["Day of Week"] = encoder.fit_transform(dataset["Day of Week"])
 values = dataset.values
 
-# Categorical variable processing
-encoder = LabelEncoder()
-values[:,2] = encoder.fit_transform(values[:,2])
-dataset['Day of Week'] = values[:,2] 
 
 # rearrange to put "energy" last 
 cols = dataset.columns.tolist()
@@ -441,7 +439,7 @@ step_fitness = []
 logging_dict = {}
     
 flat_preds = True
-log_file_name =  str(pd.to_datetime('today')
+log_file_name =  str(pd.to_datetime('today'))
 
 # let's begin
 search_best_attention_rate(20)
