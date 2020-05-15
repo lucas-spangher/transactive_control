@@ -81,7 +81,7 @@ df["Day of Week"] = encoder.fit_transform(df["Day of Week"])
 df_y = df["Energy"]
 df_X = df.drop("Energy", axis = 1)
 
-# rewriting so that we only have one MinMaxScaler... otherwise hard to deal with afterwards 
+# rewriting so that we have two MinMaxScalers... otherwise hard to deal with afterwards 
 values_y = df_y.values
 values_X = df_X.values
 scaler_X = MinMaxScaler(feature_range = (0, 1))
@@ -160,5 +160,8 @@ inv_y = inv_y[:, -1]
 # calculate RMSE
 rmse = sqrt(mean_squared_error(inv_y, inv_yhat))
 print("Test RMSE: %.3f" % rmse)
-
+print("Predicted y")
+print(list(inv_yhat))
+print("Y:")
+print(list(inv_y))
 # %%
