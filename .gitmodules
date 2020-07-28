@@ -1,0 +1,3 @@
+[submodule "gym-socialgame"]
+	path = gym-socialgame
+	url = https://github.com/akashgokul/gym-socialgame
