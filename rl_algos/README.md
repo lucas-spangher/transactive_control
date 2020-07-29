@@ -23,7 +23,9 @@ To utilize OpenMPI with [Stable Baselines](https://stable-baselines.readthedocs.
 
 ## Running
 The Baselines.py file uses [Stable Baselines](https://stable-baselines.readthedocs.io/en/master/index.html) algorithms on our SocialGameEnvironment.
-Note: Currently only the one-step trajectory of this environment is supported.
+All training data will be logged via TensorBoard in the /rl_tensorboard_logs directory.
+
+*Note*: Currently only the one-step trajectory of this environment is supported.
 
 To run Soft Actor Critic on this environment, try:
 
