@@ -1,0 +1,6 @@
+gym
+numpy
+pandas
+cvxpy
+osqp
+scipy

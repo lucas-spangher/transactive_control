@@ -1,0 +1,1 @@
+from gym_socialgame.envs.socialgame_env import SocialGameEnv

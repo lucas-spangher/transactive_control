@@ -1,0 +1,7 @@
+README.md
+setup.py
+gym_socialgame.egg-info/PKG-INFO
+gym_socialgame.egg-info/SOURCES.txt
+gym_socialgame.egg-info/dependency_links.txt
+gym_socialgame.egg-info/requires.txt
+gym_socialgame.egg-info/top_level.txt
