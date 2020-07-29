@@ -7,8 +7,6 @@ TODO:
 # gym-socialgame
 OpenAI Gym environment for a social game.
 
-*NOTE:* This is a **submodule**.
-
 ## Usage
 This environment can be directly plugged into existing OpenAI-Gym compatible RL libraries (e.g. [Stable Baselines](https://stable-baselines.readthedocs.io/en/master/index.html)).
 For this case, try the following:
