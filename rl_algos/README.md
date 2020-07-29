@@ -27,11 +27,11 @@ All training data will be logged via TensorBoard in the /rl_tensorboard_logs dir
 
 *Note*: Currently only the one-step trajectory of this environment is supported.
 
-To run Soft Actor Critic on this environment, try:
+To run Soft Actor Critic (SAC) on this environment, try:
 
     python Baselines.py sac
 
-To run Proximal Policy Optimization on this environment, try:
+To run Proximal Policy Optimization (PPO) on this environment, try:
 
     python Baselines.py ppo
 
