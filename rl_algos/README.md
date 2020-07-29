@@ -21,3 +21,16 @@ To utilize OpenMPI with [Stable Baselines](https://stable-baselines.readthedocs.
 
     pip install stable-baselines[mpi]
 
+## Running
+The Baselines.py file uses [Stable Baselines](https://stable-baselines.readthedocs.io/en/master/index.html) algorithms on our SocialGameEnvironment.
+Note: Currently only the one-step trajectory of this environment is supported.
+
+To run Soft Actor Critic on this environment, try:
+
+    python Baselines.py sac
+
+To run Proximal Policy Optimization on this environment, try:
+
+    python Baselines.py ppo
+
+
