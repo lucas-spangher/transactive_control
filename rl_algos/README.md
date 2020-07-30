@@ -10,10 +10,10 @@ Run the following command to install our gym environment within your virtual env
     cd ../gym-socialgame/
     pip install -e .
     
-Then, run the following command to install tensorflow & TensorBoard, stable-baselines: 
+Then, run the following command to install tensorflow (version < 2.0) & TensorBoard, stable-baselines: 
 
     cd ../rl_algos
-    pip install --upgrade tensorflow
+    pip install tensorflow==1.15
     pip install stable-baselines
 
 For parallelization capabilities with [Stable Baselines](https://stable-baselines.readthedocs.io/en/master/index.html), you will need OpenMPI.
@@ -22,17 +22,17 @@ To utilize OpenMPI with [Stable Baselines](https://stable-baselines.readthedocs.
     pip install stable-baselines[mpi]
 
 ## Running
-The Baselines.py file uses [Stable Baselines](https://stable-baselines.readthedocs.io/en/master/index.html) algorithms on our SocialGameEnvironment.
+The StableBaselines.py file uses [Stable Baselines](https://stable-baselines.readthedocs.io/en/master/index.html) algorithms on our SocialGameEnvironment.
 All training data will be logged via TensorBoard in the /rl_tensorboard_logs directory.
 
 *Note*: Currently only the one-step trajectory of this environment is supported.
 
 To run Soft Actor Critic on this environment, try:
 
-    python Baselines.py sac
+    python StableBaselines.py sac
 
 To run Proximal Policy Optimization on this environment, try:
 
-    python Baselines.py ppo
+    python StableBaselines.py ppo
 
 
