@@ -10,7 +10,7 @@ Run the following command to install our gym environment within your virtual env
     cd ../gym-socialgame/
     pip install -e .
     
-Then, run the following command to install tensorflow (version < 2.0) & TensorBoard, stable-baselines: 
+Then, run the following command to install tensorflow (version < 2.0) & TensorBoard, stable-baselines. Note: [This](https://stackoverflow.com/questions/38896424/tensorflow-not-found-using-pip) maybe useful for Mac users.
 
     cd ../rl_algos
     pip install tensorflow==1.15
