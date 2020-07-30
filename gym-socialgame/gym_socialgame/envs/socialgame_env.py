@@ -92,6 +92,8 @@ class SocialGameEnv(gym.Env):
         Returns:
             Action Space for environment based on action_space_str 
         """
+
+        #TODO: Normalize obs_space !
         if(self.yesterday_in_state):
             if(self.energy_in_state):
                 return spaces.Box(low=-np.inf, high=np.inf, shape=(30,), dtype=np.float32)
@@ -118,8 +120,9 @@ class SocialGameEnv(gym.Env):
         We pose this option to test whether simplifying the action-space helps the agent. 
         """
 
+        #Making a symmetric, continuous space to help learning for continuous control (suggested in StableBaselines doc.)
         if self.action_space_string == "continuous":
-            return spaces.Box(low=0, high=10, shape=(self.action_length,), dtype=np.float32)
+            return spaces.Box(low=-1, high=1, shape=(self.action_length,), dtype=np.float32)
 
         elif self.action_space_string == "multidiscrete":
             discrete_space = [self.action_subspace] * self.action_length
@@ -201,8 +204,9 @@ class SocialGameEnv(gym.Env):
         if self.action_space_string == "multidiscrete":
             #Mapping 0 -> 0.0, 1 -> 5.0, 2 -> 10.0
             points = 5*action
-        else:
-            points = action
+        elif self.action_space_string == 'continuous':
+            #Continuous space is symmetric [-1,1], we map to -> [0,10] by adding 1 and multiplying by 5
+            points = 5 * (action + np.ones_like(action))
         
         return points
     
