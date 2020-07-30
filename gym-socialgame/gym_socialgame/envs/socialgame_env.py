@@ -176,8 +176,7 @@ class SocialGameEnv(gym.Env):
             # Tweak One_Day Price Signal HERE
             price = price_signal(self.one_day)
             price = np.array(price[8:18])
-            price = np.maximum([0.01], price)
-
+            price = np.maximum(0.01 * np.ones_like(price), price)
             for i in range(365):
                 all_prices.append(price)
         else:
@@ -186,7 +185,7 @@ class SocialGameEnv(gym.Env):
                 price = price_signal(day + 1)
                 price = np.array(price[8:18])
                 # put a floor on the prices so we don't have negative prices
-                price = np.maximum([0.01], price)
+                price = np.maximum(0.01 * np.ones_like(price), price)
                 all_prices.append(price)
                 day += 1
 
