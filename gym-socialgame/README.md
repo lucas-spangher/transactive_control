@@ -1,12 +1,11 @@
 **Status:** Work in progress. SocialGameEnv is working and ready-to-use.
+
 TODO:
 - [ ] Hourly Environment
 
 
 # gym-socialgame
 OpenAI Gym environment for a social game.
-
-*NOTE:* This is a **submodule**.
 
 ## Usage
 This environment can be directly plugged into existing OpenAI-Gym compatible RL libraries (e.g. [Stable Baselines](https://stable-baselines.readthedocs.io/en/master/index.html)).
