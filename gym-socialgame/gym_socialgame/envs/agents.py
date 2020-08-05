@@ -189,7 +189,7 @@ class DeterministicFunctionPerson(Person):
 		scaler = MinMaxScaler(feature_range = (self.min_demand, self.max_demand))
 		scaled_output = scaler.fit_transform(output.reshape(-1, 1))
 
-		return scaled_output
+		return np.squeeze(scaled_output)
 
 
 
