@@ -37,8 +37,12 @@ class Reward():
 		prices = cvx.Parameter(self._num_timesteps)
 
 		min_demand = self.min_demand
-		max_demand = self.max_demand
+		max_demand = self.max_demand 
 		total_demand = self.total_demand
+
+		while (max_demand * 10 < total_demand):
+			max_demand *= 1.1
+
 		prices = self.prices
 		constraints = [cvx.sum(demands, axis=0, keepdims=True) == total_demand]
 		# constraints = [np.ones(self._num_timesteps).T * demands == total_demand]
