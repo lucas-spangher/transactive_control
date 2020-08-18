@@ -182,9 +182,16 @@ class DeterministicFunctionPerson(Person):
 		output = output * (total_demand/np.sum(output))
 
 		# impose bounds/constraints
-		output = np.maximum(output, self.min_demand)
-		output = np.minimum(output, self.max_demand)
-		return output
+		# output = np.maximum(output, self.min_demand)
+		# output = np.minimum(output, self.max_demand)
+		# return output
+
+		scaler = MinMaxScaler(feature_range = (self.min_demand, self.max_demand))
+		scaled_output = scaler.fit_transform(output.reshape(-1, 1))
+
+		return np.squeeze(scaled_output)
+
+
 
 	def threshold_response(self, points):
 		points_effect = self.threshold_response_func(points)
