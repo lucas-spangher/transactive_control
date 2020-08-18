@@ -1,6 +1,6 @@
 import argparse
 import gym
-from stable_baselines.common.vec_env import DummyVecEnv, VecCheckNan
+from stable_baselines.common.vec_env import DummyVecEnv, VecCheckNan, VecNormalize
 from stable_baselines.common.evaluation import evaluate_policy
 from stable_baselines.common.env_checker import check_env
 
@@ -46,6 +46,7 @@ def get_agent(env, args):
      #I (Akash) still need to study PPO to understand it, I implemented b/c I know Joe's work used PPO
     elif args.algo == 'ppo':
         from stable_baselines import PPO2
+        
         if(args.policy_type == 'mlp'):
             from stable_baselines.common.policies import MlpPolicy as policy
         
@@ -55,7 +56,7 @@ def get_agent(env, args):
         return PPO2(policy, env, verbose = 0, tensorboard_log = './rl_tensorboard_logs/')
 
     else:
-        raise NotImplementedError('Algorithm {} not supported. :('.format(args.algo))
+        raise NotImplementedError('Algorithm {} not supported. :( '.format(args.algo))
 
 
 def args_convert_bool(args):
@@ -96,7 +97,7 @@ def get_environment(args):
     #Using env_fn so we can create vectorized environment. This allows us to check if NaNs are outputted by the agent and what caused the NaNs
     env_fn = lambda: socialgame_env
     venv = DummyVecEnv([env_fn])
-    env = VecCheckNan(venv, raise_exception = True)
+    env = VecNormalize(venv)
     return env
 
 def parse_args():
@@ -104,10 +105,10 @@ def parse_args():
     Purpose: Parse arguments to run script
     """
     parser = argparse.ArgumentParser(description='Arguments for running Stable Baseline RL Algorithms on SocialGameEnv')
-    parser.add_argument('--env_id', help = 'Environment ID for Gym Environment', type=str, choices = ['v0','hourly'], default = 'v0')
+    parser.add_argument('--env_id', help = 'Environment ID for Gym Environment', type=str, choices = ['v0','hourly', 'monthly'], default = 'v0')
     parser.add_argument('algo', help = 'Stable Baselines Algorithm', type=str, default = 'sac', choices = ['sac', 'ppo'] )
     parser.add_argument('--batch_size', help = 'Batch Size for sampling from replay buffer', type=int, default = 5, choices = [i for i in range(1,30)])
-    parser.add_argument('--num_steps', help = 'Number of timesteps to train algo', type = float, default = 1e3)
+    parser.add_argument('--num_steps', help = 'Number of timesteps to train algo', type = int, default = 1000000)
     #Note: only some algos (e.g. PPO) can use LSTM Policy the feature below is for future testing
     parser.add_argument('--policy_type', help = 'Type of Policy (e.g. MLP, LSTM) for algo', default = 'mlp', choices = ['mlp', 'lstm'])
     parser.add_argument('--action_space', help = 'Action Space for Algo (only used for algos that are compatable with both discrete & cont', default = 'c',
@@ -121,10 +122,6 @@ def parse_args():
     parser.add_argument('--energy', help = 'Whether to include energy in state (default = F)', type=str, default = 'F', choices = ['T', 'F'])
 
     args = parser.parse_args()
-
-    #TODO: Update when hourly environment is working
-    if(args.env_id == 'hourly'):
-        raise NotImplementedError("Hourly Environment currently not implemented (sorry!)")
 
     return args
 
@@ -142,9 +139,8 @@ def main():
     model = get_agent(env, args)
     
     #Train algo, (logging through Tensorboard)
-    num_steps = int(args.num_steps)
     print("Beginning Testing!")
-    train(model,num_steps)
+    train(model,args.num_steps)
     print("Training Completed! View TensorBoard logs at rl_tensorboard_logs/")
 
     #Print evaluation of policy
