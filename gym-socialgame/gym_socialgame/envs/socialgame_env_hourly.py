@@ -219,9 +219,7 @@ class SocialGameEnvHourly(SocialGameEnv):
     #Keeping reset, render, close for clarity sake
     def reset(self):
         """ Resets the environment on the current day """ 
-
-        self.day = 0
-        self.hour = 0
+        #Currently resetting based on current day to work with StableBaselines
         return self._get_observation()
 
     def render(self, mode='human'):

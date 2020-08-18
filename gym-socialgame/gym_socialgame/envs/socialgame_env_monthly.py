@@ -122,6 +122,8 @@ class SocialGameEnvMonthly(SocialGameEnv):
         
         return all_prices
 
+    
+
     def step(self, action):
         """
         Purpose: Takes a step in the environment 
@@ -181,8 +183,8 @@ class SocialGameEnvMonthly(SocialGameEnv):
      #Keeping reset, render, close for clarity sake
     def reset(self):
         """ Resets the environment to day 0 (of yr or month depending on one_month init) """ 
+        #Currently resetting based on current day to work with StableBaselines
 
-        self.day = 0
         return self._get_observation()
 
     def render(self, mode='human'):

@@ -308,16 +308,12 @@ class SocialGameEnv(gym.Env):
         # HACK ALERT. USING AVG ENERGY CONSUMPTION FOR STATE SPACE. this will not work if people are not all the same
         self.prev_energy = energy_consumptions["avg"]
         
-        observation = self.reset()
+        observation = self.get_observation()
         reward = self._get_reward(prev_price, energy_consumptions)
         info = {}
         return observation, reward, done, info
 
-
-
-    def reset(self):
-        """ Resets the environment on the current day """ 
-
+    def get_observation(self):
         prev_price = self.prices[ (self.day - 1) % 365]
         next_observation = self.prices[self.day]
 
@@ -332,6 +328,10 @@ class SocialGameEnv(gym.Env):
 
         else:
             return next_observation
+
+    def reset(self):
+        """ Resets the environment on the current day """ 
+        return self.get_observation
 
     def render(self, mode='human'):
         pass

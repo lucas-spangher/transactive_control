@@ -106,7 +106,7 @@ def parse_args():
     """
     parser = argparse.ArgumentParser(description='Arguments for running Stable Baseline RL Algorithms on SocialGameEnv')
     parser.add_argument('--env_id', help = 'Environment ID for Gym Environment', type=str, choices = ['v0','hourly', 'monthly'], default = 'v0')
-    parser.add_argument('algo', help = 'Stable Baselines Algorithm', type=str, default = 'sac', choices = ['sac', 'ppo'] )
+    parser.add_argument('algo', help = 'Stable Baselines Algorithm', type=str, choices = ['sac', 'ppo'] )
     parser.add_argument('--batch_size', help = 'Batch Size for sampling from replay buffer', type=int, default = 5, choices = [i for i in range(1,30)])
     parser.add_argument('--num_steps', help = 'Number of timesteps to train algo', type = int, default = 1000000)
     #Note: only some algos (e.g. PPO) can use LSTM Policy the feature below is for future testing
