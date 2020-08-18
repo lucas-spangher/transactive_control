@@ -89,15 +89,15 @@ def get_environment(args):
         action_space_string = convert_action_space_str(args.action_space)
     
     if(args.env_id == 'hourly'):
-        env_id = 'hourly-v0'
+        env_id = '_hourly-v0'
     elif(args.env_id == 'monthly'):
-        env_id = 'monthly-v0'
+        env_id = '_monthly-v0'
     else:
-        env_id = 'v0'
+        env_id = '-v0'
 
 
-    socialgame_env = gym.make('gym_socialgame:socialgame-{}'.format(env_id), action_space_string = action_space_string, response_type_string = args.response,
-                    one_day = args.one_day, number_of_participants = args.num_players, yesterday_in_state = args.yesterday, energy_in_state = args.energy)
+    socialgame_env = gym.make('gym_socialgame:socialgame{}'.format(env_id), action_space_string = action_space_string, response_type_string = args.response,
+                    one_price = args.one_day, number_of_participants = args.num_players, yesterday_in_state = args.yesterday, energy_in_state = args.energy)
     
     #Check to make sure any new changes to environment follow OpenAI Gym API
     check_env(socialgame_env)
@@ -113,7 +113,7 @@ def parse_args():
     Purpose: Parse arguments to run script
     """
     parser = argparse.ArgumentParser(description='Arguments for running Stable Baseline RL Algorithms on SocialGameEnv')
-    parser.add_argument('--env_id', help = 'Environment ID for Gym Environment', type=str, choices = ['v0','hourly', 'monthly'], default = 'v0')
+    parser.add_argument('--env_id', help = 'Environment ID for Gym Environment', type=str, choices = ['v0', 'monthly'], default = 'v0')
     parser.add_argument('algo', help = 'Stable Baselines Algorithm', type=str, choices = ['sac', 'ppo'] )
     parser.add_argument('--batch_size', help = 'Batch Size for sampling from replay buffer', type=int, default = 5, choices = [i for i in range(1,30)])
     parser.add_argument('--num_steps', help = 'Number of timesteps to train algo', type = int, default = 1000000)
@@ -139,6 +139,7 @@ def main():
 
     #Print args for reference
     print(args)
+    
 
     #Create environment
     env = get_environment(args)

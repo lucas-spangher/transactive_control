@@ -12,18 +12,18 @@ class SocialGameEnvMonthly(SocialGameEnv):
     metadata = {'render.modes': ['human']}
 
     def __init__(self, action_space_string = "continuous", response_type_string = "l", number_of_participants = 10,
-                one_month = 0, energy_in_state = False, yesterday_in_state = False):
+                one_price = 0, energy_in_state = False, yesterday_in_state = False):
         """
         SocialGameEnvMonthly for an agent determining incentives in a social game. 
         
         Note: 30-step trajectory. Agent submits 10-dim vector for each day, then env advances to next day until the 30th day 
                                     (for simplicity we let 30 days = 1month)
 
-        Args: (except for one_month all other param same as those from SocialGameEnv)
+        Args: (except for one_price all other param same as those from SocialGameEnv)
             action_space_string: (String) either "continuous", or "discrete"
             response_type_string: (String) either "t", "s", "l" , denoting whether the office's response function is threshold, sinusoidal, or linear
             number_of_participants: (Int) denoting the number of players in the social game (must be > 0 and < 20)
-            one_month: (Int) in range [-1,12] denoting which fixed day to train on . 
+            one_price: (Int) in range [-1,12] denoting which fixed day to train on . 
                     Note: -1 = Random Day, 0 = Train over entire Yr, [1,12] denotes what fixed month to train on
             energy_in_state: (Boolean) denoting whether (or not) to include the previous day's energy consumption within the state
             yesterday_in_state: (Boolean) denoting whether (or not) to append yesterday's price signal to the state
@@ -31,13 +31,13 @@ class SocialGameEnvMonthly(SocialGameEnv):
         """
 
         #Verify that inputs are valid 
-        self.check_valid_init_inputs(action_space_string, response_type_string, number_of_participants, one_month, energy_in_state, yesterday_in_state)
+        self.check_valid_init_inputs(action_space_string, response_type_string, number_of_participants, one_price, energy_in_state, yesterday_in_state)
 
         #Assigning Instance Variables
         self.action_space_string = action_space_string
         self.response_type_string = response_type_string
         self.number_of_participants = number_of_participants
-        self.one_month = self._find_one_month(one_month)
+        self.one_price = self._find_one_month(one_price)
         self.energy_in_state = energy_in_state
         self.yesterday_in_state = yesterday_in_state
 
@@ -67,24 +67,24 @@ class SocialGameEnvMonthly(SocialGameEnv):
         print("\n Social Game Monthly Environment Initialized! Have Fun! \n")
     
     
-    def _find_one_month(self, one_month: int):
+    def _find_one_month(self, one_price: int):
         """
-        Purpose: Helper function to find one_month to train on (if applicable)
+        Purpose: Helper function to find one_price to train on (if applicable)
 
         Args:
-            one_month: (Int) in range [-1,2]
+            one_price: (Int) in range [-1,2]
 
         Returns:
-            0 if one_month = 0
-            one_month if one_month in range [1,13]
-            random_number(1,365) if one_month = -1
+            0 if one_price = 0
+            one_price if one_price in range [1,13]
+            random_number(1,365) if one_price = -1
         """
         
-        if(one_month == -1):
+        if(one_price == -1):
             return np.random.randint(1, high=13)
         
         else:
-            return one_month
+            return one_price
 
  
     def _get_prices(self):
@@ -98,26 +98,26 @@ class SocialGameEnvMonthly(SocialGameEnv):
 
         """
 
-        all_prices = np.array([])
-        if self.one_month != 0:
-            # If one_month we repeat the price signals from a fixed month
-            # Tweak one_month Price Signal HERE
-            month = self.one_month - 1
+        all_prices = []
+        if self.one_price != 0:
+            # If one_price we repeat the price signals from a fixed month
+            # Tweak one_price Price Signal HERE
+            month = self.one_price - 1
             for i in range(1, 31):
                 price = price_signal(30 * month + i)
                 price = np.array(price[8:18])
-                price = np.maximum([0.01], price)
-                all_prices = np.append(all_prices, price)
-
-            all_prices = np.resize(all_prices, 365 * 10) #mul by 10 b/c each of 365 days should have 10 prices per day (for each working hour)
+                price = np.maximum(0.01 * np.ones_like(price), price)
+                all_prices.append(price)
+    
+            all_prices = all_prices * 13 #Doing times 13 just in case, we loop around 365 days so it shouldn't be a concern
 
         else:
             for day in range(1,366):  
                 price = price_signal(day)
                 price = np.array(price[8:18])
                 # put a floor on the prices so we don't have negative prices
-                price = np.maximum([0.01], price)
-                all_prices = np.append(all_prices, price)
+                price = np.maximum(0.01 * np.ones_like(price), price)
+                all_prices.append(price)
 
         
         return all_prices
@@ -147,7 +147,7 @@ class SocialGameEnvMonthly(SocialGameEnv):
             elif(self.action_space_string == 'multidiscrete'):
                 action = np.clip(action, 0, 2) 
 
-        prev_price = self.prices[self.day*10 : self.day*10 + 10]
+        prev_price = self.prices[self.day]
 
         points = self._points_from_action(action)
 
@@ -182,7 +182,7 @@ class SocialGameEnvMonthly(SocialGameEnv):
     
      #Keeping reset, render, close for clarity sake
     def reset(self):
-        """ Resets the environment to day 0 (of yr or month depending on one_month init) """ 
+        """ Resets the environment to day 0 (of yr or month depending on one_price init) """ 
         #Currently resetting based on current day to work with StableBaselines
 
         return self._get_observation()
@@ -195,7 +195,7 @@ class SocialGameEnvMonthly(SocialGameEnv):
 
 
     def check_valid_init_inputs(self, action_space_string: str, response_type_string: str, number_of_participants = 10,
-                one_month = False, energy_in_state = False, yesterday_in_state = False):
+                one_price = False, energy_in_state = False, yesterday_in_state = False):
         
         """
         Purpose: Verify that all initialization variables are valid 
@@ -204,7 +204,7 @@ class SocialGameEnvMonthly(SocialGameEnv):
             action_space_string: String either "continuous" or "discrete" ; Denotes the type of action space
             response_type_string: String either "t", "s", "l" , denoting whether the office's response function is threshold, sinusoidal, or linear
             number_of_participants: Int denoting the number of players in the social game (must be > 0 and < 20)
-            one_month: Boolean denoting whether (or not) the environment is FIXED on ONE price signal
+            one_price: Boolean denoting whether (or not) the environment is FIXED on ONE price signal
             energy_in_state: Boolean denoting whether (or not) to include the previous day's energy consumption within the state
             yesterday_in_state: Boolean denoting whether (or not) to append yesterday's price signal to the state
 
@@ -212,7 +212,7 @@ class SocialGameEnvMonthly(SocialGameEnv):
             Raises AssertionError if action_space_string is not a String or if it is not either "continuous", or "discrete"
             Raises AssertionError if response_type_string is not a String or it is is not either "t","s","l"
             Raises AssertionError if number_of_participants is not an integer, is less than 1,  or greater than 20 (upper bound set arbitrarily for comp. purposes).
-            Raises AssertionError if any of {one_month, energy_in_state, yesterday_in_state} is not a Boolean
+            Raises AssertionError if any of {one_price, energy_in_state, yesterday_in_state} is not a Boolean
         """
 
         #Checking that action_space_string is valid
@@ -231,12 +231,12 @@ class SocialGameEnvMonthly(SocialGameEnv):
         assert number_of_participants > 0, "Variable number_of_participants should be atleast 1, got number_of_participants = {}".format(number_of_participants)
         assert number_of_participants <= 20, "Variable number_of_participants should not be greater than 20, got number_of_participants = {}".format(number_of_participants)
 
-        #Checking that one_month is valid 
-        assert isinstance(one_month, int), "Variable one_month is not of type Int. Instead got type {}".format(type(one_month))
-        assert 13 > one_month and one_month > -2, "Variable one_month out of range [-1,12]. Got one_month = {}".format(one_month)
+        #Checking that one_price is valid 
+        assert isinstance(one_price, int), "Variable one_price is not of type Int. Instead got type {}".format(type(one_price))
+        assert 13 > one_price and one_price > -2, "Variable one_price out of range [-1,12]. Got one_price = {}".format(one_price)
 
         #Checking that energy_in_state is valid
-        assert isinstance(energy_in_state, bool), "Variable one_month is not of type Boolean. Instead got type {}".format(type(energy_in_state))
+        assert isinstance(energy_in_state, bool), "Variable one_price is not of type Boolean. Instead got type {}".format(type(energy_in_state))
 
         #Checking that yesterday_in_state is valid
-        assert isinstance(yesterday_in_state, bool), "Variable one_month is not of type Boolean. Instead got type {}".format(type(yesterday_in_state))
+        assert isinstance(yesterday_in_state, bool), "Variable one_price is not of type Boolean. Instead got type {}".format(type(yesterday_in_state))

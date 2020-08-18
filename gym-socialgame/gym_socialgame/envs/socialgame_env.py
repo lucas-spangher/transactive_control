@@ -12,7 +12,7 @@ class SocialGameEnv(gym.Env):
     metadata = {'render.modes': ['human']}
 
     def __init__(self, action_space_string = "continuous", response_type_string = "l", number_of_participants = 10,
-                one_day = 0, energy_in_state = False, yesterday_in_state = False):
+                one_price = 0, energy_in_state = False, yesterday_in_state = False):
         """
         SocialGameEnv for an agent determining incentives in a social game. 
         
@@ -23,7 +23,7 @@ class SocialGameEnv(gym.Env):
             action_space_string: (String) either "continuous", or "multidiscrete"
             response_type_string: (String) either "t", "s", "l" , denoting whether the office's response function is threshold, sinusoidal, or linear
             number_of_participants: (Int) denoting the number of players in the social game (must be > 0 and < 20)
-            one_day: (Int) in range [-1,365] denoting which fixed day to train on . 
+            one_price: (Int) in range [-1,365] denoting which fixed day to train on . 
                     Note: -1 = Random Day, 0 = Train over entire Yr, [1,365] = Day of the Year
             energy_in_state: (Boolean) denoting whether (or not) to include the previous day's energy consumption within the state
             yesterday_in_state: (Boolean) denoting whether (or not) to append yesterday's price signal to the state
@@ -32,13 +32,13 @@ class SocialGameEnv(gym.Env):
         super(SocialGameEnv, self).__init__()
 
         #Verify that inputs are valid 
-        self.check_valid_init_inputs(action_space_string, response_type_string, number_of_participants, one_day, energy_in_state, yesterday_in_state)
+        self.check_valid_init_inputs(action_space_string, response_type_string, number_of_participants, one_price, energy_in_state, yesterday_in_state)
 
         #Assigning Instance Variables
         self.action_space_string = action_space_string
         self.response_type_string = response_type_string
         self.number_of_participants = number_of_participants
-        self.one_day = self._find_one_day(one_day)
+        self.one_price = self._find_one_day(one_price)
         self.energy_in_state = energy_in_state
         self.yesterday_in_state = yesterday_in_state
 
@@ -63,24 +63,24 @@ class SocialGameEnv(gym.Env):
 
         print("\n Social Game Environment Initialized! Have Fun! \n")
     
-    def _find_one_day(self, one_day: int):
+    def _find_one_day(self, one_price: int):
         """
-        Purpose: Helper function to find one_day to train on (if applicable)
+        Purpose: Helper function to find one_price to train on (if applicable)
 
         Args:
-            One_day: (Int) in range [-1,365]
+            one_price: (Int) in range [-1,365]
 
         Returns:
-            0 if one_day = 0
-            one_day if one_day in range [1,365]
-            random_number(1,365) if one_day = -1
+            0 if one_price = 0
+            one_price if one_price in range [1,365]
+            random_number(1,365) if one_price = -1
         """
         
-        if(one_day == -1):
+        if(one_price == -1):
             return np.random.randint(0, high=365)
         
         else:
-            return one_day
+            return one_price
 
     def _create_observation_space(self):
         """
@@ -93,7 +93,7 @@ class SocialGameEnv(gym.Env):
             Action Space for environment based on action_space_str 
         """
 
-        #TODO: Normalize obs_space !
+
         if(self.yesterday_in_state):
             if(self.energy_in_state):
                 return spaces.Box(low=-np.inf, high=np.inf, shape=(30,), dtype=np.float32)
@@ -171,14 +171,15 @@ class SocialGameEnv(gym.Env):
 
         """
         all_prices = []
-        if self.one_day != 0:
-            # If one_day we repeat the price signals from a fixed day
-            # Tweak One_Day Price Signal HERE
-            price = price_signal(self.one_day)
+        if self.one_price != 0:
+            # If one_price we repeat the price signals from a fixed day
+            # Tweak one_price Price Signal HERE
+            price = price_signal(self.one_price)
             price = np.array(price[8:18])
             price = np.maximum(0.01 * np.ones_like(price), price)
             for i in range(365):
                 all_prices.append(price)
+
         else:
             day = 0
             for i in range(365):  
@@ -308,12 +309,12 @@ class SocialGameEnv(gym.Env):
         # HACK ALERT. USING AVG ENERGY CONSUMPTION FOR STATE SPACE. this will not work if people are not all the same
         self.prev_energy = energy_consumptions["avg"]
         
-        observation = self.get_observation()
+        observation = self._get_observation()
         reward = self._get_reward(prev_price, energy_consumptions)
         info = {}
         return observation, reward, done, info
 
-    def get_observation(self):
+    def _get_observation(self):
         prev_price = self.prices[ (self.day - 1) % 365]
         next_observation = self.prices[self.day]
 
@@ -331,7 +332,7 @@ class SocialGameEnv(gym.Env):
 
     def reset(self):
         """ Resets the environment on the current day """ 
-        return self.get_observation()
+        return self._get_observation()
 
     def render(self, mode='human'):
         pass
@@ -341,7 +342,7 @@ class SocialGameEnv(gym.Env):
 
 
     def check_valid_init_inputs(self, action_space_string: str, response_type_string: str, number_of_participants = 10,
-                one_day = False, energy_in_state = False, yesterday_in_state = False):
+                one_price = False, energy_in_state = False, yesterday_in_state = False):
         
         """
         Purpose: Verify that all initialization variables are valid 
@@ -350,7 +351,7 @@ class SocialGameEnv(gym.Env):
             action_space_string: String either "continuous" or "discrete" ; Denotes the type of action space
             response_type_string: String either "t", "s", "l" , denoting whether the office's response function is threshold, sinusoidal, or linear
             number_of_participants: Int denoting the number of players in the social game (must be > 0 and < 20)
-            one_day: Boolean denoting whether (or not) the environment is FIXED on ONE price signal
+            one_price: Boolean denoting whether (or not) the environment is FIXED on ONE price signal
             energy_in_state: Boolean denoting whether (or not) to include the previous day's energy consumption within the state
             yesterday_in_state: Boolean denoting whether (or not) to append yesterday's price signal to the state
 
@@ -358,7 +359,7 @@ class SocialGameEnv(gym.Env):
             Raises AssertionError if action_space_string is not a String or if it is not either "continuous", or "multidiscrete"
             Raises AssertionError if response_type_string is not a String or it is is not either "t","s","l"
             Raises AssertionError if number_of_participants is not an integer, is less than 1,  or greater than 20 (upper bound set arbitrarily for comp. purposes).
-            Raises AssertionError if any of {one_day, energy_in_state, yesterday_in_state} is not a Boolean
+            Raises AssertionError if any of {one_price, energy_in_state, yesterday_in_state} is not a Boolean
         """
 
         #Checking that action_space_string is valid
@@ -377,12 +378,12 @@ class SocialGameEnv(gym.Env):
         assert number_of_participants > 0, "Variable number_of_participants should be atleast 1, got number_of_participants = {}".format(number_of_participants)
         assert number_of_participants <= 20, "Variable number_of_participants should not be greater than 20, got number_of_participants = {}".format(number_of_participants)
 
-        #Checking that one_day is valid 
-        assert isinstance(one_day, int), "Variable one_day is not of type Int. Instead got type {}".format(type(one_day))
-        assert 366 > one_day and one_day > -2, "Variable one_day out of range [-1,365]. Got one_day = {}".format(one_day)
+        #Checking that one_price is valid 
+        assert isinstance(one_price, int), "Variable one_price is not of type Int. Instead got type {}".format(type(one_price))
+        assert 366 > one_price and one_price > -2, "Variable one_price out of range [-1,365]. Got one_price = {}".format(one_price)
 
         #Checking that energy_in_state is valid
-        assert isinstance(energy_in_state, bool), "Variable one_day is not of type Boolean. Instead got type {}".format(type(energy_in_state))
+        assert isinstance(energy_in_state, bool), "Variable one_price is not of type Boolean. Instead got type {}".format(type(energy_in_state))
 
         #Checking that yesterday_in_state is valid
-        assert isinstance(yesterday_in_state, bool), "Variable one_day is not of type Boolean. Instead got type {}".format(type(yesterday_in_state))
+        assert isinstance(yesterday_in_state, bool), "Variable one_price is not of type Boolean. Instead got type {}".format(type(yesterday_in_state))

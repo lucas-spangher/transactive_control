@@ -12,7 +12,7 @@ class SocialGameEnvHourly(SocialGameEnv):
     metadata = {'render.modes': ['human']}
 
     def __init__(self, action_space_string = "continuous", response_type_string = "l", number_of_participants = 10,
-                one_day = 0, energy_in_state = False, yesterday_in_state = False):
+                one_price = 0, energy_in_state = False, yesterday_in_state = False):
         """
         SocialGameEnvHourly for an agent determining incentives in a social game. 
         Same as SocialGameEnvHourly except now there is 10-step trajectory per-day instead of 1-step.
@@ -23,7 +23,7 @@ class SocialGameEnvHourly(SocialGameEnv):
             action_space_string: (String) either "continuous", or "discrete" <- Note only diff from SocialGameEnv
             response_type_string: (String) either "t", "s", "l" , denoting whether the office's response function is threshold, sinusoidal, or linear
             number_of_participants: (Int) denoting the number of players in the social game (must be > 0 and < 20)
-            one_day: (Int) in range [-1,12] denoting which fixed day to train on . 
+            one_price: (Int) in range [-1,12] denoting which fixed day to train on . 
                     Note: -1 = Random Day, 0 = Train over entire Yr, [1,12] denotes what fixed month to train on
             energy_in_state: (Boolean) denoting whether (or not) to include the previous day's energy consumption within the state
             yesterday_in_state: (Boolean) denoting whether (or not) to append yesterday's price signal to the state
@@ -31,14 +31,14 @@ class SocialGameEnvHourly(SocialGameEnv):
         """
         
         #Verify that inputs are valid 
-        self.check_valid_init_inputs(action_space_string, response_type_string, number_of_participants, one_day, energy_in_state, yesterday_in_state)
+        self.check_valid_init_inputs(action_space_string, response_type_string, number_of_participants, one_price, energy_in_state, yesterday_in_state)
 
         #Assigning Instance Variables
         self.action_space_string = action_space_string
         
         self.response_type_string = response_type_string
         self.number_of_participants = number_of_participants
-        self.one_day = self._find_one_day(one_day)
+        self.one_price = self._find_one_day(one_price)
         self.energy_in_state = energy_in_state
         self.yesterday_in_state = yesterday_in_state
 
@@ -78,7 +78,6 @@ class SocialGameEnvHourly(SocialGameEnv):
             Space based on yesterday_in_state, and energy_in_state obj param
         """
 
-        #TODO: Normalize obs_space !
         if(self.yesterday_in_state):
             if(self.energy_in_state):
                 return spaces.Box(low=-np.inf, high=np.inf, shape=(3,), dtype=np.float32)
@@ -138,8 +137,8 @@ class SocialGameEnvHourly(SocialGameEnv):
         """ Returns observation for current hour """ 
         
         #Observations are per hour now
-        prev_price = np.array([self.prices[ self.day * 10 + (self.hour - 1) % 10]])
-        next_observation = np.array([self.prices[self.day * 10  + self.hour]])
+        prev_price = np.array([self.prices[self.day][(self.hour - 1) % 10]])
+        next_observation = np.array([self.prices[self.day][self.hour]])
 
         if(self.yesterday_in_state):
             if self.energy_in_state:
@@ -177,10 +176,11 @@ class SocialGameEnvHourly(SocialGameEnv):
             elif(self.action_space_string == 'multidiscrete'):
                 action = np.clip(action, 0, 2) 
 
-        prev_price = self.prices[self.day*10 : self.day*10 + 10]
+        prev_price = self.prices[self.day]
 
         points = self._points_from_action(action)
 
+        #TODO: FIX ENERGY CONSUMPTION (Player consumption must be vectorized!)
         energy_consumptions = self._simulate_humans(points)
         
         # HACK ALERT. USING AVG ENERGY CONSUMPTION FOR STATE SPACE. this will not work if people are not all the same
@@ -215,11 +215,13 @@ class SocialGameEnvHourly(SocialGameEnv):
         info = {}
 
         return observation, reward, done, info
-    
+
+
     #Keeping reset, render, close for clarity sake
     def reset(self):
         """ Resets the environment on the current day """ 
         #Currently resetting based on current day to work with StableBaselines
+
         return self._get_observation()
 
     def render(self, mode='human'):
