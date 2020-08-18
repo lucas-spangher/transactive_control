@@ -6,11 +6,11 @@ register(
 )
 
 register(
-    id='socialgame-hourly',
+    id='socialgame_hourly-v0',
     entry_point='gym_socialgame.envs:SocialGameEnvHourly',
 )
 
 register(
-    id='socialgame-monthly',
+    id='socialgame_monthly-v0',
     entry_point='gym_socialgame.envs:SocialGameEnvMonthly',
 )

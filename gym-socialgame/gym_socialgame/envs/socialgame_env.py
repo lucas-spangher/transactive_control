@@ -331,7 +331,7 @@ class SocialGameEnv(gym.Env):
 
     def reset(self):
         """ Resets the environment on the current day """ 
-        return self.get_observation
+        return self.get_observation()
 
     def render(self, mode='human'):
         pass

@@ -88,7 +88,15 @@ def get_environment(args):
         convert_action_space_str = lambda s: 'continuous' if s == 'c' else 'multidiscrete'
         action_space_string = convert_action_space_str(args.action_space)
     
-    socialgame_env = gym.make('gym_socialgame:socialgame-{}'.format(args.env_id), action_space_string = action_space_string, response_type_string = args.response,
+    if(args.env_id == 'hourly'):
+        env_id = 'hourly-v0'
+    elif(args.env_id == 'monthly'):
+        env_id = 'monthly-v0'
+    else:
+        env_id = 'v0'
+
+
+    socialgame_env = gym.make('gym_socialgame:socialgame-{}'.format(env_id), action_space_string = action_space_string, response_type_string = args.response,
                     one_day = args.one_day, number_of_participants = args.num_players, yesterday_in_state = args.yesterday, energy_in_state = args.energy)
     
     #Check to make sure any new changes to environment follow OpenAI Gym API
