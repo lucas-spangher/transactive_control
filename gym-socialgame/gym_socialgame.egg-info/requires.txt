@@ -4,3 +4,4 @@ pandas
 cvxpy
 osqp
 scipy
+scikit-learn

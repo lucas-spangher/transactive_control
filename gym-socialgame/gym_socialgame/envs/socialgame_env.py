@@ -267,7 +267,7 @@ class SocialGameEnv(gym.Env):
 
                 total_reward += reward
         
-        return total_reward
+        return total_reward / self.number_of_participants
 
     def step(self, action):
         """
