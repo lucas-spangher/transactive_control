@@ -21,7 +21,7 @@
 #SBATCH --cpus-per-task=8
 #
 # Wall clock limit:
-#SBATCH --time=96:00:00
+#SBATCH --time=48:00:00
 #
 #SBATCH --mail-type=END,FAIL
 #SBATCH --mail-user=akashgokul@berkeley.edu

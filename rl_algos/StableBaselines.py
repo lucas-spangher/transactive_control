@@ -102,7 +102,7 @@ def get_environment(args):
     #Check to make sure any new changes to environment follow OpenAI Gym API
     check_env(socialgame_env)
 
-    #Using env_fn so we can create vectorized environment. This allows us to check if NaNs are outputted by the agent and what caused the NaNs
+    #Using env_fn so we can create vectorized environment.
     env_fn = lambda: socialgame_env
     venv = DummyVecEnv([env_fn])
     env = VecNormalize(venv)
