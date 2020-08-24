@@ -150,8 +150,6 @@ class DeterministicFunctionPerson(Person):
 	def __init__(self, baseline_energy_df, points_multiplier = 1, response = 't'):
 		super().__init__(baseline_energy_df, points_multiplier)
 		self.response = response
-		self.day_of_week_multiplier = {'Monday':1.15, 'Tuesday':1.25, 'Wednesday':1.45,
-										'Thursday':1.1, 'Friday':1.0}
 
 	def threshold_response_func(self, points):
 		points = np.array(points) * self.points_multiplier
@@ -171,6 +169,9 @@ class DeterministicFunctionPerson(Person):
 		points = [np.sin(float(i)*np.pi)*self.points_multiplier for i in points]	
 		points = points 
 		return points
+	
+	def linear_response_func(self,points):
+		return points * self.points_multiplier
 
 	def routine_output_transform(self, points_effect, baseline_day=0):
 		output = np.array(self.baseline_energy)[baseline_day*24:baseline_day*24+10]
@@ -215,7 +216,7 @@ class DeterministicFunctionPerson(Person):
 		return output
 
 	def linear_response(self, points):
-		points_effect = points*self.points_multiplier
+		points_effect = self.linear_response_func(points)
 		output = self.routine_output_transform(points_effect)
 		return output
 	
@@ -229,84 +230,61 @@ class DeterministicFunctionPerson(Person):
 		else:
 			raise NotImplementedError
 
-		if(day_of_week != None):
-			energy_resp = energy_resp * self.day_of_week_multiplier[day_of_week]
+
 		return energy_resp
 
-class MananPerson1(Person):
+class RandomizedFunctionPerson(DeterministicFunctionPerson):
+	def __init__(self, baseline_energy_df, points_multiplier=1, response='t', low = 0, high = 50, distr = 'U'):
+	 
+	 """
+		Adds Random Noise to DeterministicFunctionPerson energy output (for D.R. purposes)
 
-	def __init__(self, baseline_energy_df, points_multiplier=.8):
-		# ignores baseline_energy_df
-		# this is just for backwards compatability
+		New Args:
+			Low = Lower bound for random noise added to energy use
+			High = Upper bound "    "      "     "    "    "
+			Distr = 'G' for Gaussian noise, 'U' for Uniform random noise (Note: Continuous distr.)
 
-		self.baseline_energy_hour = 300
-		self.day_of_week_multiplier = np.array([1.1, 1.15, 1, 0.9, 0.8])
-		self.hour_multiplier = np.array([0.8, 0.9, 1, 0.9, 0, 0.9, 1.1, 1.1, 1.0, 0.9])
-		self.AFFINITY_TO_POINTS = points_multiplier
-		self.ENERGY_STD_DEV = 5
+		Note: For design purposes the random noise is updated at the end of each episode
+	 """
+	 #TODO: Multivariate distr??
 
-		self.baseline_energy_day = np.array(self.baseline_energy_hour * self.hour_multiplier)
-		self.total_baseline_day = np.sum(self.baseline_energy_day)*self.day_of_week_multiplier
+	 super().__init__(baseline_energy_df, points_multiplier=points_multiplier, response=response)
+	 
+	 distr = distr.upper()
+	 assert distr in ['G', 'U']
+
+	 self.response = response
+	 self.low = low
+	 self.high = high if high < self.max_demand else 50
+	 self.distr = distr
+
+	 self.noise = []
+	 self.update_noise()
+
+	def update_noise(self):
+		if(self.distr == 'G'):
+			#TODO: Update how to sample from Gausian
+			self.noise = np.random.normal(loc = (self.low + self.high) / 2, scale = 10, size = 10)
 		
-		self.min_demand = self.baseline_energy_day.min()*self.day_of_week_multiplier.min()
-		self.max_demand = self.baseline_energy_day.max()*self.day_of_week_multiplier.max()
-		
+		elif(self.distr == 'U'):
+			self.noise = np.random.uniform(low = self.low, high=self.high, size = 10)
 
-class MananPerson1(Person):
 
-	def __init__(self, baseline_energy_df, points_multiplier=.8):
-		# ignores baseline_energy_df
-		# this is just for backwards compatability
+	def exponential_response_func(self, points):
+		points = np.array(points) * self.points_multiplier
+		points_effect = [p**2 for p in points]
 
-		self.baseline_energy_hour = 300
-		self.day_of_week_multiplier = np.array([1.1, 1.15, 1, 0.9, 0.8])
-		self.hour_multiplier = np.array([0.8, 0.9, 1, 0.9, 0, 0.9, 1.1, 1.1, 1.0, 0.9])
-		self.AFFINITY_TO_POINTS = points_multiplier
-		self.ENERGY_STD_DEV = 5
+		return points_effect + self.noise
 
-		self.baseline_energy_day = np.array(self.baseline_energy_hour * self.hour_multiplier)
-		self.total_baseline_day = np.sum(self.baseline_energy_day)*self.day_of_week_multiplier
-		
-		self.min_demand = self.baseline_energy_day.min()*self.day_of_week_multiplier.min()
-		self.max_demand = self.baseline_energy_day.max()*self.day_of_week_multiplier.max()
-		
-		self.MAX_DIFFERENTIAL = 20
+	def sin_response_func(self,points):
+		points = np.array(points) 
+		# n = np.max(points)
+		# points = [np.sin((float(i)/float(n))*np.pi) for i in points]	
+		points = [np.sin(float(i)*np.pi)*self.points_multiplier for i in points]	
+		points = points 
+		return points + self.noise
 	
-	def redistributed_energy(self, points, day_num):
-
-
-		energy_curve = cvx.Variable(len(points))
-		objective = cvx.Minimize(energy_curve.T * points)
-		constraints = [
-			cvx.sum(energy_curve, axis=0, keepdims=True)
-			== self.total_baseline_day[day_num]
-		]
-		for hour in range(10):
-			constraints += [energy_curve[hour] >= 0]
-
-		for hour in range(1, 10):
-			constraints += [
-					cvx.abs(energy_curve[hour] - energy_curve[hour - 1])
-					<= self.MAX_DIFFERENTIAL
-			]
-
-		problem = cvx.Problem(objective, constraints)
-		problem.solve()
-		return energy_curve.value
-
-	def predicted_energy_behavior(self, points, day_num):
-
-		perfect_energy_use = self.redistributed_energy(points, day_num)
-		baseline_energy_use = self.baseline_energy_day*self.day_of_week_multiplier[day_num]
-
-		means = np.empty(len(perfect_energy_use))
-		for i in range(len(perfect_energy_use)):
-			lesser, greater = (
-				(perfect_energy_use[i], baseline_energy_use[i])
-				if perfect_energy_use[i] < baseline_energy_use[i]
-				else (baseline_energy_use[i], perfect_energy_use[i])
-			)
-			means[i] = lesser + 0.8 * (greater - lesser)
-		sample = np.random.normal(means, self.ENERGY_STD_DEV)
-		return np.maximum(np.zeros(sample.shape), sample)
+	def linear_response_func(self,points):
+		return points * self.points_multiplier + self.noise
+	
 

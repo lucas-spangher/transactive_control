@@ -12,19 +12,20 @@ class SocialGameEnvHourly(SocialGameEnv):
     metadata = {'render.modes': ['human']}
 
     def __init__(self, action_space_string = "continuous", response_type_string = "l", number_of_participants = 10,
-                one_price = 0, energy_in_state = False, yesterday_in_state = False):
+                one_price = 0, random = False, energy_in_state = False, yesterday_in_state = False):
         """
-        SocialGameEnvHourly for an agent determining incentives in a social game. 
-        Same as SocialGameEnvHourly except now there is 10-step trajectory per-day instead of 1-step.
+        SocialGameEnv for an agent determining incentives in a social game. 
         
-        Note: 10-step trajectory. Agent submits incentives for each hour over 10hrs (10hrs constitutes 1 working day)
+        Note: One-step trajectory (i.e. agent submits a 10-dim vector containing incentives for each hour (8AM - 5PM) each day. 
+            Then, environment advances one-day and agent is told that the episode has finished.)
 
-        Args: (same as those from SocialGameEnv)
-            action_space_string: (String) either "continuous", or "discrete" <- Note only diff from SocialGameEnv
+        Args:
+            action_space_string: (String) either "continuous", or "multidiscrete"
             response_type_string: (String) either "t", "s", "l" , denoting whether the office's response function is threshold, sinusoidal, or linear
             number_of_participants: (Int) denoting the number of players in the social game (must be > 0 and < 20)
-            one_price: (Int) in range [-1,12] denoting which fixed day to train on . 
-                    Note: -1 = Random Day, 0 = Train over entire Yr, [1,12] denotes what fixed month to train on
+            one_price: (Int) in range [-1,365] denoting which fixed day to train on . 
+                    Note: -1 = Random Day, 0 = Train over entire Yr, [1,365] = Day of the Year
+            Random: (Boolean) denoting whether or not to use Domain Randomization
             energy_in_state: (Boolean) denoting whether (or not) to include the previous day's energy consumption within the state
             yesterday_in_state: (Boolean) denoting whether (or not) to append yesterday's price signal to the state
 
@@ -60,10 +61,12 @@ class SocialGameEnvHourly(SocialGameEnv):
         self.action_space = self._create_action_space()
 
         #Create Players
+        self.random = random
         self.player_dict = self._create_agents()
 
         #TODO: Check initialization of prev_energy
         self.prev_energy = np.zeros(1)
+
 
         print("\n Social Game Hourly Environment Initialized! Have Fun! \n")
     
@@ -206,6 +209,7 @@ class SocialGameEnvHourly(SocialGameEnv):
             #Finish episode
             done = True
             reward = self.reward
+            self._update_randomization()
 
         else:
             done = False

@@ -12,27 +12,28 @@ class SocialGameEnvMonthly(SocialGameEnv):
     metadata = {'render.modes': ['human']}
 
     def __init__(self, action_space_string = "continuous", response_type_string = "l", number_of_participants = 10,
-                one_price = 0, energy_in_state = False, yesterday_in_state = False):
+                one_price = 0, random = False, low = 0, high = 50, distr = 'U', energy_in_state = False, yesterday_in_state = False):
         """
-        SocialGameEnvMonthly for an agent determining incentives in a social game. 
+        SocialGameEnv for an agent determining incentives in a social game. 
         
-        Note: 30-step trajectory. Agent submits 10-dim vector for each day, then env advances to next day until the 30th day 
-                                    (for simplicity we let 30 days = 1month)
+        Note: One-step trajectory (i.e. agent submits a 10-dim vector containing incentives for each hour (8AM - 5PM) each day. 
+            Then, environment advances one-day and agent is told that the episode has finished.)
 
-        Args: (except for one_price all other param same as those from SocialGameEnv)
-            action_space_string: (String) either "continuous", or "discrete"
+        Args:
+            action_space_string: (String) either "continuous", or "multidiscrete"
             response_type_string: (String) either "t", "s", "l" , denoting whether the office's response function is threshold, sinusoidal, or linear
             number_of_participants: (Int) denoting the number of players in the social game (must be > 0 and < 20)
-            one_price: (Int) in range [-1,12] denoting which fixed day to train on . 
-                    Note: -1 = Random Day, 0 = Train over entire Yr, [1,12] denotes what fixed month to train on
+            one_price: (Int) in range [-1,365] denoting which fixed day to train on . 
+                    Note: -1 = Random Day, 0 = Train over entire Yr, [1,365] = Day of the Year
+            Random: (Boolean) denoting whether or not to use Domain Randomization
             energy_in_state: (Boolean) denoting whether (or not) to include the previous day's energy consumption within the state
             yesterday_in_state: (Boolean) denoting whether (or not) to append yesterday's price signal to the state
 
         """
 
         #Verify that inputs are valid 
-        self.check_valid_init_inputs(action_space_string, response_type_string, number_of_participants, one_price, energy_in_state, yesterday_in_state)
-
+        self.check_valid_init_inputs(action_space_string, response_type_string, number_of_participants, one_price, random, low, high, distr,
+                                    energy_in_state, yesterday_in_state)
         #Assigning Instance Variables
         self.action_space_string = action_space_string
         self.response_type_string = response_type_string
@@ -59,6 +60,7 @@ class SocialGameEnvMonthly(SocialGameEnv):
         self.action_space = self._create_action_space()
 
         #Create Players
+        self.random = random
         self.player_dict = self._create_agents()
 
         #TODO: Check initialization of prev_energy
@@ -170,7 +172,7 @@ class SocialGameEnvMonthly(SocialGameEnv):
         if self.cur_iter % 30 == 0:
             done = True
             reward = self.reward
-
+            self._update_randomization()
         else:
             done = False
             reward = 0.0
@@ -194,8 +196,8 @@ class SocialGameEnvMonthly(SocialGameEnv):
         pass
 
 
-    def check_valid_init_inputs(self, action_space_string: str, response_type_string: str, number_of_participants = 10,
-                one_price = False, energy_in_state = False, yesterday_in_state = False):
+    def check_valid_init_inputs(self, action_space_string, response_type_string, number_of_participants, one_price, 
+                                random, low, high, distr,energy_in_state, yesterday_in_state):
         
         """
         Purpose: Verify that all initialization variables are valid 
@@ -205,6 +207,10 @@ class SocialGameEnvMonthly(SocialGameEnv):
             response_type_string: String either "t", "s", "l" , denoting whether the office's response function is threshold, sinusoidal, or linear
             number_of_participants: Int denoting the number of players in the social game (must be > 0 and < 20)
             one_price: Boolean denoting whether (or not) the environment is FIXED on ONE price signal
+            random: Boolean denoting whether (or not) to use Domain Randomization
+            Low: Int denoting lower bound for random noise
+            High: Int denoting upper bound for random noise
+            Distr: "G" or "U" denoting "Gaussian" or "Uniform" noise
             energy_in_state: Boolean denoting whether (or not) to include the previous day's energy consumption within the state
             yesterday_in_state: Boolean denoting whether (or not) to append yesterday's price signal to the state
 
@@ -212,7 +218,9 @@ class SocialGameEnvMonthly(SocialGameEnv):
             Raises AssertionError if action_space_string is not a String or if it is not either "continuous", or "discrete"
             Raises AssertionError if response_type_string is not a String or it is is not either "t","s","l"
             Raises AssertionError if number_of_participants is not an integer, is less than 1,  or greater than 20 (upper bound set arbitrarily for comp. purposes).
-            Raises AssertionError if any of {one_price, energy_in_state, yesterday_in_state} is not a Boolean
+            Raises AssertionError if any of {one_price, random, energy_in_state, yesterday_in_state} is not a Boolean
+            Raises AssertionError if low & high are not integers and low >= high
+            Raises AssertionError if distr is not a String and if distr not in ['G', 'U']
         """
 
         #Checking that action_space_string is valid
@@ -240,3 +248,10 @@ class SocialGameEnvMonthly(SocialGameEnv):
 
         #Checking that yesterday_in_state is valid
         assert isinstance(yesterday_in_state, bool), "Variable one_price is not of type Boolean. Instead got type {}".format(type(yesterday_in_state))
+
+        #Checking that random and corresp. param are valid
+        assert isinstance(random, bool), "Variable random is not of type Boolean. Instead got type {}".format(type(random))
+        assert isinstance(low, int), "Variable low is not an integer. Got type {}".format(type(low))
+        assert isinstance(high, int), "Variable high is not an integer. Got type {}".format(type(high))
+        assert isinstance(distr, str), "Variable distr is not a String. Got type {}".format(type(distr))
+        assert distr.upper() in ['G', 'U'], "Distr not either G or U. Got {}".format(distr.upper())

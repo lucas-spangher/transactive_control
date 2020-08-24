@@ -12,7 +12,7 @@ class SocialGameEnv(gym.Env):
     metadata = {'render.modes': ['human']}
 
     def __init__(self, action_space_string = "continuous", response_type_string = "l", number_of_participants = 10,
-                one_price = 0, energy_in_state = False, yesterday_in_state = False):
+                one_price = 0, random = False, low = 0, high = 50, distr = 'U', energy_in_state = False, yesterday_in_state = False):
         """
         SocialGameEnv for an agent determining incentives in a social game. 
         
@@ -25,6 +25,7 @@ class SocialGameEnv(gym.Env):
             number_of_participants: (Int) denoting the number of players in the social game (must be > 0 and < 20)
             one_price: (Int) in range [-1,365] denoting which fixed day to train on . 
                     Note: -1 = Random Day, 0 = Train over entire Yr, [1,365] = Day of the Year
+            Random: (Boolean) denoting whether or not to use Domain Randomization
             energy_in_state: (Boolean) denoting whether (or not) to include the previous day's energy consumption within the state
             yesterday_in_state: (Boolean) denoting whether (or not) to append yesterday's price signal to the state
 
@@ -32,7 +33,8 @@ class SocialGameEnv(gym.Env):
         super(SocialGameEnv, self).__init__()
 
         #Verify that inputs are valid 
-        self.check_valid_init_inputs(action_space_string, response_type_string, number_of_participants, one_price, energy_in_state, yesterday_in_state)
+        self.check_valid_init_inputs(action_space_string, response_type_string, number_of_participants, one_price, random, low, high, distr,
+                                    energy_in_state, yesterday_in_state)
 
         #Assigning Instance Variables
         self.action_space_string = action_space_string
@@ -57,9 +59,14 @@ class SocialGameEnv(gym.Env):
         self.action_space = self._create_action_space()
 
         #Create Players
+        self.random = random
+        self.low = low
+        self.high = high
+        self.distr = distr.upper()
         self.player_dict = self._create_agents()
         #TODO: Check initialization of prev_energy
         self.prev_energy = np.zeros(10)
+
 
         print("\n Social Game Environment Initialized! Have Fun! \n")
     
@@ -155,7 +162,13 @@ class SocialGameEnv(gym.Env):
         my_baseline_energy = pd.DataFrame(data={"net_energy_use": working_hour_energy})
 
         for i in range(self.number_of_participants):
-            player_dict['player_{}'.format(i)] = DeterministicFunctionPerson(my_baseline_energy, points_multiplier = 10, response= self.response_type_string)
+            if(self.random):
+                player = RandomizedFunctionPerson(my_baseline_energy, points_multiplier=10, response = self.response_type_string, 
+                                                low = self.low, high = self.high, distr = self.distr)
+            else:
+                player = DeterministicFunctionPerson(my_baseline_energy, points_multiplier = 10, response= self.response_type_string)
+            
+            player_dict['player_{}'.format(i)] = player
 
         return player_dict
     
@@ -268,6 +281,11 @@ class SocialGameEnv(gym.Env):
                 total_reward += reward
         
         return total_reward / self.number_of_participants
+    
+    def _update_randomization(self):
+        if self.random:
+            for i in range(self.number_of_participants):
+                self.player_dict['player_{}'.format(i)].update_noise()
 
     def step(self, action):
         """
@@ -299,6 +317,7 @@ class SocialGameEnv(gym.Env):
         self.cur_iter += 1
         if self.cur_iter > 0:
             done = True
+            self._update_randomization()
         else:
             done = False
 
@@ -341,8 +360,8 @@ class SocialGameEnv(gym.Env):
         pass
 
 
-    def check_valid_init_inputs(self, action_space_string: str, response_type_string: str, number_of_participants = 10,
-                one_price = False, energy_in_state = False, yesterday_in_state = False):
+    def check_valid_init_inputs(self, action_space_string, response_type_string, number_of_participants, one_price, 
+                                random, low, high, distr,energy_in_state, yesterday_in_state):
         
         """
         Purpose: Verify that all initialization variables are valid 
@@ -352,6 +371,10 @@ class SocialGameEnv(gym.Env):
             response_type_string: String either "t", "s", "l" , denoting whether the office's response function is threshold, sinusoidal, or linear
             number_of_participants: Int denoting the number of players in the social game (must be > 0 and < 20)
             one_price: Boolean denoting whether (or not) the environment is FIXED on ONE price signal
+            random: Boolean denoting whether (or not) to use Domain Randomization
+            Low: Int denoting lower bound for random noise
+            High: Int denoting upper bound for random noise
+            Distr: "G" or "U" denoting "Gaussian" or "Uniform" noise
             energy_in_state: Boolean denoting whether (or not) to include the previous day's energy consumption within the state
             yesterday_in_state: Boolean denoting whether (or not) to append yesterday's price signal to the state
 
@@ -359,7 +382,9 @@ class SocialGameEnv(gym.Env):
             Raises AssertionError if action_space_string is not a String or if it is not either "continuous", or "multidiscrete"
             Raises AssertionError if response_type_string is not a String or it is is not either "t","s","l"
             Raises AssertionError if number_of_participants is not an integer, is less than 1,  or greater than 20 (upper bound set arbitrarily for comp. purposes).
-            Raises AssertionError if any of {one_price, energy_in_state, yesterday_in_state} is not a Boolean
+            Raises AssertionError if any of {one_price, random, energy_in_state, yesterday_in_state} is not a Boolean
+            Raises AssertionError if low & high are not integers and low >= high
+            Raises AssertionError if distr is not a String and if distr not in ['G', 'U']
         """
 
         #Checking that action_space_string is valid
@@ -387,3 +412,10 @@ class SocialGameEnv(gym.Env):
 
         #Checking that yesterday_in_state is valid
         assert isinstance(yesterday_in_state, bool), "Variable one_price is not of type Boolean. Instead got type {}".format(type(yesterday_in_state))
+
+        #Checking that random and corresp. param are valid
+        assert isinstance(random, bool), "Variable random is not of type Boolean. Instead got type {}".format(type(random))
+        assert isinstance(low, int), "Variable low is not an integer. Got type {}".format(type(low))
+        assert isinstance(high, int), "Variable high is not an integer. Got type {}".format(type(high))
+        assert isinstance(distr, str), "Variable distr is not a String. Got type {}".format(type(distr))
+        assert distr.upper() in ['G', 'U'], "Distr not either G or U. Got {}".format(distr.upper())
