@@ -67,7 +67,7 @@ def args_convert_bool(args):
     args.energy = utils.string2bool(args.energy)
     args.random = utils.string2bool(args.random)
 
-def get_environment(args):
+def get_environment(args, eval=False):
     """
     Purpose: Create environment for algorithm given by args. algo
 
@@ -96,10 +96,14 @@ def get_environment(args):
     else:
         env_id = '-v0'
 
-
-    socialgame_env = gym.make('gym_socialgame:socialgame{}'.format(env_id), action_space_string = action_space_string, response_type_string = args.response,
-                                    one_price = args.one_day, random = args.random, low = args.low, high = args.high, distr = args.distr,
+    if eval:
+        socialgame_env = gym.make('gym_socialgame:socialgame{}'.format(env_id), action_space_string = action_space_string, response_type_string = args.response,
+                                    one_price = args.one_day, random = False, low = args.low, high = args.high, distr = args.distr,
                                     number_of_participants = args.num_players, yesterday_in_state = args.yesterday, energy_in_state = args.energy)
+    else:
+        socialgame_env = gym.make('gym_socialgame:socialgame{}'.format(env_id), action_space_string = action_space_string, response_type_string = args.response,
+                                        one_price = args.one_day, random = args.random, low = args.low, high = args.high, distr = args.distr,
+                                        number_of_participants = args.num_players, yesterday_in_state = args.yesterday, energy_in_state = args.energy)
                     
     #Check to make sure any new changes to environment follow OpenAI Gym API
     check_env(socialgame_env)
@@ -161,8 +165,8 @@ def main():
 
     #Print evaluation of policy
     print("Beginning Evaluation")
-    #TODO: Define evaluation env (pointless if eval_env = env)
-    eval_env = env
+    #TODO: Define evaluation env (currently just setting random = False (which is useless for non-DR cases))
+    eval_env = get_environment(args, eval=True)
     eval_policy(model, eval_env, 10)
 
 if __name__ == '__main__':
