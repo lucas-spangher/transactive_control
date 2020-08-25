@@ -29,4 +29,4 @@
 module load python/3.6
 module load tensorflow/1.12.0-py36-pip-gpu
 source activate /global/scratch/akashgokul/conda/test
-python3 StableBaselines.py sac
+python3 StableBaselines.py ppo --policy_type lstm
