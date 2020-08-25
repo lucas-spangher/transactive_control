@@ -65,6 +65,7 @@ def args_convert_bool(args):
     """
     args.yesterday = utils.string2bool(args.yesterday)
     args.energy = utils.string2bool(args.energy)
+    args.random = utils.string2bool(args.random)
 
 def get_environment(args):
     """
@@ -97,8 +98,9 @@ def get_environment(args):
 
 
     socialgame_env = gym.make('gym_socialgame:socialgame{}'.format(env_id), action_space_string = action_space_string, response_type_string = args.response,
-                    one_price = args.one_day, number_of_participants = args.num_players, yesterday_in_state = args.yesterday, energy_in_state = args.energy)
-    
+                                    one_price = args.one_day, random = args.random, low = args.low, high = args.high, distr = args.distr,
+                                    number_of_participants = args.num_players, yesterday_in_state = args.yesterday, energy_in_state = args.energy)
+                    
     #Check to make sure any new changes to environment follow OpenAI Gym API
     check_env(socialgame_env)
 
@@ -112,6 +114,7 @@ def parse_args():
     """
     Purpose: Parse arguments to run script
     """
+
     parser = argparse.ArgumentParser(description='Arguments for running Stable Baseline RL Algorithms on SocialGameEnv')
     parser.add_argument('--env_id', help = 'Environment ID for Gym Environment', type=str, choices = ['v0', 'monthly'], default = 'v0')
     parser.add_argument('algo', help = 'Stable Baselines Algorithm', type=str, choices = ['sac', 'ppo'] )
@@ -125,6 +128,10 @@ def parse_args():
                         choices = ['l','t','s'])
     parser.add_argument('--one_day', help = 'Specific Day of the year to Train on (default = None, train over entire yr)', type=int,default = -1, 
                         choices = [i for i in range(-1, 366)])
+    parser.add_argument('--random', help = 'Whether or not to use Domain Randomization (default = False)', type = str, default = 'F', choices = ['T','F'])
+    parser.add_argument('--low', help = 'Lower bound for distribution (intended for DR case only)', type = int, default = 0)
+    parser.add_argument('--high', help = 'Upper bound for distribution (intended for DR case)', type=int, default = 50)
+    parser.add_argument('--distr', help = 'Distribution type (U for Uniform, G for Gaussian)', type=str, default = 'U', choices = ['G','U'])
     parser.add_argument('--num_players', help = 'Number of players ([1, 20]) in social game', type = int, default = 1, choices = [i for i in range(1, 21)])
     parser.add_argument('--yesterday', help = 'Whether to include yesterday in state (default = F)', type = str, default = 'F', choices = ['T', 'F'])
     parser.add_argument('--energy', help = 'Whether to include energy in state (default = F)', type=str, default = 'F', choices = ['T', 'F'])
