@@ -1,6 +1,6 @@
 import argparse
 import gym
-from stable_baselines.common.vec_env import DummyVecEnv, VecCheckNan
+from stable_baselines.common.vec_env import DummyVecEnv, VecCheckNan, VecNormalize
 from stable_baselines.common.evaluation import evaluate_policy
 from stable_baselines.common.env_checker import check_env
 
@@ -48,6 +48,7 @@ def get_agent(env, args):
      # I (Akash) still need to study PPO to understand it, I implemented b/c I know Joe's work used PPO
     elif args.algo == 'ppo':
         from stable_baselines import PPO2
+        
         if(args.policy_type == 'mlp'):
             from stable_baselines.common.policies import MlpPolicy as policy
         
@@ -57,7 +58,7 @@ def get_agent(env, args):
         return PPO2(policy, env, verbose = 0, tensorboard_log = './rl_tensorboard_logs/')
 
     else:
-        raise NotImplementedError('Algorithm {} not supported. :('.format(args.algo))
+        raise NotImplementedError('Algorithm {} not supported. :( '.format(args.algo))
 
 
 def args_convert_bool(args):
@@ -66,8 +67,9 @@ def args_convert_bool(args):
     """
     args.yesterday = utils.string2bool(args.yesterday)
     args.energy = utils.string2bool(args.energy)
+    args.random = utils.string2bool(args.random)
 
-def get_environment(args):
+def get_environment(args, eval=False):
     """
     Purpose: Create environment for algorithm given by args. algo
 
@@ -89,6 +91,7 @@ def get_environment(args):
         convert_action_space_str = lambda s: 'continuous' if s == 'c' else 'multidiscrete'
         action_space_string = convert_action_space_str(args.action_space)
     
+<<<<<<< HEAD
     planning_flag = (args.planning_steps > 0)
 
     socialgame_env = gym.make('gym_socialgame:socialgame-{}'.format(args.env_id), 
@@ -103,24 +106,43 @@ def get_environment(args):
         planning_model_type = args.planning_model
         )
     
+=======
+    if(args.env_id == 'hourly'):
+        env_id = '_hourly-v0'
+    elif(args.env_id == 'monthly'):
+        env_id = '_monthly-v0'
+    else:
+        env_id = '-v0'
+
+    if eval:
+        socialgame_env = gym.make('gym_socialgame:socialgame{}'.format(env_id), action_space_string = action_space_string, response_type_string = args.response,
+                                    one_price = args.one_day, random = False, low = args.low, high = args.high, distr = args.distr,
+                                    number_of_participants = args.num_players, yesterday_in_state = args.yesterday, energy_in_state = args.energy)
+    else:
+        socialgame_env = gym.make('gym_socialgame:socialgame{}'.format(env_id), action_space_string = action_space_string, response_type_string = args.response,
+                                        one_price = args.one_day, random = args.random, low = args.low, high = args.high, distr = args.distr,
+                                        number_of_participants = args.num_players, yesterday_in_state = args.yesterday, energy_in_state = args.energy)
+                    
+>>>>>>> 150c2b61d408931ec96124dcb445dd58734aaccb
     #Check to make sure any new changes to environment follow OpenAI Gym API
     check_env(socialgame_env)
 
-    #Using env_fn so we can create vectorized environment. This allows us to check if NaNs are outputted by the agent and what caused the NaNs
+    #Using env_fn so we can create vectorized environment.
     env_fn = lambda: socialgame_env
     venv = DummyVecEnv([env_fn])
-    env = VecCheckNan(venv, raise_exception = True)
+    env = VecNormalize(venv)
     return env
 
 def parse_args():
     """
     Purpose: Parse arguments to run script
     """
+
     parser = argparse.ArgumentParser(description='Arguments for running Stable Baseline RL Algorithms on SocialGameEnv')
-    parser.add_argument('--env_id', help = 'Environment ID for Gym Environment', type=str, choices = ['v0','hourly'], default = 'v0')
-    parser.add_argument('algo', help = 'Stable Baselines Algorithm', type=str, default = 'sac', choices = ['sac', 'ppo'] )
+    parser.add_argument('--env_id', help = 'Environment ID for Gym Environment', type=str, choices = ['v0', 'monthly'], default = 'v0')
+    parser.add_argument('algo', help = 'Stable Baselines Algorithm', type=str, choices = ['sac', 'ppo'] )
     parser.add_argument('--batch_size', help = 'Batch Size for sampling from replay buffer', type=int, default = 5, choices = [i for i in range(1,30)])
-    parser.add_argument('--num_steps', help = 'Number of timesteps to train algo', type = float, default = 1e3)
+    parser.add_argument('--num_steps', help = 'Number of timesteps to train algo', type = int, default = 1000000)
     #Note: only some algos (e.g. PPO) can use LSTM Policy the feature below is for future testing
     parser.add_argument('--policy_type', help = 'Type of Policy (e.g. MLP, LSTM) for algo', default = 'mlp', choices = ['mlp', 'lstm'])
     parser.add_argument('--action_space', help = 'Action Space for Algo (only used for algos that are compatable with both discrete & cont', default = 'c',
@@ -129,6 +151,10 @@ def parse_args():
                         choices = ['l','t','s'])
     parser.add_argument('--one_day', help = 'Specific Day of the year to Train on (default = None, train over entire yr)', type=int,default = -1, 
                         choices = [i for i in range(-1, 366)])
+    parser.add_argument('--random', help = 'Whether or not to use Domain Randomization (default = False)', type = str, default = 'F', choices = ['T','F'])
+    parser.add_argument('--low', help = 'Lower bound for distribution (intended for DR case only)', type = int, default = 0)
+    parser.add_argument('--high', help = 'Upper bound for distribution (intended for DR case)', type=int, default = 50)
+    parser.add_argument('--distr', help = 'Distribution type (U for Uniform, G for Gaussian)', type=str, default = 'U', choices = ['G','U'])
     parser.add_argument('--num_players', help = 'Number of players ([1, 20]) in social game', type = int, default = 1, choices = [i for i in range(1, 21)])
     parser.add_argument('--yesterday', help = 'Whether to include yesterday in state (default = F)', type = str, default = 'F', choices = ['T', 'F'])
     parser.add_argument('--energy', help = 'Whether to include energy in state (default = F)', type=str, default = 'F', choices = ['T', 'F'])
@@ -136,10 +162,6 @@ def parse_args():
     parser.add_argument("--planning_model", help = "Which planning model to use", type = str, default = "Oracle", choices = ["Oracle", "Baseline", "LSTM", "OLS"])
 
     args = parser.parse_args()
-
-    #TODO: Update when hourly environment is working
-    if(args.env_id == 'hourly'):
-        raise NotImplementedError("Hourly Environment currently not implemented (sorry!)")
 
     return args
 
@@ -149,6 +171,7 @@ def main():
 
     #Print args for reference
     print(args)
+    
 
     #Create environment
     env = get_environment(args)
@@ -157,15 +180,14 @@ def main():
     model = get_agent(env, args)
     
     #Train algo, (logging through Tensorboard)
-    num_steps = int(args.num_steps)
     print("Beginning Testing!")
-    train(model,num_steps)
+    train(model,args.num_steps)
     print("Training Completed! View TensorBoard logs at rl_tensorboard_logs/")
 
     #Print evaluation of policy
     print("Beginning Evaluation")
-    #TODO: Define evaluation env (pointless if eval_env = env)
-    eval_env = env
+    #TODO: Define evaluation env (currently just setting random = False (which is useless for non-DR cases))
+    eval_env = get_environment(args, eval=True)
     eval_policy(model, eval_env, 10)
 
 if __name__ == '__main__':
