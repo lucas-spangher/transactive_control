@@ -91,22 +91,8 @@ def get_environment(args, eval=False):
         convert_action_space_str = lambda s: 'continuous' if s == 'c' else 'multidiscrete'
         action_space_string = convert_action_space_str(args.action_space)
     
-<<<<<<< HEAD
     planning_flag = (args.planning_steps > 0)
 
-    socialgame_env = gym.make('gym_socialgame:socialgame-{}'.format(args.env_id), 
-        action_space_string = action_space_string, 
-        response_type_string = args.response,
-        one_day = args.one_day, 
-        number_of_participants = args.num_players, 
-        yesterday_in_state = args.yesterday, 
-        energy_in_state = args.energy,
-        planning_flag = planning_flag,
-        planning_steps = args.planning_steps,
-        planning_model_type = args.planning_model
-        )
-    
-=======
     if(args.env_id == 'hourly'):
         env_id = '_hourly-v0'
     elif(args.env_id == 'monthly'):
@@ -115,15 +101,36 @@ def get_environment(args, eval=False):
         env_id = '-v0'
 
     if eval:
-        socialgame_env = gym.make('gym_socialgame:socialgame{}'.format(env_id), action_space_string = action_space_string, response_type_string = args.response,
-                                    one_price = args.one_day, random = False, low = args.low, high = args.high, distr = args.distr,
-                                    number_of_participants = args.num_players, yesterday_in_state = args.yesterday, energy_in_state = args.energy)
+        socialgame_env = gym.make('gym_socialgame:socialgame{}'.format(env_id), 
+            action_space_string = action_space_string, 
+            response_type_string = args.response,
+            one_price = args.one_day, 
+            random = False, 
+            low = args.low, 
+            high = args.high, 
+            distr = args.distr,
+            number_of_participants = args.num_players, 
+            yesterday_in_state = args.yesterday, 
+            energy_in_state = args.energy,
+            planning_flag = planning_flag,
+            planning_steps = args.planning_steps,
+            planning_model_type = args.planning_model)
     else:
-        socialgame_env = gym.make('gym_socialgame:socialgame{}'.format(env_id), action_space_string = action_space_string, response_type_string = args.response,
-                                        one_price = args.one_day, random = args.random, low = args.low, high = args.high, distr = args.distr,
-                                        number_of_participants = args.num_players, yesterday_in_state = args.yesterday, energy_in_state = args.energy)
+        socialgame_env = gym.make('gym_socialgame:socialgame{}'.format(env_id), 
+            action_space_string = action_space_string, 
+            response_type_string = args.response,
+            one_price = args.one_day, 
+            random = args.random, 
+            low = args.low, 
+            high = args.high, 
+            distr = args.distr,
+            number_of_participants = args.num_players, 
+            yesterday_in_state = args.yesterday, 
+            energy_in_state = args.energy,
+            planning_flag = planning_flag,
+            planning_steps = args.planning_steps,
+            planning_model_type = args.planning_model)
                     
->>>>>>> 150c2b61d408931ec96124dcb445dd58734aaccb
     #Check to make sure any new changes to environment follow OpenAI Gym API
     check_env(socialgame_env)
 
