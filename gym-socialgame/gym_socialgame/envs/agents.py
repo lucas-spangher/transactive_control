@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 import cvxpy as cvx
+from sklearn.preprocessing import MinMaxScaler
 
 #### file to make the simulation of people that we can work with 
 
@@ -172,19 +173,23 @@ class DeterministicFunctionPerson(Person):
 		points = points 
 		return points
 
-	def routine_output_transform(self, points_effect, baseline_day=0):
+	def routine_output_transform(self, points_effect, baseline_day=0, day_of_week = None):
 		output = np.array(self.baseline_energy)[baseline_day*24:baseline_day*24+10]
 		total_demand = np.sum(output)
 
 		# scale to keep total_demand (almost) constant
 		# almost bc imposing bounds afterwards
 		output = output - points_effect
-		output = output * (total_demand/np.sum(output))
+		# output = output * (total_demand/np.sum(output))
 
 		# impose bounds/constraints
 		# output = np.maximum(output, self.min_demand)
 		# output = np.minimum(output, self.max_demand)
 		# return output
+
+
+		if(day_of_week != None):
+			energy_resp = energy_resp * self.day_of_week_multiplier[day_of_week]
 
 		scaler = MinMaxScaler(feature_range = (self.min_demand, self.max_demand))
 		scaled_output = scaler.fit_transform(output.reshape(-1, 1))
@@ -192,45 +197,42 @@ class DeterministicFunctionPerson(Person):
 		return np.squeeze(scaled_output)
 
 
-
-	def threshold_response(self, points):
+	def threshold_response(self, points, day_of_week = None):
 		points_effect = self.threshold_response_func(points)
-		output = self.routine_output_transform(points_effect)
+		output = self.routine_output_transform(points_effect, day_of_week = day_of_week)
 		return output
 
-	def sin_response(self, points):
+	def sin_response(self, points, day_of_week = None):
 		points_effect = self.sin_response_func(points)
-		output = self.routine_output_transform(points_effect)
+		output = self.routine_output_transform(points_effect, day_of_week = day_of_week)
 		return output
 
-	def exp_response(self, points):
+	def exp_response(self, points, day_of_week = None):
 		points_effect = self.exponential_response_func(points)
-		output = self.routine_output_transform(points_effect)
+		output = self.routine_output_transform(points_effect, day_of_week = day_of_week)
 		return output
 
-	def threshold_exp_response(self,points):
+	def threshold_exp_response(self, points, day_of_week = None):
 		points_effect = self.exponential_response_func(points)
 		points_effect = self.threshold_response_func(points_effect)
-		output = self.routine_output_transform(points_effect)
+		output = self.routine_output_transform(points_effec, day_of_week = day_of_week)
 		return output
 
-	def linear_response(self, points):
+	def linear_response(self, points, day_of_week = None):
 		points_effect = points*self.points_multiplier
-		output = self.routine_output_transform(points_effect)
+		output = self.routine_output_transform(points_effect, day_of_week = day_of_week)
 		return output
 	
 	def get_response(self, points, day_of_week=None):
 		if(self.response == 't'):
-			energy_resp = self.threshold_exp_response(points)
+			energy_resp = self.threshold_exp_response(points, day_of_week = day_of_week)
 		elif(self.response == 's'):
-			energy_resp =  self.sin_response(points)
+			energy_resp =  self.sin_response(points, day_of_week = day_of_week)
 		elif(self.response == 'l'):
-			energy_resp =  self.linear_response(points)
+			energy_resp =  self.linear_response(points, day_of_week = day_of_week)
 		else:
 			raise NotImplementedError
 
-		if(day_of_week != None):
-			energy_resp = energy_resp * self.day_of_week_multiplier[day_of_week]
 		return energy_resp
 
 class MananPerson1(Person):

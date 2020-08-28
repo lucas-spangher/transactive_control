@@ -4,6 +4,8 @@ from stable_baselines.common.vec_env import DummyVecEnv, VecCheckNan
 from stable_baselines.common.evaluation import evaluate_policy
 from stable_baselines.common.env_checker import check_env
 
+import tensorflow as tf
+
 import utils
 
 def train(agent, num_steps):
@@ -43,7 +45,7 @@ def get_agent(env, args):
         from stable_baselines.sac.policies import MlpPolicy as policy
         return SAC(policy, env, batch_size = args.batch_size, learning_starts = 30, verbose = 0, tensorboard_log = './rl_tensorboard_logs/')
     
-     #I (Akash) still need to study PPO to understand it, I implemented b/c I know Joe's work used PPO
+     # I (Akash) still need to study PPO to understand it, I implemented b/c I know Joe's work used PPO
     elif args.algo == 'ppo':
         from stable_baselines import PPO2
         if(args.policy_type == 'mlp'):
@@ -87,8 +89,19 @@ def get_environment(args):
         convert_action_space_str = lambda s: 'continuous' if s == 'c' else 'multidiscrete'
         action_space_string = convert_action_space_str(args.action_space)
     
-    socialgame_env = gym.make('gym_socialgame:socialgame-{}'.format(args.env_id), action_space_string = action_space_string, response_type_string = args.response,
-                    one_day = args.one_day, number_of_participants = args.num_players, yesterday_in_state = args.yesterday, energy_in_state = args.energy)
+    planning_flag = (args.planning_steps > 0)
+
+    socialgame_env = gym.make('gym_socialgame:socialgame-{}'.format(args.env_id), 
+        action_space_string = action_space_string, 
+        response_type_string = args.response,
+        one_day = args.one_day, 
+        number_of_participants = args.num_players, 
+        yesterday_in_state = args.yesterday, 
+        energy_in_state = args.energy,
+        planning_flag = planning_flag,
+        planning_steps = args.planning_steps,
+        planning_model_type = args.planning_model
+        )
     
     #Check to make sure any new changes to environment follow OpenAI Gym API
     check_env(socialgame_env)
@@ -119,6 +132,8 @@ def parse_args():
     parser.add_argument('--num_players', help = 'Number of players ([1, 20]) in social game', type = int, default = 1, choices = [i for i in range(1, 21)])
     parser.add_argument('--yesterday', help = 'Whether to include yesterday in state (default = F)', type = str, default = 'F', choices = ['T', 'F'])
     parser.add_argument('--energy', help = 'Whether to include energy in state (default = F)', type=str, default = 'F', choices = ['T', 'F'])
+    parser.add_argument("--planning_steps", help = "How many planning iterations to partake in", type = int, default = 0, choices = [i for i in range(0,100)])
+    parser.add_argument("--planning_model", help = "Which planning model to use", type = str, default = "Oracle", choices = ["Oracle", "Baseline", "LSTM", "OLS"])
 
     args = parser.parse_args()
 

@@ -1,6 +1,7 @@
 import cvxpy as cvx
 import osqp
 import numpy as np
+from sklearn.preprocessing import MinMaxScaler
 
 #### file to calculate the rewards. Meant to be modular: 
 #### class Rewards should have several different functions by Dec 2019
@@ -19,8 +20,12 @@ class Reward():
 		self.energy_use = np.array(energy_use)
 		self.prices = np.array(prices) 
 		self._num_timesteps = energy_use.shape[0]
-		self.min_demand = min_demand
-		self.max_demand = max_demand
+		self.min_demand = np.min(energy_use) # min_demand
+		self.max_demand = np.max(energy_use) # max_demand
+
+		assert round(self.max_demand) == round(max_demand), "The max demand that the player is using and the optimization is using is not the same"
+		assert round(self.min_demand) == round(min_demand), "The min demand that the player is using and the optimization is using is not the same"
+
 		self.total_demand = np.sum(energy_use)
 
 	def ideal_use_calculation(self):
@@ -41,6 +46,11 @@ class Reward():
 		total_demand = self.total_demand
 
 		while (max_demand * 10 < total_demand):
+			print("multiplying demand to make optimization work")
+			print("max_demand: " + str(max_demand))
+			print("total_demand: " + str(total_demand))
+			print("energy_use")
+			print(self.energy_use)
 			max_demand *= 1.1
 
 		prices = self.prices
@@ -58,6 +68,19 @@ class Reward():
 
 		problem.solve(solver = cvx.OSQP, verbose=False)
 		return np.array(demands.value)
+
+
+	def log_cost(self):
+		"""
+		Scales energy_use to be between min and max energy demands (this is repeated 
+		in agent.routine_output_trasform), and then returns the simple total cost. 
+
+		"""
+
+		scaler = MinMaxScaler(feature_range = (self.min_demand, self.max_demand))
+		scaled_energy = np.squeeze(scaler.fit_transform(self.energy_use.reshape(-1, 1)))
+
+		return -np.log(np.dot(scaled_energy, self.prices))
 
 	def neg_distance_from_ideal(self, demands):
 		"""
@@ -119,4 +142,23 @@ class Reward():
 
 		cost_difference = ideal_cost - current_cost
 
-		return cost_difference/ideal_cost
+		if cost_difference > 0:
+			print("--" * 10)
+			print("Problem with reward")
+			print("min_demand: " + str(self.min_demand))
+			print("max_demand: " + str(self.max_demand))
+			print("--" * 10)
+			print("prices")
+			print(self.prices)
+			print("current_cost")
+			print(current_cost)
+			print("--" * 10)
+			print("ideal_cost")
+			print(ideal_cost)
+			print("ideal_demands")
+			print(ideal_demands)
+			print("energy demand")
+			print(self.energy_use)
+			print("taking the neg abs value so that it stays the same sign.")
+
+		return  -np.abs(cost_difference/ideal_cost)
