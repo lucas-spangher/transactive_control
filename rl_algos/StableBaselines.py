@@ -65,9 +65,12 @@ def args_convert_bool(args):
     """
     Purpose: Convert args which are specified as strings (e.g. yesterday, energy) into boolean to work with environment
     """
-    args.yesterday = utils.string2bool(args.yesterday)
-    args.energy = utils.string2bool(args.energy)
-    args.random = utils.string2bool(args.random)
+    if not isinstance(args.yesterday, (bool)):
+        args.yesterday = utils.string2bool(args.yesterday)
+    if not isinstance(args.energy, (bool)):
+        args.energy = utils.string2bool(args.energy)
+    if not isinstance(args.random, (bool)):
+        args.random = utils.string2bool(args.random)
 
 def get_environment(args, eval=False):
     """
@@ -104,7 +107,7 @@ def get_environment(args, eval=False):
         socialgame_env = gym.make('gym_socialgame:socialgame{}'.format(env_id), 
             action_space_string = action_space_string, 
             response_type_string = args.response,
-            one_price = args.one_day, 
+            one_day = args.one_day, 
             random = False, 
             low = args.low, 
             high = args.high, 
@@ -119,7 +122,7 @@ def get_environment(args, eval=False):
         socialgame_env = gym.make('gym_socialgame:socialgame{}'.format(env_id), 
             action_space_string = action_space_string, 
             response_type_string = args.response,
-            one_price = args.one_day, 
+            one_day = args.one_day, 
             random = args.random, 
             low = args.low, 
             high = args.high, 

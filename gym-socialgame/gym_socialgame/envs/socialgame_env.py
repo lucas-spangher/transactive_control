@@ -2,6 +2,7 @@ import gym
 from gym import spaces
 
 import numpy as np
+import random
 
 import tensorflow as tf
 
@@ -77,11 +78,12 @@ class SocialGameEnv(gym.Env):
         self.action_length = 10
         self.action_subspace = 3
         self.action_space = self._create_action_space()
+        self.random = random
 
         #Create Players
         self.player_dict = self._create_agents()
         #Create Players
-        self.random = random
+
         self.low = low
         self.high = high
         self.distr = distr.upper()

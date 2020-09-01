@@ -67,6 +67,9 @@ class Reward():
 		problem = cvx.Problem(objective, constraints)
 
 		problem.solve(solver = cvx.OSQP, verbose=False)
+
+		print("ideal demands")
+		print(demands.value)
 		return np.array(demands.value)
 
 

@@ -28,7 +28,7 @@ def price_signal(day = 45):
             pv = np.append(pv, 0.001*float(row[3])) # Converting Wh to kWh
             price = np.append(price, float(row[2])) # Cost per kWh
             val = row[5]
-            if val in (None,""): #How to treat missing values
+            if val in (None, ""): #How to treat missing values
                 val = 0
             else:
                 val = float(val) # kWh
