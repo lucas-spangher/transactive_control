@@ -9,7 +9,7 @@ import IPython
 # csv_path = os.path.dirname(os.path.realpath(__file__)) + "/building_data.csv"
 
 
-def price_signal(day = 45, type_of_DR = "Real_time_pricing"):
+def price_signal(day = 45, type_of_DR = "real_time_pricing"):
 
     """
     Utkarsha's work on price signal from a building with demand and solar
