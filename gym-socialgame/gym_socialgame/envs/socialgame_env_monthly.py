@@ -106,7 +106,7 @@ class SocialGameEnvMonthly(SocialGameEnv):
             # Tweak one_price Price Signal HERE
             month = self.one_price - 1
             for i in range(1, 31):
-                price = price_signal(30 * month + i)
+                price = price_signal(30 * month + 1, type_of_DR="time_of_use")
                 price = np.array(price[8:18])
                 price = np.maximum(0.01 * np.ones_like(price), price)
                 all_prices.append(price)
@@ -115,7 +115,7 @@ class SocialGameEnvMonthly(SocialGameEnv):
 
         else:
             for day in range(1,366):  
-                price = price_signal(day)
+                price = price_signal(day + 1, type_of_DR="time_of_use")
                 price = np.array(price[8:18])
                 # put a floor on the prices so we don't have negative prices
                 price = np.maximum(0.01 * np.ones_like(price), price)

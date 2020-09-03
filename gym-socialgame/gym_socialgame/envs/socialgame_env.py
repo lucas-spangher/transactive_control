@@ -12,6 +12,7 @@ from gym_socialgame.envs.reward import Reward
 
 import pickle
 
+#TODO: Rename one_day -> one_price & take out DR
 class SocialGameEnv(gym.Env):
     metadata = {'render.modes': ['human']}
 

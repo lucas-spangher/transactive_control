@@ -42,7 +42,7 @@ def price_signal(day = 45, type_of_DR = "real_time_pricing"):
 
     # Calculate optimal load scheduling. 90% of load is fixed, 10% is controllable.
     def optimise_24h(netdemand_24, price_24):
-        currentcost = netdemand_24*price_24
+        currentcost = netdemand_24@price_24
 
         fixed_load = 0.9*netdemand_24
         controllable_load = sum(0.1*netdemand_24)
@@ -54,7 +54,7 @@ def price_signal(day = 45, type_of_DR = "real_time_pricing"):
             # Adding L1 regularisation to penalise shifting of occupant demand
             lambd = 0.005
             # Demand charge: attached to peak demand
-            return sum(np.maximum(cost,0)) + demand_charge*max(load) + lambd*sum(abs(x-0.1*netdemand_24))
+            return sum(np.maximum(cost,0)) + demand_charge@max(load) + lambd*sum(abs(x-0.1*netdemand_24))
 
         def constraint_sumofx(x):
             return sum(x) - controllable_load

@@ -4,6 +4,7 @@ from stable_baselines.common.vec_env import DummyVecEnv, VecCheckNan, VecNormali
 from stable_baselines.common.evaluation import evaluate_policy
 from stable_baselines.common.env_checker import check_env
 
+import numpy as np
 import tensorflow as tf
 
 import utils
@@ -13,24 +14,75 @@ def train(agent, num_steps):
     Purpose: Train agent in env, and then call eval function to evaluate policy
     """
     #Train agent
-    agent.learn(total_timesteps = num_steps, log_interval = 10)
+    agent.learn(total_timesteps = num_steps, log_interval = 100)
 
-def eval_policy(model, env, num_eval_episodes: int, list_reward_per_episode = False):
+def eval_policy_helper(args, model, num_eval_episodes, response=None,list_reward_per_episode=False):
+    """
+    Purpose: Helper function to compute the evaluation loop over environment
+
+    Returns: Rewards from all episodes
+    """
+    rewards = np.zeros(num_eval_episodes)
+
+    for episode_i in range(num_eval_episodes):
+        env = get_environment(args, eval=True, response=response)
+        curr_reward, _ = evaluate_policy(model, env, 1, return_episode_rewards=list_reward_per_episode)
+        
+        print("Episode Reward: {:.3f}".format(curr_reward[0][0]))
+
+        rewards[episode_i] = curr_reward[0][0]
+    
+    return rewards
+
+def eval_policy(model, args, num_eval_episodes: int, list_reward_per_episode = False):
     """
     Purpose: Evaluate policy on environment over num_eval_episodes and print results
 
     Args:
         Model: Stable baselines model
-        Env: Gym environment for evaluation
+        Args: Args (so we can instantiate eval env here)
         num_eval_episodes: (Int) number of episodes to evaluate policy
         list_reward_per_episode: (Boolean) Whether or not to return a list containing rewards per episode (instead of mean reward over all episodes)
     
     """
-    mean_reward, std_reward = evaluate_policy(model, env, num_eval_episodes, return_episode_rewards = list_reward_per_episode)
+    #Since evaluate_policy goes over the first num_eval_episodes, if we train on one_yr we will always evaluate against the same n days
+    if args.one_price == 0:
+        args.one_price = -1
 
-    print("Test Results: ")
-    print("Mean Reward: {:.3f}".format(mean_reward))
-    print("Std Reward: {:.3f}".format(std_reward))
+    if args.random:
+        #If using DR we evaluate over linear, sin, and thresh env. 
+
+        print("\n Evaluating Linear Env \n")
+        eval_rewards = eval_policy_helper(args, model, 10, 'l', True)
+        print("Rewards ")
+        print(eval_rewards)
+        print("Mean Linear Reward: {:.3f}".format(np.mean(eval_rewards)))
+        print("Standard Deviation  of Linear Reward: {:.3f}".format(np.std(eval_rewards)))
+        print("*****"*30)
+        
+        print("\n Evaluating Sin Env")
+        eval_rewards = eval_policy_helper(args,model, 10, 's', True)
+        print("Rewards ")
+        print(eval_rewards)
+        print("Mean Sin. Reward: {:.3f}".format(np.mean(eval_rewards)))
+        print("Standard Deviation of Sin. Reward: {:.3f}".format(np.std(eval_rewards)))
+        print("*****"*30)
+        
+        eval_rewards = eval_policy_helper(args, model, 10, 't', True)
+        print("Rewards ")
+        print(eval_rewards)
+        print("Mean Thresh. Reward: {:.3f}".format(np.mean(eval_rewards)))
+        print("Standard Deviation of Thresh. Reward: {:.3f}".format(np.std(eval_rewards)))
+        print("*****"*30)
+    
+    else:
+
+        eval_rewards = eval_policy_helper(args, model, 10, list_reward_per_episode = True)
+        print("Rewards ")
+        print(eval_rewards)
+        print("Mean Reward: {:.3f}".format(np.mean(eval_rewards)))
+        print("Standard Deviation of Reward: {:.3f}".format(np.std(eval_rewards)))
+        print("*****"*30)
 
 def get_agent(env, args):
     """
@@ -72,13 +124,15 @@ def args_convert_bool(args):
     if not isinstance(args.random, (bool)):
         args.random = utils.string2bool(args.random)
 
-def get_environment(args, eval=False):
+def get_environment(args, eval=False, response = None):
     """
     Purpose: Create environment for algorithm given by args. algo
 
     Args:
         args
-    
+        eval: Boolean denoting whether or not to return evaluation env 
+        response: For setting response for eval env^
+
     Returns: Environment with action space compatible with algo
     """
     #Convert string args (which are supposed to be bool) into actual boolean values
@@ -89,12 +143,12 @@ def get_environment(args, eval=False):
         action_space_string = 'continuous'
     
     #For algos (e.g. ppo) which can handle discrete or continuous case
-    #Note: PPO typically uses normalized environment (#TODO)
+
     else:
         convert_action_space_str = lambda s: 'continuous' if s == 'c' else 'multidiscrete'
         action_space_string = convert_action_space_str(args.action_space)
     
-    planning_flag = (args.planning_steps > 0)
+
 
     if(args.env_id == 'hourly'):
         env_id = '_hourly-v0'
@@ -104,35 +158,33 @@ def get_environment(args, eval=False):
         env_id = '-v0'
 
     if eval:
+        if(response is None):
+            response = args.response
+
         socialgame_env = gym.make('gym_socialgame:socialgame{}'.format(env_id), 
             action_space_string = action_space_string, 
-            response_type_string = args.response,
-            one_day = args.one_day, 
+            response_type_string = response,
+            one_price = args.one_price, 
             random = False, 
             low = args.low, 
             high = args.high, 
             distr = args.distr,
             number_of_participants = args.num_players, 
             yesterday_in_state = args.yesterday, 
-            energy_in_state = args.energy,
-            planning_flag = planning_flag,
-            planning_steps = args.planning_steps,
-            planning_model_type = args.planning_model)
+            energy_in_state = args.energy)
+
     else:
         socialgame_env = gym.make('gym_socialgame:socialgame{}'.format(env_id), 
             action_space_string = action_space_string, 
             response_type_string = args.response,
-            one_day = args.one_day, 
+            one_price = args.one_price, 
             random = args.random, 
             low = args.low, 
             high = args.high, 
             distr = args.distr,
             number_of_participants = args.num_players, 
             yesterday_in_state = args.yesterday, 
-            energy_in_state = args.energy,
-            planning_flag = planning_flag,
-            planning_steps = args.planning_steps,
-            planning_model_type = args.planning_model)
+            energy_in_state = args.energy)
                     
     #Check to make sure any new changes to environment follow OpenAI Gym API
     check_env(socialgame_env)
@@ -159,7 +211,7 @@ def parse_args():
                         choices = ['c','d'])
     parser.add_argument('--response',help = 'Player response function (l = linear, t = threshold_exponential, s = sinusoidal', type = str, default = 'l',
                         choices = ['l','t','s'])
-    parser.add_argument('--one_day', help = 'Specific Day of the year to Train on (default = None, train over entire yr)', type=int,default = -1, 
+    parser.add_argument('--one_price', help = 'Specific Day of the year to Train on (default = None, train over entire yr)', type=int,default = 0, 
                         choices = [i for i in range(-1, 366)])
     parser.add_argument('--random', help = 'Whether or not to use Domain Randomization (default = False)', type = str, default = 'F', choices = ['T','F'])
     parser.add_argument('--low', help = 'Lower bound for distribution (intended for DR case only)', type = int, default = 0)
@@ -168,9 +220,7 @@ def parse_args():
     parser.add_argument('--num_players', help = 'Number of players ([1, 20]) in social game', type = int, default = 1, choices = [i for i in range(1, 21)])
     parser.add_argument('--yesterday', help = 'Whether to include yesterday in state (default = F)', type = str, default = 'F', choices = ['T', 'F'])
     parser.add_argument('--energy', help = 'Whether to include energy in state (default = F)', type=str, default = 'F', choices = ['T', 'F'])
-    parser.add_argument("--planning_steps", help = "How many planning iterations to partake in", type = int, default = 0, choices = [i for i in range(0,100)])
-    parser.add_argument("--planning_model", help = "Which planning model to use", type = str, default = "Oracle", choices = ["Oracle", "Baseline", "LSTM", "OLS"])
-
+  
     args = parser.parse_args()
 
     return args
@@ -190,15 +240,13 @@ def main():
     model = get_agent(env, args)
     
     #Train algo, (logging through Tensorboard)
-    print("Beginning Testing!")
+    print("Beginning Training!")
     train(model,args.num_steps)
     print("Training Completed! View TensorBoard logs at rl_tensorboard_logs/")
 
     #Print evaluation of policy
     print("Beginning Evaluation")
-    #TODO: Define evaluation env (currently just setting random = False (which is useless for non-DR cases))
-    eval_env = get_environment(args, eval=True)
-    eval_policy(model, eval_env, 10)
+    eval_policy(model, args, 10, list_reward_per_episode= True)
 
 if __name__ == '__main__':
     main()
