@@ -50,7 +50,11 @@ class SocialGameEnv(gym.Env):
         super(SocialGameEnv, self).__init__()
 
         #Verify that inputs are valid 
-        self.check_valid_init_inputs(action_space_string, response_type_string, number_of_participants, one_day, energy_in_state, yesterday_in_state)
+        self.check_valid_init_inputs(action_space_string, 
+            response_type_string, 
+            number_of_participants, 
+            one_day, energy_in_state, 
+            yesterday_in_state)
 
         #Assigning Instance Variables
         self.action_space_string = action_space_string
@@ -109,7 +113,10 @@ class SocialGameEnv(gym.Env):
             random_number(1,365) if one_day = -1
         """
         
-        if(one_day == -1):
+        print("one_day")
+        print(one_day)
+
+        if(one_day != -1):
             return np.random.randint(0, high=365)
         
         else:
@@ -213,7 +220,10 @@ class SocialGameEnv(gym.Env):
 
         """
         all_prices = []
-        if self.one_day != 0:
+        print("--" * 10)
+        print(self.one_day)
+        print("--" * 10)
+        if self.one_day != -1:
             # If one_day we repeat the price signals from a fixed day
             # Tweak One_Day Price Signal HERE
             price = price_signal(self.one_day)
@@ -317,7 +327,10 @@ class SocialGameEnv(gym.Env):
                 reward = player_reward.scaled_cost_distance(player_ideal_demands)
 
                 total_reward += reward
-        
+
+        print("total reward")        
+        print(total_reward)
+
         return total_reward
 
     def _planning_prediction(
@@ -593,3 +606,4 @@ class SocialGameEnv(gym.Env):
 
         #Checking that yesterday_in_state is valid
         assert isinstance(yesterday_in_state, bool), "Variable one_day is not of type Boolean. Instead got type {}".format(type(yesterday_in_state))
+        print("all inputs valid")
