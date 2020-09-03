@@ -77,6 +77,8 @@ def price_signal(day = 45, type_of_DR = "real_time_pricing"):
         return -diff - min(-diff)
     elif type_of_DR == "time_of_use":
         return price_24
+    else:
+        return "error!!!"
 
 
 

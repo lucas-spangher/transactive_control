@@ -223,10 +223,11 @@ class SocialGameEnv(gym.Env):
         print("--" * 10)
         print(self.one_day)
         print("--" * 10)
+        
         if self.one_day != -1:
             # If one_day we repeat the price signals from a fixed day
             # Tweak One_Day Price Signal HERE
-            price = price_signal(self.one_day)
+            price = price_signal(self.one_day, type_of_DR="time_of_use")
             price = np.array(price[8:18])
             price = np.maximum(0.01 * np.ones_like(price), price)
 
@@ -238,7 +239,7 @@ class SocialGameEnv(gym.Env):
         else:
             day = 0
             for i in range(365):  
-                price = price_signal(day + 1)
+                price = price_signal(day + 1, type_of_DR="time_of_use")
                 print("price at get_price function")
                 print(price)
                 price = np.array(price[8:18])
