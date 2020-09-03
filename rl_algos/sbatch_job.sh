@@ -1,6 +1,6 @@
 #!/bin/bash
 # Job name:
-#SBATCH --job-name=benchmark_sac_env
+#SBATCH --job-name=benchmark_ppo_lstm_env
 #
 # Account:
 #SBATCH --account=fc_ntugame
