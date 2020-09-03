@@ -1,6 +1,6 @@
 #!/bin/bash
 # Job name:
-#SBATCH --job-name=benchmark_ppo_lstm_env
+#SBATCH --job-name=benchmark_ppo_lstm_dr_env
 #
 # Account:
 #SBATCH --account=fc_ntugame
@@ -29,4 +29,4 @@
 module load python/3.6
 module load tensorflow/1.12.0-py36-pip-gpu
 source activate /global/scratch/akashgokul/conda/test
-python3 StableBaselines.py ppo --policy_type lstm
+python3 StableBaselines.py ppo --policy_type lstm --random T

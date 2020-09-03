@@ -107,7 +107,7 @@ def get_agent(env, args):
         elif(args.policy_type == 'lstm'):
             from stable_baselines.common.policies import MlpLstmPolicy as policy
         
-        return PPO2(policy, env,  nminibatches=1, verbose = 0, tensorboard_log = './rl_tensorboard_logs/')
+        return PPO2(policy, env,  nminibatches=1, verbose = 0, tensorboard_log = './rl_tensorboard_logs/DR/')
 
     else:
         raise NotImplementedError('Algorithm {} not supported. :( '.format(args.algo))
