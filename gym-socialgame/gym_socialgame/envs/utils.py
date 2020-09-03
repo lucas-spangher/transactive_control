@@ -3,7 +3,6 @@ import numpy as np
 import pandas as pd
 from scipy.optimize import minimize
 import os
-import IPython
 
 #data_path = os.path.join(os.getcwd(), "baselines", "behavioral_sim", "building_data.csv")
 # csv_path = os.path.dirname(os.path.realpath(__file__)) + "/building_data.csv"
