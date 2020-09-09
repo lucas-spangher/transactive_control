@@ -8,12 +8,12 @@ import tensorflow as tf
 
 import utils
 
-def train(agent, num_steps):
+def train(agent, num_steps, planning = False):
     """
     Purpose: Train agent in env, and then call eval function to evaluate policy
     """
     #Train agent
-    agent.learn(total_timesteps = num_steps, log_interval = 10)
+    agent.learn(total_timesteps = num_steps, log_interval = 10, planning = False)
 
 def eval_policy(model, env, num_eval_episodes: int, list_reward_per_episode = False):
     """
@@ -32,7 +32,7 @@ def eval_policy(model, env, num_eval_episodes: int, list_reward_per_episode = Fa
     print("Mean Reward: {:.3f}".format(mean_reward))
     print("Std Reward: {:.3f}".format(std_reward))
 
-def get_agent(env, args):
+def get_agent(env, args, planning = False):
     """
     Purpose: Import algo, policy and create agent
 
@@ -43,7 +43,7 @@ def get_agent(env, args):
     if args.algo == 'sac':
         from stable_baselines import SAC
         from stable_baselines.sac.policies import MlpPolicy as policy
-        return SAC(policy, env, batch_size = args.batch_size, learning_starts = 30, verbose = 0, tensorboard_log = './rl_tensorboard_logs/')
+        return SAC(policy, env, batch_size = args.batch_size, learning_starts = 30, verbose = 0, tensorboard_log = './rl_tensorboard_logs/')    
     
      # I (Akash) still need to study PPO to understand it, I implemented b/c I know Joe's work used PPO
     elif args.algo == 'ppo':
@@ -104,7 +104,8 @@ def get_environment(args, eval=False):
         env_id = '-v0'
 
     if eval:
-        socialgame_env = gym.make('gym_socialgame:socialgame{}'.format(env_id), 
+        socialgame_env = gym.make(
+            'gym_socialgame:socialgame{}'.format(env_id), 
             action_space_string = action_space_string, 
             response_type_string = args.response,
             one_day = args.one_day, 
@@ -115,11 +116,11 @@ def get_environment(args, eval=False):
             number_of_participants = args.num_players, 
             yesterday_in_state = args.yesterday, 
             energy_in_state = args.energy,
-            planning_flag = planning_flag,
-            planning_steps = args.planning_steps,
-            planning_model_type = args.planning_model)
+            )
     else:
-        socialgame_env = gym.make('gym_socialgame:socialgame{}'.format(env_id), 
+        # go into the planning mode
+        socialgame_env = gym.make(
+            'gym_socialgame:socialgame{}'.format("_planning-v0"), 
             action_space_string = action_space_string, 
             response_type_string = args.response,
             one_day = args.one_day, 
@@ -132,7 +133,8 @@ def get_environment(args, eval=False):
             energy_in_state = args.energy,
             planning_flag = planning_flag,
             planning_steps = args.planning_steps,
-            planning_model_type = args.planning_model)
+            planning_model_type = args.planning_model
+            )
                     
     #Check to make sure any new changes to environment follow OpenAI Gym API
     check_env(socialgame_env)
@@ -159,7 +161,7 @@ def parse_args():
                         choices = ['c','d'])
     parser.add_argument('--response',help = 'Player response function (l = linear, t = threshold_exponential, s = sinusoidal', type = str, default = 'l',
                         choices = ['l','t','s'])
-    parser.add_argument('--one_day', help = 'Specific Day of the year to Train on (default = None, train over entire yr)', type=int,default = -1, 
+    parser.add_argument('--one_day', help = 'Specific Day of the year to Train on (default = None, train over entire yr)', type=int, default = -1, 
                         choices = [i for i in range(-1, 366)])
     parser.add_argument('--random', help = 'Whether or not to use Domain Randomization (default = False)', type = str, default = 'F', choices = ['T','F'])
     parser.add_argument('--low', help = 'Lower bound for distribution (intended for DR case only)', type = int, default = 0)
@@ -183,22 +185,34 @@ def main():
     print(args)
     
 
-    #Create environment
-    env = get_environment(args)
+    #Create environments
+    env = get_environment(args, eval = True)
+
+    if args.planning_steps > 1:
+        env_planning = get_environment(args, eval = False)
 
     #Create Agent
     model = get_agent(env, args)
     
     #Train algo, (logging through Tensorboard)
     print("Beginning Testing!")
-    train(model,args.num_steps)
+    for step in range(args.num_steps):
+        train(model, args.num_steps)
+        model.set_env(env_planning)
+
+        for planning_step in range(args.planning_steps):
+            train(model, args.num_steps, planning = True)
+
+        # set environment back
+        model.set_env(env)
+
     print("Training Completed! View TensorBoard logs at rl_tensorboard_logs/")
 
     #Print evaluation of policy
     print("Beginning Evaluation")
-    #TODO: Define evaluation env (currently just setting random = False (which is useless for non-DR cases))
+
     eval_env = get_environment(args, eval=True)
-    eval_policy(model, eval_env, 10)
+    eval_policy(model, eval_env, num_eval_episodes=10)
 
 if __name__ == '__main__':
     main()

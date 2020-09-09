@@ -67,9 +67,6 @@ class Reward():
 		problem = cvx.Problem(objective, constraints)
 
 		problem.solve(solver = cvx.OSQP, verbose=False)
-
-		print("ideal demands")
-		print(demands.value)
 		return np.array(demands.value)
 
 
@@ -145,23 +142,33 @@ class Reward():
 
 		cost_difference = ideal_cost - current_cost
 
-		if cost_difference > 0:
+		print("--" * 10)
+		print("ideal cost")
+		print(ideal_cost)
+		print("--" * 10)
+		print("prices")
+		print(self.prices)
+		print("--" * 10)		
+		print("current_cost")
+		print(current_cost)
+
+		if cost_difference > 0 or ideal_cost < 0:
 			print("--" * 10)
 			print("Problem with reward")
-			print("min_demand: " + str(self.min_demand))
-			print("max_demand: " + str(self.max_demand))
-			print("--" * 10)
+			# print("min_demand: " + str(self.min_demand))
+			# print("max_demand: " + str(self.max_demand))
+			# print("--" * 10)
 			print("prices")
 			print(self.prices)
-			print("current_cost")
-			print(current_cost)
-			print("--" * 10)
-			print("ideal_cost")
-			print(ideal_cost)
-			print("ideal_demands")
-			print(ideal_demands)
-			print("energy demand")
-			print(self.energy_use)
+			# print("current_cost")
+			# print(current_cost)
+			# print("--" * 10)
+			# print("ideal_cost")
+			# print(ideal_cost)
+			# print("ideal_demands")
+			# print(ideal_demands)
+			# print("energy demand")
+			# print(self.energy_use)
 			print("taking the neg abs value so that it stays the same sign.")
 
 		return  -np.abs(cost_difference/ideal_cost)

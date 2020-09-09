@@ -23,9 +23,6 @@ class SocialGameEnv(gym.Env):
         energy_in_state = False, 
         yesterday_in_state = False,
         day_of_week = False,
-        planning_flag = False,
-        planning_steps = 0,
-        planning_model_type = "Oracle",
         random = False,
         low = 0, 
         high = 50, 
@@ -94,9 +91,6 @@ class SocialGameEnv(gym.Env):
 
         #TODO: Check initialization of prev_energy
         self.prev_energy = np.zeros(10)
-        self.planning_flag = planning_flag
-        self.planning_steps = planning_steps
-        self.planning_model_type = planning_model_type
 
         print("\n Social Game Environment Initialized! Have Fun! \n")
     
@@ -334,130 +328,6 @@ class SocialGameEnv(gym.Env):
 
         return total_reward
 
-    def _planning_prediction(
-        self,
-        action, 
-        day_of_week, 
-        planning_model_type = "OLS", 
-        loaded_model = None,
-    ):
-        
-        
-        """
-        Function for calling the planning model and producing an average response 
-        
-        Inputs: 
-        
-        Action: [10-float] a list of 10 floats that are the points provided by the agent to the env
-        day_of_week: [int] a number indicating the day of the week
-        planning_model_type: str, either "Oracle" for a perfect planning model, 
-            "LSTM" for the rnn implementation, "OLS" for linear regression, or "
-            baseline" for a mean estimate
-        loaded_model: pass in a loaded model
-
-        """
-        
-        # if self.min_demand is not None and self.max_demand is not None: 
-        #     scaler = MinMaxScaler(feature_range = (self.min_demand, self.max_demand))
-
-        energy_consumptions = {}
-        total_consumption  = np.zeros(10)
-
-        if planning_model_type == "Oracle":
-            prev_observation = self.prices[(self.day)]
-            energy_consumptions = self._simulate_humans(action)
-            return energy_consumptions
-            
-        
-        ## Basic LSTM that follows the rules of the experiment    
-        elif planning_model_type == "LSTM":
-            ## load the minMaxScalers
-            with open ("scaler_X.pickle", "rb") as input_file:
-                scaler_X = pickle.load(input_file) 
-            with open ("scaler_y.pickle", "rb") as input_file:
-                scaler_y = pickle.load(input_file) 
-
-            ## prepare the data
-
-            d_X = pd.DataFrame(data = { "action"  : action, "dow" : day_of_week } )
-            scaled_X = scaler_X.transform(d_X)
-            sxr = scaled_X.reshape((scaled_X.shape[0], 1, scaled_X.shape[1])) 
-            print(sxr)
-
-            for player_name in self.player_dict:
-
-                player = self.player_dict[player_name]
-
-                # get the reward from the player's output
-                player_min_demand = player.get_min_demand()
-                player_max_demand = player.get_max_demand()
-
-                preds = loaded_model.predict(sxr)
-
-                inv_preds = scaler_y.inverse_transform(preds)  
-                
-                scaler = MinMaxScaler((player_min_demand, player_max_demand))
-                inv_preds = scaler.fit_transform(inv_preds.reshape(-1, 1))
-
-                energy_consumptions[player_name] = np.squeeze(inv_preds)
-
-                total_consumption += np.squeeze(inv_preds)
-
-            energy_consumptions["avg"] = total_consumption / self.number_of_participants
-            print(energy_consumptions["avg"])
-            return energy_consumptions
-        
-        
-        # simple OLS trained on small dataset without IV 
-        elif planning_model_type == "OLS":
-
-            for player_name in self.player_dict:
-
-                player = self.player_dict[player_name]
-
-                # get the reward from the player's output
-                player_min_demand = player.get_min_demand()
-                player_max_demand = player.get_max_demand()
-
-                energy = 246 + -3.26 * np.array(action)
-
-                scaler = MinMaxScaler((player_min_demand, player_max_demand))
-                energy = scaler.fit_transform(energy.reshape(-1, 1))
-                energy = np.squeeze(energy)
-
-                energy_consumptions[player_name] = energy
-                total_consumption += energy
-
-            energy_consumptions["avg"] = total_consumption / self.number_of_participants
-
-            return energy_consumptions
-        
-        # baseline model that just returns average of the sample energy day
-        elif planning_model_type == "Baseline":
-            for player_name in self.player_dict:
-                energy_consumptions[player_name] = np.repeat(70.7, len(action))
-
-            energy_consumptions["avg"] = np.repeat(70.7, len(action))
-
-            return energy_consumptions
-        
-        else:
-            raise ValueError("wrong planning model choice")
-            return
-
-
-    def load_model_from_disk(self, file_name = "GPyOpt_planning_model"):
-        json_file = open(file_name + ".json", 'r')
-        loaded_model_json = json_file.read()
-        json_file.close()
-        loaded_model = tf.keras.models.model_from_json(loaded_model_json)
-        # load weights into new model
-        loaded_model.load_weights(file_name + ".h5")
-        print("Loaded model from disk")
-
-        loaded_model.compile(loss="mse", optimizer="adam")
-        return loaded_model
-
     def _update_randomization(self):
         if self.random:
             for i in range(self.number_of_participants):
@@ -493,6 +363,7 @@ class SocialGameEnv(gym.Env):
         prev_price = self.prices[(self.day)]
         self.day = (self.day + 1) % 365
         self.curr_iter += 1
+
         if self.curr_iter > 0:
             done = True
             self._update_randomization()
@@ -501,29 +372,7 @@ class SocialGameEnv(gym.Env):
 
         points = self._points_from_action(action)
 
-        if self.planning_flag: 
-            if self.curr_iter == 1: 
-                energy_consumptions = self._simulate_humans(points)
-
-
-            else: 
-                if self.curr_iter >= self.planning_steps:
-                   done = True
-                   self.curr_iter = 0 # resetting curr_iter 
-
-                loaded_model = None
-
-                if self.planning_model_type == "LSTM":
-                    loaded_model = self.load_model_from_disk("GPyOpt_planning_model")
-
-                energy_consumptions = self._planning_prediction(
-                                action = points, 
-                                day_of_week = self.day_of_week, 
-                                planning_model_type = self.planning_model_type, 
-                                loaded_model = loaded_model,
-                                )
-        else:
-            energy_consumptions = self._simulate_humans(points)
+        energy_consumptions = self._simulate_humans(points)
 
         # HACK ALERT. USING AVG ENERGY CONSUMPTION FOR STATE SPACE. this will not work if people are not all the same
         
@@ -608,3 +457,4 @@ class SocialGameEnv(gym.Env):
         #Checking that yesterday_in_state is valid
         assert isinstance(yesterday_in_state, bool), "Variable one_day is not of type Boolean. Instead got type {}".format(type(yesterday_in_state))
         print("all inputs valid")
+
