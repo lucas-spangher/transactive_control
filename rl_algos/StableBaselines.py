@@ -1,8 +1,8 @@
 import argparse
 import gym
-from stable_baselines.common.vec_env import DummyVecEnv, VecCheckNan, VecNormalize
-from stable_baselines.common.evaluation import evaluate_policy
-from stable_baselines.common.env_checker import check_env
+from stableBaselines.stable_baselines.common.vec_env import DummyVecEnv, VecCheckNan, VecNormalize
+from stableBaselines.stable_baselines.common.evaluation import evaluate_policy
+from stableBaselines.stable_baselines.common.env_checker import check_env
 
 import tensorflow as tf
 
@@ -54,7 +54,7 @@ def get_agent(env, args):
     """
     if args.algo == 'sac':
         from stableBaselines.stable_baselines.sac.sac import SAC as mySAC
-        from stable_baselines.sac.policies import MlpPolicy as policy
+        from stableBaselines.stable_baselines.sac.policies import MlpPolicy as policy
         return mySAC(policy, env, batch_size = args.batch_size, learning_starts = 30, verbose = 0, tensorboard_log = './rl_tensorboard_logs/')    
     
      # I (Akash) still need to study PPO to understand it, I implemented b/c I know Joe's work used PPO
