@@ -8,12 +8,17 @@ import tensorflow as tf
 
 import utils
 
-def train(agent, num_steps, write_to_tb = False):
+def train(agent, num_steps, tb_log_name = None, write_to_tb = False):
     """
     Purpose: Train agent in env, and then call eval function to evaluate policy
     """
     #Train agent
-    agent.learn(total_timesteps = num_steps, log_interval = 10, write_to_tb = write_to_tb)
+    agent.learn(
+        total_timesteps = num_steps, 
+        log_interval = 10, 
+        tb_log_name = tb_log_name,
+        write_to_tb = write_to_tb,
+        )
 
 def eval_policy(model, env, num_eval_episodes: int, list_reward_per_episode = False):
     """
