@@ -170,7 +170,7 @@ def parse_args():
     parser.add_argument('--energy', help = 'Whether to include energy in state (default = F)', type=str, default = 'F', choices = ['T', 'F'])
     parser.add_argument("--planning_steps", help = "How many planning iterations to partake in", type = int, default = 0, choices = [i for i in range(0,100)])
     parser.add_argument("--planning_model", help = "Which planning model to use", type = str, default = "Oracle", choices = ["Oracle", "Baseline", "LSTM", "OLS"])
-    parser.add_argument("--own_log_dir", help = "log directory to store your own tb logs", type = str)
+    parser.add_argument("--own_tb_log", help = "log directory to store your own tb logs", type = str)
 
     args = parser.parse_args()
 
@@ -183,7 +183,7 @@ def main():
     #Print args for reference
     print(args)
     
-    log_dir = "own_tb_logs/" + args.own_log_dir
+    log_dir = "own_tb_logs/" + args.own_tb_log
 
     if os.path.exists(log_dir):
         print("Choose a new name for the training dir!")
@@ -208,7 +208,7 @@ def main():
     if args.planning_steps > 1: 
         for step in range(args.num_steps):
             r_real = train(model, 1, write_to_tb = True)
-            tb_log_value("episode_reward", r_real, step = step)
+            tb_log_value("reward_in_environment", r_real, step = step)
 
             model.set_env(env_planning)
             train(model, args.planning_steps, write_to_tb = False)
