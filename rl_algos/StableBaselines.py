@@ -6,19 +6,26 @@ from stable_baselines.common.env_checker import check_env
 
 import tensorflow as tf
 
+from tensorboard_logger import configure as tb_configure
+from tensorboard_logger import log_value as tb_log_value
+
 import utils
 
-def train(agent, num_steps, tb_log_name = None, write_to_tb = False):
+import os
+
+def train(agent, num_steps, tb_log_name = None, write_to_tb = True):
     """
     Purpose: Train agent in env, and then call eval function to evaluate policy
     """
     #Train agent
-    agent.learn(
+    _, reward = agent.learn(
         total_timesteps = num_steps, 
         log_interval = 10, 
         tb_log_name = tb_log_name,
         write_to_tb = write_to_tb,
         )
+
+    return reward
 
 def eval_policy(model, env, num_eval_episodes: int, list_reward_per_episode = False):
     """
@@ -163,6 +170,7 @@ def parse_args():
     parser.add_argument('--energy', help = 'Whether to include energy in state (default = F)', type=str, default = 'F', choices = ['T', 'F'])
     parser.add_argument("--planning_steps", help = "How many planning iterations to partake in", type = int, default = 0, choices = [i for i in range(0,100)])
     parser.add_argument("--planning_model", help = "Which planning model to use", type = str, default = "Oracle", choices = ["Oracle", "Baseline", "LSTM", "OLS"])
+    parser.add_argument("--own_log_dir", help = "log directory to store your own tb logs", type = str)
 
     args = parser.parse_args()
 
@@ -175,6 +183,13 @@ def main():
     #Print args for reference
     print(args)
     
+    log_dir = "own_tb_logs/" + args.own_log_dir
+
+    if os.path.exists(log_dir):
+        print("Choose a new name for the training dir!")
+        raise ValueError
+
+    tb_configure(log_dir)
 
     #Create environments
     print("Make 'real' environment")
@@ -188,15 +203,20 @@ def main():
     model = get_agent(env, args)
     
     #Train algo, (logging through Tensorboard)
-    print("Beginning Testing!")
-    for step in range(args.num_steps):
-        train(model, 1, write_to_tb = True)
-        model.set_env(env_planning)
+    print("Beginning Training!")
+    
+    if args.planning_steps > 1: 
+        for step in range(args.num_steps):
+            r_real = train(model, 1, write_to_tb = True)
+            tb_log_value("episode_reward", r_real, step = step)
 
-        train(model, args.planning_steps, write_to_tb = False)
+            model.set_env(env_planning)
+            train(model, args.planning_steps, write_to_tb = False)
+            # set environment back
+            model.set_env(env)
 
-        # set environment back
-        model.set_env(env)
+    else:
+        _ = train(model, args.num_steps)
 
     print("Training Completed! View TensorBoard logs at rl_tensorboard_logs/")
 
@@ -205,6 +225,8 @@ def main():
 
     eval_env = get_environment(args, eval=True)
     eval_policy(model, eval_env, num_eval_episodes=10)
+
+    print("If there was no planning model involved, remember that the output will be in the rl_tensorboard_logs dir")
 
 if __name__ == '__main__':
     main()
