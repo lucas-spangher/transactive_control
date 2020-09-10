@@ -87,21 +87,6 @@ class Person():
 		return self.max_demand
 		# return np.quantile(self.baseline_energy, .95)
 
-class Person_with_hysteresis(Person):
-	""" Wendy -- Determines the energy output of the person, based on the formula:
-		
-		y[n] = f(points) + baseline_energy + noise
-
-		f: super special secret function that Wendy designs with hysteresis 
-
-		inputs: points - list or dataframe of points values. Assumes that the 
-		list will be in the same time increment that energy_output will be. 
-
-		For now, that's in 5 minute increments"""
-
-	def __init__(self, baseline_energy, points_multiplier = 1):
-		pass
-
 class FixedDemandPerson(Person):
 
 	def __init__(self, baseline_energy_df, points_multiplier = 1):
@@ -289,5 +274,49 @@ class RandomizedFunctionPerson(DeterministicFunctionPerson):
 	
 	def linear_response_func(self,points):
 		return points * self.points_multiplier + self.noise
-	
+
+
+# utkarsha's person 
+
+class CurtailandShiftPerson(Person):
+	def __init__(self, baseline_energy_df, points_multiplier = 1):
+		super().__init__(baseline_energy_df, points_multiplier)
+		self.shiftableLoadFraction = 0.1
+		self.shiftByHours = 3
+		self.curtailableLoadFraction = 0.1
+		self.maxCurtailHours = 3 #Person willing to curtail for no more than these hours
+
+	def shiftedLoad(self, points, baseline_day=0, day_of_week=None):
+		output = np.array(self.baseline_energy)[baseline_day*24:baseline_day*24+10]
+		points = np.array(points) * self.points_multiplier
+		shiftableLoad = self.shiftableLoadFraction*output
+		shiftByHours = self.shiftByHours
+		
+		# 10 hour day. Rearrange the sum of shiftableLoad into these hours by treating points as the 'price' at that hour
+		# Load can be shifted by a max of shiftByHours (default = 3 hours)
+		# For each hour, calculate the optimal hour to shift load to within +- 3 hours
+		shiftedLoad = np.zeros(10)
+		for hour in range(10):
+			candidatePrices = points[max(hour-shiftByHours,0): min(hour+shiftByHours,9)+1]
+			shiftToHour = max(hour-shiftByHours,0) + np.argmin(candidatePrices)
+			shiftedLoad[shiftToHour] += shiftableLoad[hour]		
+		return shiftedLoad
+
+	def curtailedLoad(self, points, baseline_day=0, day_of_week=None):
+		output = np.array(self.baseline_energy)[baseline_day*24:baseline_day*24+10]
+		points = np.array(points) * self.points_multiplier
+		curtailableLoad = self.curtailableLoadFraction*output
+		maxPriceHours = np.argsort(points)[0:self.maxCurtailHours]
+		for hour in maxPriceHours:
+			curtailableLoad[hour] = 0
+		return curtailableLoad
+
+	def get_response(self, points, day_of_week=None):
+		baseline_day = 0
+		output = np.array(self.baseline_energy)[baseline_day*24:baseline_day*24+10]
+		energy_resp = output*(1 - self.curtailableLoadFraction - self.shiftableLoadFraction) + self.curtailedLoad(points) + self.shiftedLoad(points)
+		
+		return energy_resp
+
+
 

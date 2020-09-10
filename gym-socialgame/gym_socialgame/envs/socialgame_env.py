@@ -23,10 +23,6 @@ class SocialGameEnv(gym.Env):
         energy_in_state = False, 
         yesterday_in_state = False,
         day_of_week = False,
-        random = False,
-        low = 0, 
-        high = 50, 
-        distr = "U"
         ):
         """
         SocialGameEnv for an agent determining incentives in a social game. 
@@ -79,15 +75,10 @@ class SocialGameEnv(gym.Env):
         self.action_length = 10
         self.action_subspace = 3
         self.action_space = self._create_action_space()
-        self.random = random
 
         #Create Players
         self.player_dict = self._create_agents()
-        #Create Players
 
-        self.low = low
-        self.high = high
-        self.distr = distr.upper()
 
         #TODO: Check initialization of prev_energy
         self.prev_energy = np.zeros(10)
@@ -192,12 +183,7 @@ class SocialGameEnv(gym.Env):
         my_baseline_energy = pd.DataFrame(data = {"net_energy_use" : working_hour_energy})
 
         for i in range(self.number_of_participants):
-            if(self.random):
-                player = RandomizedFunctionPerson(my_baseline_energy, points_multiplier=10, response = self.response_type_string, 
-                                                low = self.low, high = self.high, distr = self.distr)
-            else:
-                player = DeterministicFunctionPerson(my_baseline_energy, points_multiplier = 10, response= self.response_type_string)
-            
+            player = DeterministicFunctionPerson(my_baseline_energy, points_multiplier = 10, response= self.response_type_string)
             player_dict['player_{}'.format(i)] = player
 
         return player_dict
@@ -328,12 +314,6 @@ class SocialGameEnv(gym.Env):
 
         return total_reward
 
-    def _update_randomization(self):
-        if self.random:
-            for i in range(self.number_of_participants):
-                self.player_dict['player_{}'.format(i)].update_noise()
-
-
     def step(self, action):
         """
         Purpose: Takes a step in the environment 
@@ -366,7 +346,6 @@ class SocialGameEnv(gym.Env):
 
         if self.curr_iter > 0:
             done = True
-            self._update_randomization()
         else:
             done = False
 

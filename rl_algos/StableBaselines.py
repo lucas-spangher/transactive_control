@@ -8,12 +8,12 @@ import tensorflow as tf
 
 import utils
 
-def train(agent, num_steps, planning = False):
+def train(agent, num_steps, write_to_tb = False):
     """
     Purpose: Train agent in env, and then call eval function to evaluate policy
     """
     #Train agent
-    agent.learn(total_timesteps = num_steps, log_interval = 10, planning = False)
+    agent.learn(total_timesteps = num_steps, log_interval = 10, write_to_tb = write_to_tb)
 
 def eval_policy(model, env, num_eval_episodes: int, list_reward_per_episode = False):
     """
@@ -32,7 +32,7 @@ def eval_policy(model, env, num_eval_episodes: int, list_reward_per_episode = Fa
     print("Mean Reward: {:.3f}".format(mean_reward))
     print("Std Reward: {:.3f}".format(std_reward))
 
-def get_agent(env, args, planning = False):
+def get_agent(env, args):
     """
     Purpose: Import algo, policy and create agent
 
@@ -41,9 +41,9 @@ def get_agent(env, args, planning = False):
     Exceptions: Raises exception if args.algo unknown (not needed b/c we filter in the parser, but I added it for modularity)
     """
     if args.algo == 'sac':
-        from stable_baselines import SAC
+        from stableBaselines.stable_baselines.sac.sac import SAC as mySAC
         from stable_baselines.sac.policies import MlpPolicy as policy
-        return SAC(policy, env, batch_size = args.batch_size, learning_starts = 30, verbose = 0, tensorboard_log = './rl_tensorboard_logs/')    
+        return mySAC(policy, env, batch_size = args.batch_size, learning_starts = 30, verbose = 0, tensorboard_log = './rl_tensorboard_logs/')    
     
      # I (Akash) still need to study PPO to understand it, I implemented b/c I know Joe's work used PPO
     elif args.algo == 'ppo':
@@ -69,8 +69,6 @@ def args_convert_bool(args):
         args.yesterday = utils.string2bool(args.yesterday)
     if not isinstance(args.energy, (bool)):
         args.energy = utils.string2bool(args.energy)
-    if not isinstance(args.random, (bool)):
-        args.random = utils.string2bool(args.random)
 
 def get_environment(args, eval=False):
     """
@@ -109,10 +107,6 @@ def get_environment(args, eval=False):
             action_space_string = action_space_string, 
             response_type_string = args.response,
             one_day = args.one_day, 
-            random = False, 
-            low = args.low, 
-            high = args.high, 
-            distr = args.distr,
             number_of_participants = args.num_players, 
             yesterday_in_state = args.yesterday, 
             energy_in_state = args.energy,
@@ -124,10 +118,6 @@ def get_environment(args, eval=False):
             action_space_string = action_space_string, 
             response_type_string = args.response,
             one_day = args.one_day, 
-            random = args.random, 
-            low = args.low, 
-            high = args.high, 
-            distr = args.distr,
             number_of_participants = args.num_players, 
             yesterday_in_state = args.yesterday, 
             energy_in_state = args.energy,
@@ -163,10 +153,6 @@ def parse_args():
                         choices = ['l','t','s'])
     parser.add_argument('--one_day', help = 'Specific Day of the year to Train on (default = None, train over entire yr)', type=int, default = -1, 
                         choices = [i for i in range(-1, 366)])
-    parser.add_argument('--random', help = 'Whether or not to use Domain Randomization (default = False)', type = str, default = 'F', choices = ['T','F'])
-    parser.add_argument('--low', help = 'Lower bound for distribution (intended for DR case only)', type = int, default = 0)
-    parser.add_argument('--high', help = 'Upper bound for distribution (intended for DR case)', type=int, default = 50)
-    parser.add_argument('--distr', help = 'Distribution type (U for Uniform, G for Gaussian)', type=str, default = 'U', choices = ['G','U'])
     parser.add_argument('--num_players', help = 'Number of players ([1, 20]) in social game', type = int, default = 1, choices = [i for i in range(1, 21)])
     parser.add_argument('--yesterday', help = 'Whether to include yesterday in state (default = F)', type = str, default = 'F', choices = ['T', 'F'])
     parser.add_argument('--energy', help = 'Whether to include energy in state (default = F)', type=str, default = 'F', choices = ['T', 'F'])
@@ -186,9 +172,11 @@ def main():
     
 
     #Create environments
+    print("Make 'real' environment")
     env = get_environment(args, eval = True)
 
     if args.planning_steps > 1:
+        print("Making planning environment")
         env_planning = get_environment(args, eval = False)
 
     #Create Agent
@@ -197,11 +185,10 @@ def main():
     #Train algo, (logging through Tensorboard)
     print("Beginning Testing!")
     for step in range(args.num_steps):
-        train(model, args.num_steps)
+        train(model, 1, write_to_tb = True)
         model.set_env(env_planning)
 
-        for planning_step in range(args.planning_steps):
-            train(model, args.num_steps, planning = True)
+        train(model, args.planning_steps, write_to_tb = False)
 
         # set environment back
         model.set_env(env)

@@ -19,26 +19,19 @@ class SocialGamePlanningEnv(SocialGameEnv):
         energy_in_state = False, 
         yesterday_in_state = False,
         day_of_week = False,
-        random = False,
-        low = 0, 
-        high = 50, 
-        distr = "U",
         planning_flag = False,
         planning_steps = 0,
         planning_model_type = "Oracle",):
 
-        super().__init__(self, 
-        action_space_string = "continuous", 
-        response_type_string = "l", 
-        number_of_participants = 10,
-        one_day = 0, 
-        energy_in_state = False, 
-        yesterday_in_state = False,
-        day_of_week = False,
-        random = False,
-        low = 0, 
-        high = 50, 
-        distr = "U",)
+        super().__init__(
+        action_space_string, 
+        response_type_string, 
+        number_of_participants,
+        one_day, 
+        energy_in_state, 
+        yesterday_in_state,
+        day_of_week,
+        )
 
         self.planning_flag = planning_flag
         self.planning_steps = planning_steps
@@ -202,35 +195,27 @@ class SocialGamePlanningEnv(SocialGameEnv):
         self.curr_iter += 1
         if self.curr_iter > 0:
             done = True
-            self._update_randomization()
         else:
             done = False
 
         points = self._points_from_action(action)
-
-        if self.planning_flag: 
-            if self.curr_iter == 1: 
-                energy_consumptions = self._simulate_humans(points)
-
-
-            else: 
-                if self.curr_iter >= self.planning_steps:
-                   done = True
-                   self.curr_iter = 0 # resetting curr_iter 
-
-                loaded_model = None
-
-                if self.planning_model_type == "LSTM":
-                    loaded_model = self.load_model_from_disk("GPyOpt_planning_model")
-
-                energy_consumptions = self._planning_prediction(
-                                action = points, 
-                                day_of_week = self.day_of_week, 
-                                planning_model_type = self.planning_model_type, 
-                                loaded_model = loaded_model,
-                                )
+        
+        if self.curr_iter > 0:
+            done = True
         else:
-            energy_consumptions = self._simulate_humans(points)
+            done = False
+
+        loaded_model = None
+
+        if self.planning_model_type == "LSTM":
+            loaded_model = self.load_model_from_disk("GPyOpt_planning_model")
+
+        energy_consumptions = self._planning_prediction(
+                        action = points, 
+                        day_of_week = self.day_of_week, 
+                        planning_model_type = self.planning_model_type, 
+                        loaded_model = loaded_model,
+                        )
 
         # HACK ALERT. USING AVG ENERGY CONSUMPTION FOR STATE SPACE. this will not work if people are not all the same
         
