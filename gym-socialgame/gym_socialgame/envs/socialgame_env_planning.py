@@ -8,6 +8,8 @@ from gym_socialgame.envs.utils import price_signal
 from gym_socialgame.envs.agents import *
 from gym_socialgame.envs.reward import Reward
 
+
+
 import pickle
 
 class SocialGamePlanningEnv(SocialGameEnv):
@@ -19,32 +21,27 @@ class SocialGamePlanningEnv(SocialGameEnv):
         energy_in_state = False, 
         yesterday_in_state = False,
         day_of_week = False,
-        random = False,
-        low = 0, 
-        high = 50, 
-        distr = "U",
+        pricing_type= "TOU",
         planning_flag = False,
         planning_steps = 0,
-        planning_model_type = "Oracle",):
+        planning_model_type = "Oracle",
+        own_tb_log = None):
 
-        super().__init__(self, 
-        action_space_string = "continuous", 
-        response_type_string = "l", 
-        number_of_participants = 10,
-        one_day = 0, 
-        energy_in_state = False, 
-        yesterday_in_state = False,
-        day_of_week = False,
-        random = False,
-        low = 0, 
-        high = 50, 
-        distr = "U",)
+        super().__init__(action_space_string, 
+        response_type_string, 
+        number_of_participants,
+        one_day, 
+        energy_in_state, 
+        yesterday_in_state,
+        day_of_week,
+        pricing_type,
+        )
 
         self.planning_flag = planning_flag
         self.planning_steps = planning_steps
         self.planning_model_type = planning_model_type
 
-
+        print("Correction, Social Game Planning environment initialized. Rock that reward!")
 
     def _planning_prediction(
         self,
@@ -171,7 +168,7 @@ class SocialGamePlanningEnv(SocialGameEnv):
         return loaded_model
 
 
-    def step(self, action):
+    def step(self, action, step_num=0):
         """
         Purpose: Takes a step in the environment 
 
@@ -200,44 +197,37 @@ class SocialGamePlanningEnv(SocialGameEnv):
         prev_price = self.prices[(self.day)]
         self.day = (self.day + 1) % 365
         self.curr_iter += 1
-        if self.curr_iter > 0:
-            done = True
-            self._update_randomization()
-        else:
-            done = False
+        # if self.curr_iter > 0:
+        #     done = True
+        # else:
+        #     done = False
 
         points = self._points_from_action(action)
 
-        if self.planning_flag: 
-            if self.curr_iter == 1: 
-                energy_consumptions = self._simulate_humans(points)
-
-
-            else: 
-                if self.curr_iter >= self.planning_steps:
-                   done = True
-                   self.curr_iter = 0 # resetting curr_iter 
-
-                loaded_model = None
-
-                if self.planning_model_type == "LSTM":
-                    loaded_model = self.load_model_from_disk("GPyOpt_planning_model")
-
-                energy_consumptions = self._planning_prediction(
-                                action = points, 
-                                day_of_week = self.day_of_week, 
-                                planning_model_type = self.planning_model_type, 
-                                loaded_model = loaded_model,
-                                )
-        else:
+        if self.curr_iter >= self.planning_steps:
             energy_consumptions = self._simulate_humans(points)
+            done = True
+        else:
+            done = False
+            loaded_model = None
+
+            if self.planning_model_type == "LSTM":
+                loaded_model = self.load_model_from_disk("GPyOpt_planning_model")
+
+            energy_consumptions = self._planning_prediction(
+                            action = points, 
+                            day_of_week = self.day_of_week, 
+                            planning_model_type = self.planning_model_type, 
+                            loaded_model = loaded_model,
+                            )
 
         # HACK ALERT. USING AVG ENERGY CONSUMPTION FOR STATE SPACE. this will not work if people are not all the same
-        
         self.prev_energy = energy_consumptions["avg"]
 
         observation = self._get_observation()
         reward = self._get_reward(prev_price, energy_consumptions)
+
+
         info = {}
         return observation, reward, done, info
 

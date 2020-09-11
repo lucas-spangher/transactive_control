@@ -23,10 +23,7 @@ class SocialGameEnv(gym.Env):
         energy_in_state = False, 
         yesterday_in_state = False,
         day_of_week = False,
-        random = False,
-        low = 0, 
-        high = 50, 
-        distr = "U"
+        pricing_type="TOU"
         ):
         """
         SocialGameEnv for an agent determining incentives in a social game. 
@@ -68,6 +65,15 @@ class SocialGameEnv(gym.Env):
 
         #Create Observation Space (aka State Space)
         self.observation_space = self._create_observation_space()
+
+        if pricing_type=="TOU":
+            self.pricing_type = "time_of_use"
+        elif pricing_type == "RTP":
+            self.pricing_type = "real_time_pricing"
+        else:
+            print("Wrong pricing type")
+            raise ValueError
+        
         self.prices = self._get_prices()
         #Day corresponds to day # of the yr
 
@@ -79,15 +85,13 @@ class SocialGameEnv(gym.Env):
         self.action_length = 10
         self.action_subspace = 3
         self.action_space = self._create_action_space()
-        self.random = random
 
         #Create Players
         self.player_dict = self._create_agents()
         #Create Players
 
-        self.low = low
-        self.high = high
-        self.distr = distr.upper()
+
+
 
         #TODO: Check initialization of prev_energy
         self.prev_energy = np.zeros(10)
@@ -192,11 +196,7 @@ class SocialGameEnv(gym.Env):
         my_baseline_energy = pd.DataFrame(data = {"net_energy_use" : working_hour_energy})
 
         for i in range(self.number_of_participants):
-            if(self.random):
-                player = RandomizedFunctionPerson(my_baseline_energy, points_multiplier=10, response = self.response_type_string, 
-                                                low = self.low, high = self.high, distr = self.distr)
-            else:
-                player = DeterministicFunctionPerson(my_baseline_energy, points_multiplier = 10, response= self.response_type_string)
+            player = DeterministicFunctionPerson(my_baseline_energy, points_multiplier = 10, response= self.response_type_string)
             
             player_dict['player_{}'.format(i)] = player
 
@@ -218,11 +218,15 @@ class SocialGameEnv(gym.Env):
         print(self.one_day)
         print("--" * 10)
         
+        type_of_DR = self.pricing_type
+
         if self.one_day != -1:
             # If one_day we repeat the price signals from a fixed day
             # Tweak One_Day Price Signal HERE
-            price = price_signal(self.one_day, type_of_DR="time_of_use")
+            price = price_signal(self.one_day, type_of_DR=type_of_DR)
             price = np.array(price[8:18])
+            if np.mean(price)==price[2]:
+                price[3:6]+=.3
             price = np.maximum(0.01 * np.ones_like(price), price)
 
             print("price at get_price function")
@@ -233,7 +237,7 @@ class SocialGameEnv(gym.Env):
         else:
             day = 0
             for i in range(365):  
-                price = price_signal(day + 1, type_of_DR="time_of_use")
+                price = price_signal(day + 1, type_of_DR=type_of_DR)
                 print("price at get_price function")
                 print(price)
                 price = np.array(price[8:18])
@@ -328,12 +332,6 @@ class SocialGameEnv(gym.Env):
 
         return total_reward
 
-    def _update_randomization(self):
-        if self.random:
-            for i in range(self.number_of_participants):
-                self.player_dict['player_{}'.format(i)].update_noise()
-
-
     def step(self, action):
         """
         Purpose: Takes a step in the environment 
@@ -364,9 +362,11 @@ class SocialGameEnv(gym.Env):
         self.day = (self.day + 1) % 365
         self.curr_iter += 1
 
+        self.curr_iter += 1
+        
         if self.curr_iter > 0:
             done = True
-            self._update_randomization()
+            self.curr_iter = 0
         else:
             done = False
 
@@ -377,6 +377,7 @@ class SocialGameEnv(gym.Env):
         # HACK ALERT. USING AVG ENERGY CONSUMPTION FOR STATE SPACE. this will not work if people are not all the same
         
         self.prev_energy = energy_consumptions["avg"]
+
 
         observation = self._get_observation()
         reward = self._get_reward(prev_price, energy_consumptions)
