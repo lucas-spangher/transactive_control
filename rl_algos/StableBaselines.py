@@ -13,19 +13,16 @@ import utils
 
 import os
 
-def train(agent, num_steps, tb_log_name = None, write_to_tb = True):
+def train(agent, num_steps, log_dir):
     """
     Purpose: Train agent in env, and then call eval function to evaluate policy
     """
     #Train agent
-    _, reward = agent.learn(
+
+    agent.learn(
         total_timesteps = num_steps, 
         log_interval = 10, 
-        tb_log_name = tb_log_name,
-        write_to_tb = write_to_tb,
-        )
-
-    return reward
+        own_log_dir=log_dir)
 
 def eval_policy(model, env, num_eval_episodes: int, list_reward_per_episode = False):
     """
@@ -54,7 +51,7 @@ def get_agent(env, args):
     """
     if args.algo == 'sac':
         from stableBaselines.stable_baselines.sac.sac import SAC as mySAC
-        from stableBaselines.stable_baselines.sac.policies import MlpPolicy as policy
+        from stable_baselines.sac.policies import MlpPolicy as policy
         return mySAC(policy, env, batch_size = args.batch_size, learning_starts = 30, verbose = 0, tensorboard_log = './rl_tensorboard_logs/')    
     
      # I (Akash) still need to study PPO to understand it, I implemented b/c I know Joe's work used PPO
@@ -81,8 +78,10 @@ def args_convert_bool(args):
         args.yesterday = utils.string2bool(args.yesterday)
     if not isinstance(args.energy, (bool)):
         args.energy = utils.string2bool(args.energy)
+    if not isinstance(args.test_planning_env, (bool)):
+        args.test_planning_env = utils.string2bool(args.test_planning_env)
 
-def get_environment(args, eval=False):
+def get_environment(args, planning=False, own_tb_log = None):
     """
     Purpose: Create environment for algorithm given by args. algo
 
@@ -113,7 +112,7 @@ def get_environment(args, eval=False):
     else:
         env_id = '-v0'
 
-    if eval:
+    if not planning:
         socialgame_env = gym.make(
             'gym_socialgame:socialgame{}'.format(env_id), 
             action_space_string = action_space_string, 
@@ -122,6 +121,7 @@ def get_environment(args, eval=False):
             number_of_participants = args.num_players, 
             yesterday_in_state = args.yesterday, 
             energy_in_state = args.energy,
+            pricing_type=args.pricing_type,
             )
     else:
         # go into the planning mode
@@ -133,18 +133,25 @@ def get_environment(args, eval=False):
             number_of_participants = args.num_players, 
             yesterday_in_state = args.yesterday, 
             energy_in_state = args.energy,
+            pricing_type=args.pricing_type,
             planning_flag = planning_flag,
             planning_steps = args.planning_steps,
-            planning_model_type = args.planning_model
+            planning_model_type = args.planning_model,
+            own_tb_log = own_tb_log,
             )
                     
     #Check to make sure any new changes to environment follow OpenAI Gym API
-    check_env(socialgame_env)
+    check_env(socialgame_env)    
 
-    #Using env_fn so we can create vectorized environment.
+    # temp_step_fnc = socialgame_env.step
+
+    # Using env_fn so we can create vectorized environment.
     env_fn = lambda: socialgame_env
     venv = DummyVecEnv([env_fn])
     env = VecNormalize(venv)
+
+    # env.step = temp_step_fnc
+
     return env
 
 def parse_args():
@@ -171,6 +178,8 @@ def parse_args():
     parser.add_argument("--planning_steps", help = "How many planning iterations to partake in", type = int, default = 0, choices = [i for i in range(0,100)])
     parser.add_argument("--planning_model", help = "Which planning model to use", type = str, default = "Oracle", choices = ["Oracle", "Baseline", "LSTM", "OLS"])
     parser.add_argument("--own_tb_log", help = "log directory to store your own tb logs", type = str)
+    parser.add_argument("--pricing_type", help = "time of use or real time pricing", type=str, choices=["TOU", "RTP"], default="TOU")
+    parser.add_argument("--test_planning_env", help="flag if you want to test vanilla planning", type=str, default="F", choices = ["T", "F"])
 
     args = parser.parse_args()
 
@@ -182,49 +191,35 @@ def main():
 
     #Print args for reference
     print(args)
-    
+        
+    #Create environments
+
     log_dir = "own_tb_logs/" + args.own_tb_log
 
     if os.path.exists(log_dir):
         print("Choose a new name for the training dir!")
         raise ValueError
 
-    tb_configure(log_dir)
+    planning = (args.planning_steps > 0) or args.test_planning_env
 
-    #Create environments
-    print("Make 'real' environment")
-    env = get_environment(args, eval = True)
+    env = get_environment(args, 
+        planning = planning, 
+        own_tb_log = log_dir)
 
-    if args.planning_steps > 1:
-        print("Making planning environment")
-        env_planning = get_environment(args, eval = False)
 
     #Create Agent
     model = get_agent(env, args)
     
     #Train algo, (logging through Tensorboard)
-    print("Beginning Training!")
-    
-    if args.planning_steps > 1: 
-        for step in range(args.num_steps):
-            r_real = train(model, 1, write_to_tb = True)
-            tb_log_value("reward_in_environment", r_real, step = step)
-
-            model.set_env(env_planning)
-            train(model, args.planning_steps, write_to_tb = False)
-            # set environment back
-            model.set_env(env)
-
-    else:
-        _ = train(model, args.num_steps)
-
+    print("Beginning Testing!")
+    r_real = train(model, args.num_steps, log_dir)
     print("Training Completed! View TensorBoard logs at rl_tensorboard_logs/")
 
     #Print evaluation of policy
     print("Beginning Evaluation")
 
-    eval_env = get_environment(args, eval=True)
-    eval_policy(model, eval_env, num_eval_episodes=10)
+    eval_env = get_environment(args, planning = False)
+    eval_policy(model, eval_env, num_eval_episodes = 10)
 
     print("If there was no planning model involved, remember that the output will be in the rl_tensorboard_logs dir")
 

@@ -12,6 +12,8 @@ from stable_baselines.common.buffers import ReplayBuffer
 from stable_baselines.sac.policies import SACPolicy
 from stable_baselines import logger
 
+from tensorboard_logger import configure as tb_configure
+from tensorboard_logger import log_value as tb_log_value
 
 class SAC(OffPolicyRLModel):
     """
@@ -352,11 +354,16 @@ class SAC(OffPolicyRLModel):
         return policy_loss, qf1_loss, qf2_loss, value_loss, entropy
 
     def learn(self, total_timesteps, callback=None,
-              log_interval=4, tb_log_name="SAC", reset_num_timesteps=True, replay_wrapper=None, 
-              write_to_tb = False):
+              log_interval=4, tb_log_name="SAC", 
+              reset_num_timesteps=True, replay_wrapper=None,
+              own_log_dir = None):
 
         new_tb_log = self._init_num_timesteps(reset_num_timesteps)
         callback = self._init_callback(callback)
+
+        tb_configure(own_log_dir)
+
+        steps_in_real_env = 0
 
         if replay_wrapper is not None:
             self.replay_buffer = replay_wrapper(self.replay_buffer)
@@ -408,9 +415,17 @@ class SAC(OffPolicyRLModel):
 
                 assert action.shape == self.env.action_space.shape
 
-                new_obs, reward, done, info = self.env.step(unscaled_action)
+                # if not planning: 
+                #     new_obs, reward, done, info = self.env.step(unscaled_action)
+                # else: 
+                new_obs, reward, done, info = self.env.step(unscaled_action) #, step_num = self.num_timesteps)
 
                 self.num_timesteps += 1
+
+                if done:
+                    steps_in_real_env +=1
+                    tb_log_value("reward_in_environment", reward, steps_in_real_env)
+                # resetting curr_iter  
 
                 # Only stop training if return value is False, not when it is None. This is for backwards
                 # compatibility with callbacks that have no return statement.
@@ -438,9 +453,8 @@ class SAC(OffPolicyRLModel):
                 if maybe_ep_info is not None:
                     self.ep_info_buf.extend([maybe_ep_info])
 
-                if writer is not None and write_to_tb:
+                if writer is not None:
                     # Write reward per episode to tensorboard
-                    print("writing to TB")
                     ep_reward = np.array([reward_]).reshape((1, -1))
                     ep_done = np.array([done]).reshape((1, -1))
                     tf_util.total_episode_reward_logger(self.episode_reward, ep_reward,
@@ -514,7 +528,7 @@ class SAC(OffPolicyRLModel):
                     # Reset infos:
                     infos_values = []
             callback.on_training_end()
-            return self
+            return self #, ep_reward #, reward_
 
     def action_probability(self, observation, state=None, mask=None, actions=None, logp=False):
         if actions is not None:

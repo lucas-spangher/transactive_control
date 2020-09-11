@@ -3,7 +3,6 @@ import numpy as np
 import pandas as pd
 from scipy.optimize import minimize
 import os
-import IPython
 
 #data_path = os.path.join(os.getcwd(), "baselines", "behavioral_sim", "building_data.csv")
 # csv_path = os.path.dirname(os.path.realpath(__file__)) + "/building_data.csv"
@@ -13,7 +12,6 @@ def price_signal(day = 45, type_of_DR = "real_time_pricing"):
 
     """
     Utkarsha's work on price signal from a building with demand and solar
-
     Input: Day = an int signifying a 24 hour period. 365 total, all of 2012, start at 1.
     Output: netdemand_price, a measure of how expensive energy is at each time in the day
         optionally, we can return the optimized demand, which is the building
@@ -42,7 +40,7 @@ def price_signal(day = 45, type_of_DR = "real_time_pricing"):
 
     # Calculate optimal load scheduling. 90% of load is fixed, 10% is controllable.
     def optimise_24h(netdemand_24, price_24):
-        currentcost = netdemand_24*price_24
+        currentcost = netdemand_24@price_24
 
         fixed_load = 0.9*netdemand_24
         controllable_load = sum(0.1*netdemand_24)
@@ -75,7 +73,10 @@ def price_signal(day = 45, type_of_DR = "real_time_pricing"):
         x = sol['x']
         diff = x - 0.1*netdemand_24
         return -diff - min(-diff)
+
     elif type_of_DR == "time_of_use":
+        if (np.mean(price_24[8:18]) == price_24[9]):
+            price_24[13:16]+=3
         return price_24
     else:
         return "error!!!"
