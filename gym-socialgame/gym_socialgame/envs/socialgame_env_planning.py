@@ -8,7 +8,7 @@ from gym_socialgame.envs.utils import price_signal
 from gym_socialgame.envs.agents import *
 from gym_socialgame.envs.reward import Reward
 
-
+import tensorflow as tf
 
 import pickle
 
@@ -111,7 +111,7 @@ class SocialGamePlanningEnv(SocialGameEnv):
                 total_consumption += np.squeeze(inv_preds)
 
             energy_consumptions["avg"] = total_consumption / self.number_of_participants
-            print(energy_consumptions["avg"])
+            # print(energy_consumptions["avg"])
             return energy_consumptions
         
         
@@ -220,7 +220,7 @@ class SocialGamePlanningEnv(SocialGameEnv):
         return observation, reward, done, info
 
 
-    def planning_step(self, action, step_num=0):
+    def planning_step(self, action, step_num=0): ## TODO: replace load model in SAC 
         """
         Purpose: Takes a step in the environment 
 

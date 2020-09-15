@@ -1,6 +1,6 @@
 #!/bin/bash
 # Job name:
-#SBATCH --job-name=benchmark_sac_env
+#SBATCH --job-name=benchmark_sac_planning
 #
 # Account:
 #SBATCH --account=fc_ntugame
@@ -24,9 +24,53 @@
 #SBATCH --time=48:00:00
 #
 #SBATCH --mail-type=END,FAIL
-#SBATCH --mail-user=akashgokul@berkeley.edu
+#SBATCH --mail-user=lucas_spangher@berkeley.edu
 ## Command(s) to run (example):
 module load python/3.6
-module load tensorflow/1.12.0-py36-pip-gpu
-source activate /global/scratch/akashgokul/conda/test
-python3 StableBaselines.py ppo --policy_type lstm
+module load tensorflow/1.14.0-py36-pip-gpu
+source 
+## vanilla
+python StableBaselines.py sac --own_tb_log=20200914_SAC_vanilla_RTP_one_day --planning_steps=0 --planning_model=Oracle --one_day=15 --num_players=10 --pricing_type=RTP --num_steps=10000 --test_planning_env=T
+python StableBaselines.py sac --own_tb_log=20200914_SAC_vanilla_RTP_one_day_2 --planning_steps=0 --planning_model=Oracle --one_day=15 --num_players=10 --pricing_type=RTP --num_steps=10000 --test_planning_env=T
+python StableBaselines.py sac --own_tb_log=20200914_SAC_vanilla_RTP_multi_day --planning_steps=0 --planning_model=Oracle --one_day=-1 --num_players=10 --pricing_type=RTP --num_steps=10000 --test_planning_env=T
+python StableBaselines.py sac --own_tb_log=20200914_SAC_vanilla_RTP_multi_day_2 --planning_steps=0 --planning_model=Oracle --one_day=-1 --num_players=10 --pricing_type=RTP --num_steps=10000 --test_planning_env=T
+python StableBaselines.py sac --own_tb_log=20200914_SAC_vanilla_TOU_one_day --planning_steps=0 --planning_model=Oracle --one_day=15 --num_players=10 --pricing_type=TOU --num_steps=10000 --test_planning_env=T
+python StableBaselines.py sac --own_tb_log=20200914_SAC_vanilla_TOU_one_day_2 --planning_steps=0 --planning_model=Oracle --one_day=15 --num_players=10 --pricing_type=TOU --num_steps=10000 --test_planning_env=T
+python StableBaselines.py sac --own_tb_log=20200914_SAC_vanilla_TOU_multi_day --planning_steps=0 --planning_model=Oracle --one_day=-1 --num_players=10 --pricing_type=TOU --num_steps=10000 --test_planning_env=T
+python StableBaselines.py sac --own_tb_log=20200914_SAC_vanilla_TOU_multi_day_2 --planning_steps=0 --planning_model=Oracle --one_day=-1 --num_players=10 --pricing_type=TOU --num_steps=10000 --test_planning_env=T
+## Oracle
+python StableBaselines.py sac --own_tb_log=20200914_SAC_Oracle_RTP_one_day --planning_steps=10 --planning_model=Oracle --one_day=15 --num_players=10 --pricing_type=RTP --num_steps=10000 --test_planning_env=T
+python StableBaselines.py sac --own_tb_log=20200914_SAC_Oracle_RTP_one_day_2 --planning_steps=10 --planning_model=Oracle --one_day=15 --num_players=10 --pricing_type=RTP --num_steps=10000 --test_planning_env=T
+python StableBaselines.py sac --own_tb_log=20200914_SAC_Oracle_RTP_multi_day --planning_steps=10 --planning_model=Oracle --one_day=-1 --num_players=10 --pricing_type=RTP --num_steps=10000 --test_planning_env=T
+python StableBaselines.py sac --own_tb_log=20200914_SAC_Oracle_RTP_multi_day_2 --planning_steps=10 --planning_model=Oracle --one_day=-1 --num_players=10 --pricing_type=RTP --num_steps=10000 --test_planning_env=T
+python StableBaselines.py sac --own_tb_log=20200914_SAC_Oracle_TOU_one_day --planning_steps=10 --planning_model=Oracle --one_day=15 --num_players=10 --pricing_type=TOU --num_steps=10000 --test_planning_env=T
+python StableBaselines.py sac --own_tb_log=20200914_SAC_Oracle_TOU_one_day_2 --planning_steps=10 --planning_model=Oracle --one_day=15 --num_players=10 --pricing_type=TOU --num_steps=10000 --test_planning_env=T
+python StableBaselines.py sac --own_tb_log=20200914_SAC_Oracle_TOU_multi_day --planning_steps=10 --planning_model=Oracle --one_day=-1 --num_players=10 --pricing_type=TOU --num_steps=10000 --test_planning_env=T
+python StableBaselines.py sac --own_tb_log=20200914_SAC_Oracle_TOU_multi_day_2 --planning_steps=10 --planning_model=Oracle --one_day=-1 --num_players=10 --pricing_type=TOU --num_steps=10000 --test_planning_env=T
+## OLS
+python StableBaselines.py sac --own_tb_log=20200914_SAC_OLS_RTP_one_day --planning_steps=10 --planning_model=OLS --one_day=15 --num_players=10 --pricing_type=RTP --num_steps=10000 --test_planning_env=T
+python StableBaselines.py sac --own_tb_log=20200914_SAC_OLS_RTP_one_day_2 --planning_steps=10 --planning_model=OLS --one_day=15 --num_players=10 --pricing_type=RTP --num_steps=10000 --test_planning_env=T
+python StableBaselines.py sac --own_tb_log=20200914_SAC_OLS_RTP_multi_day --planning_steps=10 --planning_model=OLS --one_day=-1 --num_players=10 --pricing_type=RTP --num_steps=10000 --test_planning_env=T
+python StableBaselines.py sac --own_tb_log=20200914_SAC_OLS_RTP_multi_day_2 --planning_steps=10 --planning_model=OLS --one_day=-1 --num_players=10 --pricing_type=RTP --num_steps=10000 --test_planning_env=T
+python StableBaselines.py sac --own_tb_log=20200914_SAC_OLS_TOU_one_day --planning_steps=10 --planning_model=OLS --one_day=15 --num_players=10 --pricing_type=TOU --num_steps=10000 --test_planning_env=T
+python StableBaselines.py sac --own_tb_log=20200914_SAC_OLS_TOU_one_day_2 --planning_steps=10 --planning_model=OLS --one_day=15 --num_players=10 --pricing_type=TOU --num_steps=10000 --test_planning_env=T
+python StableBaselines.py sac --own_tb_log=20200914_SAC_OLS_TOU_multi_day --planning_steps=10 --planning_model=OLS --one_day=-1 --num_players=10 --pricing_type=TOU --num_steps=10000 --test_planning_env=T
+python StableBaselines.py sac --own_tb_log=20200914_SAC_OLS_TOU_multi_day_2 --planning_steps=10 --planning_model=OLS --one_day=-1 --num_players=10 --pricing_type=TOU --num_steps=10000 --test_planning_env=T
+## Baseline
+python StableBaselines.py sac --own_tb_log=20200914_SAC_Baseline_RTP_one_day --planning_steps=0 --planning_model=Baseline --one_day=15 --num_players=10 --pricing_type=RTP --num_steps=10000 --test_planning_env=T
+python StableBaselines.py sac --own_tb_log=20200914_SAC_Baseline_RTP_one_day_2 --planning_steps=0 --planning_model=Baseline --one_day=15 --num_players=10 --pricing_type=RTP --num_steps=10000 --test_planning_env=T
+python StableBaselines.py sac --own_tb_log=20200914_SAC_Baseline_RTP_multi_day --planning_steps=0 --planning_model=Baseline --one_day=-1 --num_players=10 --pricing_type=RTP --num_steps=10000 --test_planning_env=T
+python StableBaselines.py sac --own_tb_log=20200914_SAC_Baseline_RTP_multi_day_2 --planning_steps=0 --planning_model=Baseline --one_day=-1 --num_players=10 --pricing_type=RTP --num_steps=10000 --test_planning_env=T
+python StableBaselines.py sac --own_tb_log=20200914_SAC_Baseline_TOU_one_day --planning_steps=0 --planning_model=Baseline --one_day=15 --num_players=10 --pricing_type=TOU --num_steps=10000 --test_planning_env=T
+python StableBaselines.py sac --own_tb_log=20200914_SAC_Baseline_TOU_one_day_2 --planning_steps=0 --planning_model=Baseline --one_day=15 --num_players=10 --pricing_type=TOU --num_steps=10000 --test_planning_env=T
+python StableBaselines.py sac --own_tb_log=20200914_SAC_Baseline_TOU_multi_day --planning_steps=0 --planning_model=Baseline --one_day=-1 --num_players=10 --pricing_type=TOU --num_steps=10000 --test_planning_env=T
+python StableBaselines.py sac --own_tb_log=20200914_SAC_Baseline_TOU_multi_day_2 --planning_steps=0 --planning_model=Baseline --one_day=-1 --num_players=10 --pricing_type=TOU --num_steps=10000 --test_planning_env=T
+## LSTM
+python StableBaselines.py sac --own_tb_log=20200914_SAC_LSTM_RTP_one_day --planning_steps=0 --planning_model=LSTM --one_day=15 --num_players=10 --pricing_type=RTP --num_steps=10000 --test_planning_env=T
+python StableBaselines.py sac --own_tb_log=20200914_SAC_LSTM_RTP_one_day_2 --planning_steps=0 --planning_model=LSTM --one_day=15 --num_players=10 --pricing_type=RTP --num_steps=10000 --test_planning_env=T
+python StableBaselines.py sac --own_tb_log=20200914_SAC_LSTM_RTP_multi_day --planning_steps=0 --planning_model=LSTM --one_day=-1 --num_players=10 --pricing_type=RTP --num_steps=10000 --test_planning_env=T
+python StableBaselines.py sac --own_tb_log=20200914_SAC_LSTM_RTP_multi_day_2 --planning_steps=0 --planning_model=LSTM --one_day=-1 --num_players=10 --pricing_type=RTP --num_steps=10000 --test_planning_env=T
+python StableBaselines.py sac --own_tb_log=20200914_SAC_LSTM_TOU_one_day --planning_steps=0 --planning_model=LSTM --one_day=15 --num_players=10 --pricing_type=TOU --num_steps=10000 --test_planning_env=T
+python StableBaselines.py sac --own_tb_log=20200914_SAC_LSTM_TOU_one_day_2 --planning_steps=0 --planning_model=LSTM --one_day=15 --num_players=10 --pricing_type=TOU --num_steps=10000 --test_planning_env=T
+python StableBaselines.py sac --own_tb_log=20200914_SAC_LSTM_TOU_multi_day --planning_steps=0 --planning_model=LSTM --one_day=-1 --num_players=10 --pricing_type=TOU --num_steps=10000 --test_planning_env=T
+python StableBaselines.py sac --own_tb_log=20200914_SAC_LSTM_TOU_multi_day_2 --planning_steps=0 --planning_model=LSTM --one_day=-1 --num_players=10 --pricing_type=TOU --num_steps=10000 --test_planning_env=T

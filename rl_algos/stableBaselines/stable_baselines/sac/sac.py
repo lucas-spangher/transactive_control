@@ -424,7 +424,6 @@ class SAC(OffPolicyRLModel):
                 # else: 
 
                 if not self.num_timesteps % (planning_steps + 1):
-                    print("real world step")
                     new_obs, reward, done, info = self.env.step(unscaled_action) #, step_num = self.num_timesteps)
                     steps_in_real_env +=1
 
@@ -447,8 +446,10 @@ class SAC(OffPolicyRLModel):
                     obs_, new_obs_, reward_ = obs, new_obs, reward
 
                 if not self.num_timesteps % (planning_steps + 1):
+                    print("writing real world step to TB")
                     tb_log_value("reward_in_environment", reward_, steps_in_real_env)
 
+                tb_log_value("reward_planning", reward_, self.num_timesteps)
                 self.num_timesteps += 1
 
                 # Store transition in the replay buffer.

@@ -1,5 +1,5 @@
 import cvxpy as cvx
-import osqp
+# import osqp
 import numpy as np
 from sklearn.preprocessing import MinMaxScaler
 
@@ -66,7 +66,7 @@ class Reward():
 		objective = cvx.Minimize(demands.T * prices)
 		problem = cvx.Problem(objective, constraints)
 
-		problem.solve(solver = cvx.OSQP, verbose=False)
+		problem.solve(solver = cvx.ECOS, verbose=False)
 		return np.array(demands.value)
 
 
