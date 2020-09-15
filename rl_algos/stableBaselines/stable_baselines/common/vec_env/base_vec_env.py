@@ -139,25 +139,16 @@ class VecEnv(ABC):
         """
         pass
 
-<<<<<<< HEAD
     def step(self, actions):
-=======
-    def step(self, actions, step_num = 0):
->>>>>>> temp_branch
+
         """
         Step the environments with the given action
 
         :param actions: ([int] or [float]) the action
-<<<<<<< HEAD
+
         :return: ([int] or [float], [float], [bool], dict) observation, reward, done, information
         """
         self.step_async(actions)
-=======
-        :param step_num: Lucas added this. Fingers crossed. 
-        :return: ([int] or [float], [float], [bool], dict) observation, reward, done, information
-        """
-        self.step_async(actions, step_num = 0)
->>>>>>> temp_branch
         return self.step_wait()
 
     def get_images(self) -> Sequence[np.ndarray]:

@@ -13,7 +13,7 @@ import utils
 
 import os
 
-def train(agent, num_steps, log_dir):
+def train(agent, num_steps, log_dir, planning_steps):
     """
     Purpose: Train agent in env, and then call eval function to evaluate policy
     """
@@ -22,7 +22,8 @@ def train(agent, num_steps, log_dir):
     agent.learn(
         total_timesteps = num_steps, 
         log_interval = 10, 
-        own_log_dir=log_dir)
+        own_log_dir=log_dir, 
+        planning_steps = planning_steps)
 
 def eval_policy(model, env, num_eval_episodes: int, list_reward_per_episode = False):
     """
@@ -41,7 +42,7 @@ def eval_policy(model, env, num_eval_episodes: int, list_reward_per_episode = Fa
     print("Mean Reward: {:.3f}".format(mean_reward))
     print("Std Reward: {:.3f}".format(std_reward))
 
-def get_agent(env, args):
+def get_agent(env, args, non_vec_env = None):
     """
     Purpose: Import algo, policy and create agent
 
@@ -52,8 +53,8 @@ def get_agent(env, args):
     if args.algo == 'sac':
         from stableBaselines.stable_baselines.sac.sac import SAC as mySAC
         from stable_baselines.sac.policies import MlpPolicy as policy
-        return mySAC(policy, env, batch_size = args.batch_size, learning_starts = 30, verbose = 0, tensorboard_log = './rl_tensorboard_logs/')    
-    
+        return mySAC(policy, env, non_vec_env = non_vec_env, batch_size = args.batch_size, learning_starts = 30, verbose = 0, tensorboard_log = './rl_tensorboard_logs/')    
+        
      # I (Akash) still need to study PPO to understand it, I implemented b/c I know Joe's work used PPO
     elif args.algo == 'ppo':
         from stable_baselines import PPO2
@@ -81,7 +82,7 @@ def args_convert_bool(args):
     if not isinstance(args.test_planning_env, (bool)):
         args.test_planning_env = utils.string2bool(args.test_planning_env)
 
-def get_environment(args, planning=False, own_tb_log = None):
+def get_environment(args, planning=False, include_non_vec_env = False):
     """
     Purpose: Create environment for algorithm given by args. algo
 
@@ -92,6 +93,8 @@ def get_environment(args, planning=False, own_tb_log = None):
     """
     #Convert string args (which are supposed to be bool) into actual boolean values
     args_convert_bool(args)
+
+    log_dir = "own_tb_logs/" + args.own_tb_log
 
     #SAC only works in continuous environment
     if(args.algo == 'sac'):
@@ -137,7 +140,7 @@ def get_environment(args, planning=False, own_tb_log = None):
             planning_flag = planning_flag,
             planning_steps = args.planning_steps,
             planning_model_type = args.planning_model,
-            own_tb_log = own_tb_log,
+            own_tb_log = log_dir,
             )
                     
     #Check to make sure any new changes to environment follow OpenAI Gym API
@@ -151,8 +154,10 @@ def get_environment(args, planning=False, own_tb_log = None):
     env = VecNormalize(venv)
 
     # env.step = temp_step_fnc
-
-    return env
+    if not include_non_vec_env:
+        return env
+    else:
+        return env, socialgame_env
 
 def parse_args():
     """
@@ -202,17 +207,23 @@ def main():
 
     planning = (args.planning_steps > 0) or args.test_planning_env
 
-    env = get_environment(args, 
+    env, socialgame_env = get_environment(args, 
         planning = planning, 
-        own_tb_log = log_dir)
+        include_non_vec_env = True)
 
 
     #Create Agent
-    model = get_agent(env, args)
+    model = get_agent(env, args, non_vec_env = socialgame_env)
     
     #Train algo, (logging through Tensorboard)
     print("Beginning Testing!")
-    r_real = train(model, args.num_steps, log_dir)
+    r_real = train(
+        model, 
+        args.num_steps * (1 + args.planning_steps), 
+        log_dir,
+        planning_steps = args.planning_steps
+        )
+    
     print("Training Completed! View TensorBoard logs at rl_tensorboard_logs/")
 
     #Print evaluation of policy

@@ -110,11 +110,11 @@ class SocialGameEnv(gym.Env):
         print("one_day")
         print(one_day)
 
-        if(one_day != -1):
-            return np.random.randint(0, high=365)
+        # if(one_day != -1):
+        #     return np.random.randint(0, high=365)
         
-        else:
-            return one_day
+        # else:
+        return one_day
 
     def _create_observation_space(self):
         """

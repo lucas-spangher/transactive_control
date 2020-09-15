@@ -142,15 +142,15 @@ class Reward():
 
 		cost_difference = ideal_cost - current_cost
 
-		print("--" * 10)
-		print("ideal cost")
-		print(ideal_cost)
-		print("--" * 10)
-		print("prices")
-		print(self.prices)
-		print("--" * 10)		
-		print("current_cost")
-		print(current_cost)
+		# print("--" * 10)
+		# print("ideal cost")
+		# print(ideal_cost)
+		# print("--" * 10)
+		# print("prices")
+		# print(self.prices)
+		# print("--" * 10)		
+		# print("current_cost")
+		# print(current_cost)
 
 		if cost_difference > 0 or ideal_cost < 0:
 			print("--" * 10)

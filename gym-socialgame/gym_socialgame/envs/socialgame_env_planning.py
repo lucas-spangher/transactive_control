@@ -41,8 +41,6 @@ class SocialGamePlanningEnv(SocialGameEnv):
         self.planning_steps = planning_steps
         self.planning_model_type = planning_model_type
 
-        print("Correction, Social Game Planning environment initialized. Rock that reward!")
-
     def _planning_prediction(
         self,
         action, 
@@ -206,25 +204,10 @@ class SocialGamePlanningEnv(SocialGameEnv):
         
         if self.curr_iter > 0:
             done = True
-        else:
+        else: 
             done = False
 
-        if self.curr_iter >= self.planning_steps:
-            energy_consumptions = self._simulate_humans(points)
-            done = True
-        else:
-            done = False
-            loaded_model = None
-
-            if self.planning_model_type == "LSTM":
-                loaded_model = self.load_model_from_disk("GPyOpt_planning_model")
-
-            energy_consumptions = self._planning_prediction(
-                            action = points, 
-                            day_of_week = self.day_of_week, 
-                            planning_model_type = self.planning_model_type, 
-                            loaded_model = loaded_model,
-                            )
+        energy_consumptions = self._simulate_humans(points)
 
         # HACK ALERT. USING AVG ENERGY CONSUMPTION FOR STATE SPACE. this will not work if people are not all the same
         self.prev_energy = energy_consumptions["avg"]
@@ -236,6 +219,69 @@ class SocialGamePlanningEnv(SocialGameEnv):
         info = {}
         return observation, reward, done, info
 
+
+    def planning_step(self, action, step_num=0):
+        """
+        Purpose: Takes a step in the environment 
+
+        Args:
+            Action: 10-dim vector detailing player incentive for each hour (8AM - 5PM)
+        
+        Returns: 
+            Observation: State for the next day
+            Reward: Reward for said action
+            Done: Whether or not the day is done (should always be True b/c of 1-step trajectory)
+            Info: Other info (primarily for gym env based library compatibility)
+        
+        Exceptions:
+            raises AssertionError if action is not in the action space
+        """
+        
+
+        if(not self.action_space.contains(action)):
+            action = np.asarray(action)
+            if(self.action_space_string == 'continuous'):
+                action = np.clip(action, 0, 10)
+
+            elif(self.action_space_string == 'multidiscrete'):
+                action = np.clip(action, 0, 2) 
+
+        prev_price = self.prices[(self.day)]
+        self.day = (self.day + 1) % 365
+        self.curr_iter += 1
+        # if self.curr_iter > 0:
+        #     done = True
+        # else:
+        #     done = False
+
+        points = self._points_from_action(action)
+        
+        if self.curr_iter > 0:
+            done = True
+        else: 
+            done = False
+
+        loaded_model = None
+
+        if self.planning_model_type == "LSTM":
+            loaded_model = self.load_model_from_disk("GPyOpt_planning_model")
+
+        energy_consumptions = self._planning_prediction(
+                        action = points, 
+                        day_of_week = self.day_of_week, 
+                        planning_model_type = self.planning_model_type, 
+                        loaded_model = loaded_model,
+                        )
+
+        # HACK ALERT. USING AVG ENERGY CONSUMPTION FOR STATE SPACE. this will not work if people are not all the same
+        self.prev_energy = energy_consumptions["avg"]
+
+        observation = self._get_observation()
+        reward = self._get_reward(prev_price, energy_consumptions)
+
+        info = {}
+
+        return observation, reward, done, info
 
 
 
