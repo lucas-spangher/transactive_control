@@ -29,14 +29,15 @@
 module load python/3.6
 source /global/home/users/lucas_spangher/transactive_control/auto_keras_env/bin/activate
 ## vanilla
-python StableBaselines.py sac --own_tb_log=20200915_SAC_vanilla_RTP_one_day --planning_steps=0 --planning_model=Oracle --one_day=15 --num_players=10 --pricing_type=RTP --num_steps=10000 --test_planning_env=T
-python StableBaselines.py sac --own_tb_log=20200915_SAC_vanilla_RTP_multi_day --planning_steps=0 --planning_model=Oracle --one_day=-1 --num_players=10 --pricing_type=RTP --num_steps=100000 --test_planning_env=T
-python StableBaselines.py sac --own_tb_log=20200915_SAC_vanilla_TOU_one_day --planning_steps=0 --planning_model=Oracle --one_day=15 --num_players=10 --pricing_type=TOU --num_steps=10000 --test_planning_env=T
-python StableBaselines.py sac --own_tb_log=20200915_SAC_vanilla_TOU_multi_day --planning_steps=0 --planning_model=Oracle --one_day=-1 --num_players=10 --pricing_type=TOU --num_steps=10000 --test_planning_env=T
-python StableBaselines.py sac --own_tb_log=20200915_SAC_vanilla_RTP_multi_day_2 --planning_steps=0 --planning_model=Oracle --one_day=-1 --num_players=10 --pricing_type=RTP --num_steps=100000 --test_planning_env=T
-python StableBaselines.py sac --own_tb_log=20200915_SAC_vanilla_TOU_one_day_2 --planning_steps=0 --planning_model=Oracle --one_day=15 --num_players=10 --pricing_type=TOU --num_steps=10000 --test_planning_env=T
-python StableBaselines.py sac --own_tb_log=20200915_SAC_vanilla_RTP_one_day_2 --planning_steps=0 --planning_model=Oracle --one_day=15 --num_players=10 --pricing_type=RTP --num_steps=10000 --test_planning_env=T
-python StableBaselines.py sac --own_tb_log=20200915_SAC_vanilla_TOU_multi_day_2 --planning_steps=0 --planning_model=Oracle --one_day=-1 --num_players=10 --pricing_type=TOU --num_steps=10000 --test_planning_env=T
+python /global/home/users/lucas_spangher/transactive_control/rl_algos/StableBaselines.py sac --own_tb_log=20200915_SAC_vanilla_RTP_one_day --planning_steps=0 --planning_model=Oracle --one_day=15 --num_players=10 --pricing_type=RTP --num_steps=10000 --test_planning_env=T &
+python /global/home/users/lucas_spangher/transactive_control/rl_algos/StableBaselines.py sac --own_tb_log=20200915_SAC_vanilla_RTP_multi_day --planning_steps=0 --planning_model=Oracle --one_day=-1 --num_players=10 --pricing_type=RTP --num_steps=100000 --test_planning_env=T &
+python /global/home/users/lucas_spangher/transactive_control/rl_algos/StableBaselines.py sac --own_tb_log=20200915_SAC_vanilla_TOU_one_day --planning_steps=0 --planning_model=Oracle --one_day=15 --num_players=10 --pricing_type=TOU --num_steps=10000 --test_planning_env=T & 
+python /global/home/users/lucas_spangher/transactive_control/rl_algos/StableBaselines.py sac --own_tb_log=20200915_SAC_vanilla_TOU_multi_day --planning_steps=0 --planning_model=Oracle --one_day=-1 --num_players=10 --pricing_type=TOU --num_steps=10000 --test_planning_env=T &
+python /global/home/users/lucas_spangher/transactive_control/rl_algos/StableBaselines.py sac --own_tb_log=20200915_SAC_vanilla_RTP_multi_day_2 --planning_steps=0 --planning_model=Oracle --one_day=-1 --num_players=10 --pricing_type=RTP --num_steps=100000 --test_planning_env=T &
+python /global/home/users/lucas_spangher/transactive_control/rl_algos/StableBaselines.py sac --own_tb_log=20200915_SAC_vanilla_TOU_one_day_2 --planning_steps=0 --planning_model=Oracle --one_day=15 --num_players=10 --pricing_type=TOU --num_steps=10000 --test_planning_env=T &
+python /global/home/users/lucas_spangher/transactive_control/rl_algos/StableBaselines.py sac --own_tb_log=20200915_SAC_vanilla_RTP_one_day_2 --planning_steps=0 --planning_model=Oracle --one_day=15 --num_players=10 --pricing_type=RTP --num_steps=10000 --test_planning_env=T &
+python /global/home/users/lucas_spangher/transactive_control/rl_algos/StableBaselines.py sac --own_tb_log=20200915_SAC_vanilla_TOU_multi_day_2 --planning_steps=0 --planning_model=Oracle --one_day=-1 --num_players=10 --pricing_type=TOU --num_steps=10000 --test_planning_env=T &
+wait
 ## Oracle
 # python StableBaselines.py sac --own_tb_log=20200915_SAC_Oracle_RTP_one_day --planning_steps=10 --planning_model=Oracle --one_day=15 --num_players=10 --pricing_type=RTP --num_steps=10000 --test_planning_env=T
 # python StableBaselines.py sac --own_tb_log=20200915_SAC_Oracle_RTP_one_day_2 --planning_steps=10 --planning_model=Oracle --one_day=15 --num_players=10 --pricing_type=RTP --num_steps=10000 --test_planning_env=T
