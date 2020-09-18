@@ -1,0 +1,4 @@
+srun --pty -A fc_ntugame -p savio2_gpu -t 08:00:00 --gres=gpu:1 --nodes=1 --ntasks=1 --cpus-per-task=2 --qos=savio_normal bash -i
+
+git token 
+05c9b9786874ce5e5dfc1015c4492f407fc62fb4
