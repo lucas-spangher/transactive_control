@@ -142,9 +142,22 @@ class SocialGamePlanningEnv(SocialGameEnv):
         # baseline model that just returns average of the sample energy day
         elif planning_model_type == "Baseline":
             for player_name in self.player_dict:
-                energy_consumptions[player_name] = np.repeat(70.7, len(action))
 
-            energy_consumptions["avg"] = np.repeat(70.7, len(action))
+                player = self.player_dict[player_name]
+
+                player_min_demand = player.get_min_demand()
+                player_max_demand = player.get_max_demand()
+
+                energy = np.repeat(70.7, len(action)) + \
+                    np.random.uniform(size = len(action))
+
+                scaler = MinMaxScaler((player_min_demand, player_max_demand))
+                energy = scaler.fit_transform(energy.reshape(-1, 1))
+                energy = np.squeeze(energy)
+
+                energy_consumptions[player_name] = energy
+
+            energy_consumptions["avg"] = energy
 
             return energy_consumptions
         
@@ -168,7 +181,7 @@ class SocialGamePlanningEnv(SocialGameEnv):
 
     def step(self, action, step_num=0):
         """
-        Purpose: Takes a step in the environment 
+        Purpose: Takes a step in the real environment 
 
         Args:
             Action: 10-dim vector detailing player incentive for each hour (8AM - 5PM)
@@ -275,6 +288,8 @@ class SocialGamePlanningEnv(SocialGameEnv):
 
         # HACK ALERT. USING AVG ENERGY CONSUMPTION FOR STATE SPACE. this will not work if people are not all the same
         self.prev_energy = energy_consumptions["avg"]
+
+        print(energy_consumptions["avg"])
 
         observation = self._get_observation()
         reward = self._get_reward(prev_price, energy_consumptions)

@@ -82,6 +82,20 @@ class Reward():
 
 		return -np.log(np.dot(scaled_energy, self.prices))
 
+	def log_cost_regularized(self, h = 15):
+		"""
+		Scales energy_use to be between min and max energy demands (this is repeated 
+		in agent.routine_output_trasform), and then returns the simple total cost. 
+
+		:param: h - the hyperparameter that modifies the penalty on energy demand that's driven too low. 
+
+		"""
+
+		scaler = MinMaxScaler(feature_range = (self.min_demand, self.max_demand))
+		scaled_energy = np.squeeze(scaler.fit_transform(self.energy_use.reshape(-1, 1)))
+
+		return -np.log(np.dot(scaled_energy, self.prices)) - 10 * (np.sum(self.energy_use) < 15 * self.min_demand)
+
 	def neg_distance_from_ideal(self, demands):
 		"""
 		args: 
