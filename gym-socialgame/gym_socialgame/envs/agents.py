@@ -201,7 +201,7 @@ class DeterministicFunctionPerson(Person):
 	def threshold_exp_response(self, points, day_of_week = None):
 		points_effect = self.exponential_response_func(points)
 		points_effect = self.threshold_response_func(points_effect)
-		output = self.routine_output_transform(points_effec, day_of_week = day_of_week)
+		output = self.routine_output_transform(points_effect, day_of_week = day_of_week)
 		return output
 
 	def linear_response(self, points, day_of_week = None):
