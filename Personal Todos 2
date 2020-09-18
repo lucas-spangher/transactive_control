@@ -1,0 +1,370 @@
+Personal Todos 2 
+
+5/6:-------------------------------
+
+Feedback from Costas: 
+	- use the vicarious learning as an input 
+	- provide three candidates of research q's, b/w me and Utkarsha 
+	- write a concise description of the success metrics of this project
+
+nn work: 
+- should do a hyperparameter search 
+- run on increased dataset: goal: include full param set by manan/akaash meeting
+- RMSE 
+
+
+- plotted the energy and points from the large dataset that Akash provided and they don't seem to be repeating. 
+
+error: input.size() gives three args, i.e. it was a three dim vector now. Want to see if this is merely bc I'm including extra vars.
+	(1, 10, 7) 
+
+	- it appears to be. I ran another test with just the points vector, and it returns 1,10
+
+	which means that the final dimension is for the input sequence length.
+
+
+
+
+
+
+
+
+
+feedback: 
+	more people might be interested in the machine learning part 
+	why are there cycles in geologic carbon? 
+	explain ppm 
+	what's causing climate refugees? 
+
+	number ing is my impact or importance ranking
+
+	data visualization for image ML, big part of energy. To communicate back to the people to intepret what's going on 
+	switch data viz for personal consumption with 
+
+	Digital twin 
+		traditional modeling creats teh model
+		connect real system with the model
+		provide feedback 
+		measure a metric on digital twin, get the same value on the system 
+		if you get data on the system, then you don't have to be on the site 
+		mostly done in manufacturing area 
+		How to respond more efficiently to failures
+
+	personalizatoin
+		e.g. if everyone turned their AC down 
+
+	ML materiasl
+		important for recycling CO2 
+		batteries
+
+	Shorten the first part on climate change 
+
+# ----------------------------------------------------------------
+
+- trying a run of the EA-lstm code from online. 
+- found Beijing 2.5 dataset and ran this once with that 
+- now, going to try to understand what is getting dropped in the series to supervised, and the input args 
+
+- it's definitely training, but error: 
+
+  File "EA-LSTM.py", line 287, in get_rmse
+    inv_yhat = scaler.inverse_transform(inv_yhat)
+  File "/usr/local/lib/python2.7/site-packages/sklearn/preprocessing/data.py", line 385, in inverse_transform
+    X -= self.min_
+ValueError: operands could not be broadcast together with shapes (7008,8) (12,) (7008,8) 
+
+
+    yhat = model.predict(valid_X)
+    valid_X = valid_X.reshape((valid_X.shape[0], 18*8))
+
+    IPython.embed()
+
+    # inverse transform of prediction
+    inv_yhat = concatenate((yhat, valid_X[:, -7:]), axis=1)
+    inv_yhat = scaler.inverse_transform(inv_yhat)
+ 
+
+valid_X  -> shape(7008, 144)
+yhat -> shape(7008, 1)
+
+
+## I think I have an idea of what is going on here
+# Now, my goal is to run Manan's LSTM. Expand it to deal with 
+
+
+
+## there's a lot of bugs in this code. Weird. 
+
+
+nfeatures = 2
+timesteps = 3
+
+
+for i in nfeatures: (0,1)
+	for j in timesteps:  (0,1,2)
+		print i*timesteps + j
+
+0
+1
+2
+3
+4
+5
+
+
+used list comprehension. 
+Need to check if "Attention" is defined as a single weight multiple on each time step's group of parameters, with the last one not used. 
+
+
+? I need to feed literally everything into it except the current time, right. 
+--> Well, this makes it hard to do the shape: (num_samples, timesteps, features)
+	It would have to be, like, for one day: 
+		[points t-18, energy t-18, weekly survey t-18, ...]
+		[points t-17, energy t-17, weekly survey t-17, ...]
+
+	idea: don't predict any of the explanatory vars on the actual timestep, and then adjust the prediction by the offset in the predicted points and the predicted energy 
+
+
+It seems like it worked! 
+
+Now, I need to log some data so that I can farm it out to Savio
+	should log: 
+		
+		parameter configuration
+		RMSE 
+		loss 
+		final prediction 
+
+
+# try non-autoregressive:
+
+	just predict y and don't feed in the other y from previous time steps 
+
+
+also, try Manan's LSTM on all of the parameters that I'm trying here 
+-
+
+ --> 35-50 epochs may be good, there is a declining amount still when 25 is hit 
+
+
+ - spectral neural net
+
+ - figure out how to transfer files from savio 
+
+- reperform the analysis with data with latent state 
+
+- aggregate the csv files produced by the previous run 
+
+
+
+#- --------------------------
+
+Transfer Learning based Computationally Efficient End-user load modeling 
+
+- motivation: develop accurate end use load model for use in optimization schemes 
+	what is end use load? Define briefly
+
+	- good that you print the details for some select customers, but better to include the head of the whole dataset. 
+	- water heter & end use plug loads: how do they operate? Stochastic processes? Poisson processses? 
+	
+- ZIP model: why is it being introduced and described? Wordy and unnecessary explanation. 
+	- this: "To reduce the number of variables for algorithmic use" doesn't make sense to me. Do you mean "to increase ease of readability?"
+	- you focus on a model that can perform ZIP prediction, but what are the bottlenecks / specific elements of prediction needed? Are you estimating Z, I, P in future? 
+	- (Order of the intro three sections seems off. If the ZIP prediction is the main point, this should be more prominently featured in the intro.
+
+- PCA is just one of many embedding techniques, and actually has many weaknesses compared to a technique like T-SNE on the original data, ESPECIALLY when the point of an embedding is to cluster. Can you justify your use of PCA to FIRST embed the data and then the use of t-SNE, given the two approaches do the same thing. I think you should just use t-SNE and forget about using PCA. 
+
+- Regarding T-SNE, if your goal is to cut down on computational complexity, why not use an approximation like Barnes-Hut-SNE that can manage millions of points in I(nlogn) time instead of O(N^2)
+
+- TT decomposition: SVD for higher dimenstional tensors. A, d-dim, is in TT format if for each dimesion there exists a matrix G_k[j_k] s.t. A( js )  = G1(j1)G2(j2)... Gd(jd) 
+	- this may be motivated by more drawn out example of the complexity of data you're dealing with and how TT-format speeds it up. The key with TT decomposition is that it is effect with low rank tensors only. A 2-d tensor (i.e. a matrix) that's 70x 12 but has maximal rank r = 2 seems a bit unrealistic for most applications -- it's shocking to me that anyone would deal with such a low rank matrix unless it's an adjancency matrix. Also, in your example, the dimensinos are (M = 70, N = 12, r = 2) yet eta = (sum (m_k * n_k * r_{k-1} *r _k)) = 84 + 40 doesn't exactly make sense to me. I may have missed something in how you explained it, but it's hard to understand how the dimensions isn't = 70 * 12 * 2 = 1680.  
+
+- No citation on any of the preliminaries. I assume that the authors didn't design TT-GNUs? Bear in mind that of all of the preliminary concepts explained, only PCA can be assumed to be widely known. I learned about t-SNE and GRU in a specialized grad course called "neural nets", and TT-format, I've never heard of before (similar with TT-GRU). 
+
+- The T-SNE  + kmeans visualization does not justify to me that clustering is appropriate for your dataset. The entire dataset looks very clumped around a center -- i.e. one big cluster -- and it's not clear to me that the cluster results are anything but a geometric model artifact. 
+
+- If the GRU weight matrices are dense (i.e. not sparse), why are you applying TT-formated cores? How does that save computation? Is TT-format not lossy at all? If it is, how do we know that we're not adversely effecting nn performance? 
+
+- It's shocking to me that "Max pooling" gets the same space as "auto-encoders" in your Preliminaries section. Max-pooling, although important, is a very simple operation. Your wording ("For convolutional networks, we introduce a max-pooling layer") makes it seem like you've developing this concept. 
+
+- I'm surprised that you're using k-means given it's a very basic clustering techniques with many weaknesses over GMM, DBSCAN, HDBSCAN, or a feature-based clustering.  
+
+- You don't seem to have a good sense of the background knowledge of your reader. You should definitely not need to define affine, Domain, Mean squared error, or Category. You might not need to define ReLU or Instances either. 
+
+-  "We have used Adam algorithm [50] to train the transferable layers" is vague. Adam optimizer is slightly more relevant. 
+ 	
+ - Seems like a flaw to train the transferable layers with Adam optimizer and the non-transferable layers with nesterov momentum. 
+
+- It's not exactly clear what your goal in transfer learning really is. Are you going to transfer from one highly trained simulation distribution network to another, not highly trained, "in the wild" distribution network? 
+
+- You have not justified your choice of architecture at all. Why convolutional autoencoder for transferable layers and tt-GRU for transferable layers? Why not a more traditional large feed-forward network whose top layer is knocked out in time to transfer? 
+
+- 
+
+
+
+
+# -------------------------------
+
+Pivot 
+
+- proven - provides nitrogen to the corn that alleviates need for synthetic fertilizer
+- return - wprks with wheat brops
+
+- Tim -- Data science is new -- 
+	develop microbes, measure B fixing activites. The ones that do well in the lab go to the greenhouse, small sample sizes, a lot of noise, 
+		lab -> greenhouse -> field 
+		are tests in the lab predictive of tests in the field? 
+			out of distribution models like neural net dropout
+
+			why is it hierarchical? Bayesian approach (are you confident about the priors?)
+
+			convergence among different chains? 
+				need different sampling on different parts of the chain
+
+				check convergence of fit post hoc 
+
+				linear model 
+
+				regularizers --> L0 
+					non-informative prior
+
+					ridge is related to lagrange multipliers 
+
+
+
+todo 5/18
+
+- submit CARES FAFSA stuff
+- assignment 4 cs
+- GSI apps 
+
+--------------------
+
+Meeting with Utkarsha 
+
+research w Poolah
+- modeling perspective is from CAISO
+- buy day ahead capacity so they ramp up 
+- model they use to predict ramp for next day: histogram approach 
+- predicting energy at each node would be great 
+- sometimes you may buy more at one node then can be transmitted to another node 
+	- graph based hierarchical modeling 
+
+- what are the current research questions in wind? 
+	- how do citing problems for onshore wind turbines apply to off shore turbines? 
+	- sizing optimal offshore wind turbine battery zones for shipping 
+	- shipping lanes --> public routing info 
+	- incorporate seasonal effects of wind 
+
+- CNN/image analysis for placing solar farms, predicting energy plus building layouts 
+- 
+
+
+
+
+# -------------------------------------------------
+
+Akash's rough draft: 
+
+
+General comments that try to be technically focused: 
+
+Intro and background: 
+
+	- Really nice intro ;) haha. Actually, though, this is good -- your writing is very clear and although you've borrowed my structure, it's different enough that it's fine.
+
+	- Definition of off-policy feels a little lacking, primarily because you don't give a solid definition of on-policy first that we can contrast with. Something like "on policy algorithms undergo learning from their own experience, acting on the environment and observing outcomes, etc."
+
+	- "Due to the constraints of our experiment, which provides 30 days for each reinforcement learning agent, in a suite of agents" --> details about our exp doesn't need to be in intro. 
+
+	- "Thus, we decided to use more popular off-policy algorithms such as Soft Actor-Critic (SAC) (8) and BatchConstrained Q-Learning (BCQL) (4). Despite the complex-ities that these algorithms present, we believed that theyprovide a good starting point for evaluation of off-policyalgorithms in our domain. " --> is there a reason to pick these over other off-policy algs? What's some of the benefits they provide? 
+
+	- Explain why SAC is "soft" and why that differs from regular AC methods-- it's related to it using the maximum entropy framework. I believe that "soft" implies use of a softmax but I'm not sure.
+
+	- Maximizing the objective function (eq (1) in your paper) is done by which part of the algorithm? The Actor? Pls specify. 
+
+	- "the sub-components ofthe critic are updated relative to each other, similar to stan-dard updates to those seen in value networks and doubleQ-learning " --> typo, also, what does "relative" to each other mean? Like, similar to an MCMC approach? If you're worried about space, pls define "relative to each other" rather than drawing parallels to other methods. 
+
+	- BCQL --> Have you tried at any point augmenting the batch with data from the previous experiment with a flat points signal? We might add in a month worth of baseline data with 0 points throughout the day and a month's worth of Social Game data with 10 points constant throughout the day and then see if that improves the policy on this data. You might need Akaash's help accessing some of this data. 
+
+	- "Foremost,BCQL uses a variational autoencoder (VAE) which givena state produces the action that maximizes the probabilityof such a state-action pair being in the dataset." --> Does it do this by choosing an action close to dataset state/actions in the embedded space? (Otherwise, why specifically a VAE?)
+
+Methods:
+	- surprisingly sparse. You could flesh this out a bit (and maybe show it to a colleague who doesn't alreay know the experiment -- it's hard for me to know exactly where to fill it in.) Main suggestions: include a graphic, similar to the flow chart / arrows 
+
+	- Please explain what the responses are (and why they're incomplete.) Something akin to: "These are at best a  poor representation of how an office worker responds to points, as they do not vary in time and do not react to any additional signals."
+
+	- Maybe relabel "reward" as "agent reward" unless you can otherwise distinguish from the simulated humans
+
+	- Feels to me like the main difference between transfer learning and overfitting is that transfer learning "overfits" only on the first day, whereas overfitting does so between each step.
+
+Results: Pick a few of the improvements listed here that you want to make. Hopefully reading about them and thinking about them will be educational. 
+
+	- Figure 2 bottom: in order for this to meaningful, it should be compared to the same without transfer learning. 
+	
+	- Figure 4: Can you put this on the same graph as the top of Figure 2 for comparison? 
+
+	- BCQL: "given its constraints on the action space" -- can you delve into this a bit more? Maybe superimpose a bunch of actions from BCQL training sequence on the same graph (with a low line density: alpha arg, https://stackoverflow.com/questions/4320021/matplotlib-transparent-line-plots), compared to a bunch of actions from SAC training to demonstrate whether one explored the space more 
+
+	- Can you explain more about why SAC was successful? (This could happen in the discussion as well.)
+
+	- Do we have a more current version of Figure 2 top? 
+
+Discussion/Conclusion/Future Work: 
+
+	- This needs to be expanded. Put some time and thought into why things are working or not 
+
+	- Future work: list some of the metrics and diagnostics that we will judge success by 
+
+	- Limitations: Add a subsection that addresses limitations and shortcomings to our work
+
+
+
+Comments specifically on writing style: 
+
+- Try to be more sparing with your adjectives and qualifiers. E.g. "This convergenceis extremely important to us because the nature of our pro-posed timeline makes any large search of the action spacevery unrealistic." has 'extremely', 'very', and 'large'. Devalues any one in particular. 
+
+- Go through an make sure that no sentence is as choppy as this one: "Due to the constraints of our experiment, which provides 30 days for each reinforcement learning agent, in a suite of agents, we resort to using off-policy algorithms for ouragents" <-- 3 dependent clauses and 1 independent clause, which is too much. Varying sentence structure throughout is helpful: try not to have more than two sentences back to back that have the same structure. When in doubt, you can always interweave short sentences with longer ones. 
+
+- It's helpful and important to make each paragraph a discrete thought. The first sentence should be a general, thesis statement, and the following sentences should delve in deeper, round out the thought, or fill out a list-like structure. E.g. for this paragraph it's actually a simple fix: 
+
+"Due to the constraints of our experiment, which provides30 days for each reinforcement learning agent, in a suiteof agents, we resort to using off-policy algorithms for ouragents. The field of reinforcement learning can be catego-rized based on the nature in which the algorithm updates itsbehaviors. While the updates of on-policy methods are verymuch dependent on the behavior policy, off-policy methods"  
+	--> just change the order of the first and second sentence. The second sentence is pretty clearly a general thesis statement. 
+	-- for other paragraphs, it's not so easy. I would recommend trying this with most of your paragraphs as a learning exercise, and I'll look for it a bit in the final. 
+
+- Do a once over for typos for the final draft! I caught 4-5. Maybe I'm old-fashioned, but I like printing a rough draft out once I'm finished with it, and editing with a pen. 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
