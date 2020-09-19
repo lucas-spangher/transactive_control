@@ -18,7 +18,7 @@ def price_signal(day = 45, type_of_DR = "real_time_pricing"):
         calculating where the net demand should be allocated
     """
     csv_path = "./building_data.csv"
-    csv_path_2 = "./transactive_control/gym-socialgame/gym_socialgame/envs/building_data.csv"
+    csv_path_2 = "../gym-socialgame/gym_socialgame/envs/building_data.csv"
     try:
         df = pd.read_csv(csv_path)
     except:

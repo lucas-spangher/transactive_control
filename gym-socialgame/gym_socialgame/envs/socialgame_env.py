@@ -202,8 +202,6 @@ class SocialGameEnv(gym.Env):
         else:
             for day in range(1,366):  
                 price = price_signal(day, type_of_DR=type_of_DR)
-                print("price at get_price function")
-                print(price)
                 price = np.array(price[8:18])
                 # put a floor on the prices so we don't have negative prices
                 price = np.maximum(0.01 * np.ones_like(price), price)

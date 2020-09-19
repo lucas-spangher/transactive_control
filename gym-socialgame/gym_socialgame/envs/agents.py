@@ -221,6 +221,7 @@ class DeterministicFunctionPerson(Person):
 
 		return energy_resp
 
+
 class RandomizedFunctionPerson(DeterministicFunctionPerson):
 	def __init__(self, baseline_energy_df, points_multiplier=1, response='t', low = 0, high = 50, distr = 'U'):
 	 

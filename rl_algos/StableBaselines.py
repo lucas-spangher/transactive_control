@@ -1,14 +1,18 @@
 import argparse
 import gym
-from stableBaselines.stable_baselines.common.vec_env import DummyVecEnv, VecCheckNan, VecNormalize
-from stableBaselines.stable_baselines.common.evaluation import evaluate_policy
-from stableBaselines.stable_baselines.common.env_checker import check_env
+#PLANNING MODEL CODE
+#from stableBaselines.stable_baselines.common.vec_env import DummyVecEnv, VecCheckNan, VecNormalize
+#from stableBaselines.stable_baselines.common.evaluation import evaluate_policy
+#from stableBaselines.stable_baselines.common.env_checker import check_env
+from stable_baselines.common.vec_env import DummyVecEnv, VecCheckNan, VecNormalize
+from stable_baselines.common.evaluation import evaluate_policy
+from stable_baselines.common.env_checker import check_env
 
 import numpy as np
 import tensorflow as tf
-
-from tensorboard_logger import configure as tb_configure
-from tensorboard_logger import log_value as tb_log_value
+#PLANNING MODEL CODE
+#from tensorboard_logger import configure as tb_configure
+#from tensorboard_logger import log_value as tb_log_value
 
 import utils
 
@@ -115,12 +119,13 @@ def get_agent(env, args):
     #TODO: DIFFERENTIATE DR LOGS!
 
     if args.algo == 'sac':
-        from stableBaselines.stable_baselines.sac.sac import SAC as mySAC
-        from stable_baselines.sac.policies import MlpPolicy as policy
-        
-        #PLANNING MODEL CODE (REQUIRES LOCAL COPY OF STABLEBASELINES)
+        #PLANNING MODEL CODE
+        #from stableBaselines.stable_baselines.sac.sac import SAC as mySAC
+        #from stable_baselines.sac.policies import MlpPolicy as policy
         #return mySAC(policy, env, non_vec_env = non_vec_env, batch_size = args.batch_size, learning_starts = 30, verbose = 0, tensorboard_log = './rl_tensorboard_logs/')    
 
+        from stable_baselines import SAC
+        from stable_baselines.sac.policies import MlpPolicy as policy
         return SAC(policy, env, batch_size = args.batch_size, learning_starts = 30, verbose = 0, tensorboard_log = './rl_tensorboard_logs/')
     
     elif args.algo == 'ppo':
@@ -146,8 +151,12 @@ def args_convert_bool(args):
         args.yesterday = utils.string2bool(args.yesterday)
     if not isinstance(args.energy, (bool)):
         args.energy = utils.string2bool(args.energy)
-    if not isinstance(args.test_planning_env, (bool)):
-        args.test_planning_env = utils.string2bool(args.test_planning_env)
+    if not isinstance(args.random, (bool)):
+        args.random = utils.string2bool(args.random)
+
+    #PLANNING MODEL CODE
+    #if not isinstance(args.test_planning_env, (bool)):
+    #    args.test_planning_env = utils.string2bool(args.test_planning_env)
 
 #Planning model function name
 #def get_environment(args, planning=False, include_non_vec_env = False):
@@ -165,7 +174,8 @@ def get_environment(args, eval=False, response = None):
     #Convert string args (which are supposed to be bool) into actual boolean values
     args_convert_bool(args)
 
-    log_dir = "own_tb_logs/" + args.own_tb_log
+    #PLANNING MODEL CODE
+    #log_dir = "own_tb_logs/" + args.own_tb_log
 
     #SAC only works in continuous environment
     if(args.algo == 'sac'):
@@ -262,7 +272,9 @@ def get_environment(args, eval=False, response = None):
     #if not include_non_vec_env:
     #    return env
     #else:
-    return env, socialgame_env
+    #return env, socialgame_env
+
+    return env
 
 def parse_args():
     """
@@ -300,7 +312,7 @@ def parse_args():
     #parser.add_argument("--test_planning_env", help="flag if you want to test vanilla planning", type=str, default="F", choices = ["T", "F"])
 
     #DR Env Arguments
-    parser.add_argument('--random', help='Whether to use domain randomization (DR), default = F', type=str, default='F', choices=['T','F'])
+    parser.add_argument('--random', help='Whether to use domain randomization (DR), default = F', type=str, default= 'F', choices=['T','F'])
     parser.add_argument('--low', help='Lower bound for uniform noise to response function, default = 0', type=int, default=0)
     parser.add_argument('--high', help='Upper bound for uniform noise to response function, default = 50', type=int, default = 50)
     parser.add_argument('--distr', help='Distribution for noise. Currently only Uniform distr. supported.', type=str, default='U', choices=['U','G'])
