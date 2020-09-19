@@ -11,10 +11,11 @@ register(
 )
 
 register(
-    id='socialgame_monthly-v0',
-    entry_point='gym_socialgame.envs:SocialGameEnvMonthly',
+	id = "socialgame_planning-v0",
+	entry_point = "gym_socialgame.envs:SocialGamePlanningEnv",
 )
 
 register(
-	id = "socialgame_planning-v0",
-	entry_point = "gym_socialgame.envs:SocialGamePlanningEnv")
+    id='socialgame_dr-v0',
+    entry_point='gym_socialgame.envs:SocialGameEnvDR',
+)

@@ -221,6 +221,7 @@ class DeterministicFunctionPerson(Person):
 
 		return energy_resp
 
+
 class RandomizedFunctionPerson(DeterministicFunctionPerson):
 	def __init__(self, baseline_energy_df, points_multiplier=1, response='t', low = 0, high = 50, distr = 'U'):
 	 
@@ -249,9 +250,11 @@ class RandomizedFunctionPerson(DeterministicFunctionPerson):
 	 self.noise = []
 	 self.update_noise()
 
+	#TODO: Take in low, high updates
 	def update_noise(self):
+		#TODO: Rejection sampling
 		if(self.distr == 'G'):
-			#TODO: Update how to sample from Gausian
+			#TODO: Update how to sample from Gausian (look into truncated normal)
 			self.noise = np.random.normal(loc = (self.low + self.high) / 2, scale = 10, size = 10)
 		
 		elif(self.distr == 'U'):
