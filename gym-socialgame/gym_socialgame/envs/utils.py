@@ -17,8 +17,8 @@ def price_signal(day = 45, type_of_DR = "real_time_pricing"):
         optionally, we can return the optimized demand, which is the building
         calculating where the net demand should be allocated
     """
-    csv_path = "building_data.csv"
-    csv_path_2 = "../gym-socialgame/gym_socialgame/envs/building_data.csv"
+    csv_path = "./building_data.csv"
+    csv_path_2 = "./transactive_control/gym-socialgame/gym_socialgame/envs/building_data.csv"
     try:
         df = pd.read_csv(csv_path)
     except:
@@ -79,7 +79,7 @@ def price_signal(day = 45, type_of_DR = "real_time_pricing"):
             price_24[13:16]+=3
         return price_24
     else:
-        return "error!!!"
+        raise NotImplementedError
 
 
 

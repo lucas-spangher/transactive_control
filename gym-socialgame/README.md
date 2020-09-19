@@ -1,7 +1,11 @@
 **Status:** Work in progress. SocialGameEnv is working and ready-to-use.
 
 TODO:
-- [ ] Hourly Environment
+* DR Implementations:
+    -[ ] Review Noise Model implementation
+    -[ ] Algorithmic DR implementation(s) ?
+- [ ] Hourly Environment (finish implementing hourly agents)
+- [ ] DR Environments for Hourly and Monthly variants
 
 
 # gym-socialgame
