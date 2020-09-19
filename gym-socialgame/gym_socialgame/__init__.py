@@ -14,3 +14,8 @@ register(
     id='socialgame_monthly-v0',
     entry_point='gym_socialgame.envs:SocialGameEnvMonthly',
 )
+
+register(
+    id='socialgame_dr-v0',
+    entry_point='gym_socialgame.envs:SocialGameEnvDR',
+)

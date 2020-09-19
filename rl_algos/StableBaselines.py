@@ -14,7 +14,8 @@ def train(agent, num_steps):
     Purpose: Train agent in env, and then call eval function to evaluate policy
     """
     #Train agent
-    agent.learn(total_timesteps = num_steps, log_interval = 100)
+    agent = agent.learn(total_timesteps = num_steps, log_interval = 1)
+    return agent
 
 def eval_policy_helper(args, model, num_eval_episodes, response=None,list_reward_per_episode=False):
     """
@@ -32,6 +33,9 @@ def eval_policy_helper(args, model, num_eval_episodes, response=None,list_reward
 
         rewards[episode_i] = curr_reward[0][0]
     
+    #TODO: Improve text formatting
+    np.savetxt('eval_rewards.txt',rewards)
+
     return rewards
 
 def eval_policy(model, args, num_eval_episodes: int, list_reward_per_episode = False):
@@ -92,12 +96,13 @@ def get_agent(env, args):
 
     Exceptions: Raises exception if args.algo unknown (not needed b/c we filter in the parser, but I added it for modularity)
     """
+    #TODO: DIFFERENTIATE DR LOGS!
+
     if args.algo == 'sac':
         from stable_baselines import SAC
         from stable_baselines.sac.policies import MlpPolicy as policy
         return SAC(policy, env, batch_size = args.batch_size, learning_starts = 30, verbose = 0, tensorboard_log = './rl_tensorboard_logs/')
     
-     # I (Akash) still need to study PPO to understand it, I implemented b/c I know Joe's work used PPO
     elif args.algo == 'ppo':
         from stable_baselines import PPO2
         
@@ -107,7 +112,7 @@ def get_agent(env, args):
         elif(args.policy_type == 'lstm'):
             from stable_baselines.common.policies import MlpLstmPolicy as policy
         
-        return PPO2(policy, env,  nminibatches=1, verbose = 0, tensorboard_log = './rl_tensorboard_logs/DR/')
+        return PPO2(policy, env,  nminibatches=1, verbose = 0, tensorboard_log = './rl_tensorboard_logs/')
 
     else:
         raise NotImplementedError('Algorithm {} not supported. :( '.format(args.algo))
@@ -150,9 +155,9 @@ def get_environment(args, eval=False, response = None):
     
 
 
-    if(args.env_id == 'hourly'):
+    if args.env_id == 'hourly':
         env_id = '_hourly-v0'
-    elif(args.env_id == 'monthly'):
+    elif args.env_id == 'monthly':
         env_id = '_monthly-v0'
     else:
         env_id = '-v0'
@@ -165,26 +170,31 @@ def get_environment(args, eval=False, response = None):
             action_space_string = action_space_string, 
             response_type_string = response,
             one_price = args.one_price, 
-            random = False, 
-            low = args.low, 
-            high = args.high, 
-            distr = args.distr,
             number_of_participants = args.num_players, 
             yesterday_in_state = args.yesterday, 
             energy_in_state = args.energy)
 
     else:
-        socialgame_env = gym.make('gym_socialgame:socialgame{}'.format(env_id), 
+        if args.random:
+            socialgame_env = gym.make('gym_socialgame:socialgame_dr-v0',
             action_space_string = action_space_string, 
             response_type_string = args.response,
             one_price = args.one_price, 
-            random = args.random, 
-            low = args.low, 
-            high = args.high, 
-            distr = args.distr,
             number_of_participants = args.num_players, 
             yesterday_in_state = args.yesterday, 
-            energy_in_state = args.energy)
+            energy_in_state = args.energy,
+            low = args.low,
+            high = args.high,
+            distr = args.distr)
+        
+        else:
+            socialgame_env = gym.make('gym_socialgame:socialgame{}'.format(env_id), 
+                action_space_string = action_space_string, 
+                response_type_string = args.response,
+                one_price = args.one_price, 
+                number_of_participants = args.num_players, 
+                yesterday_in_state = args.yesterday, 
+                energy_in_state = args.energy)
                     
     #Check to make sure any new changes to environment follow OpenAI Gym API
     check_env(socialgame_env)
@@ -201,26 +211,34 @@ def parse_args():
     """
 
     parser = argparse.ArgumentParser(description='Arguments for running Stable Baseline RL Algorithms on SocialGameEnv')
+    
+    #Algo Arguments
     parser.add_argument('--env_id', help = 'Environment ID for Gym Environment', type=str, choices = ['v0', 'monthly'], default = 'v0')
     parser.add_argument('algo', help = 'Stable Baselines Algorithm', type=str, choices = ['sac', 'ppo'] )
     parser.add_argument('--batch_size', help = 'Batch Size for sampling from replay buffer', type=int, default = 5, choices = [i for i in range(1,30)])
     parser.add_argument('--num_steps', help = 'Number of timesteps to train algo', type = int, default = 1000000)
     #Note: only some algos (e.g. PPO) can use LSTM Policy the feature below is for future testing
     parser.add_argument('--policy_type', help = 'Type of Policy (e.g. MLP, LSTM) for algo', default = 'mlp', choices = ['mlp', 'lstm'])
+
+    # Basic Env Arguments
     parser.add_argument('--action_space', help = 'Action Space for Algo (only used for algos that are compatable with both discrete & cont', default = 'c',
                         choices = ['c','d'])
     parser.add_argument('--response',help = 'Player response function (l = linear, t = threshold_exponential, s = sinusoidal', type = str, default = 'l',
                         choices = ['l','t','s'])
-    parser.add_argument('--one_price', help = 'Specific Day of the year to Train on (default = None, train over entire yr)', type=int,default = 0, 
+    parser.add_argument('--one_price', help = 'Specific Day of the year to Train on (default = 0, train over entire yr)', type=int,default = 0, 
                         choices = [i for i in range(-1, 366)])
-    parser.add_argument('--random', help = 'Whether or not to use Domain Randomization (default = False)', type = str, default = 'F', choices = ['T','F'])
-    parser.add_argument('--low', help = 'Lower bound for distribution (intended for DR case only)', type = int, default = 0)
-    parser.add_argument('--high', help = 'Upper bound for distribution (intended for DR case)', type=int, default = 50)
-    parser.add_argument('--distr', help = 'Distribution type (U for Uniform, G for Gaussian)', type=str, default = 'U', choices = ['G','U'])
-    parser.add_argument('--num_players', help = 'Number of players ([1, 20]) in social game', type = int, default = 1, choices = [i for i in range(1, 21)])
+    parser.add_argument('--num_players', help = 'Number of players ([1, 20]) in social game', type = int, default = 10, choices = [i for i in range(1, 21)])
     parser.add_argument('--yesterday', help = 'Whether to include yesterday in state (default = F)', type = str, default = 'F', choices = ['T', 'F'])
+    #TODO: Make energy default = True
     parser.add_argument('--energy', help = 'Whether to include energy in state (default = F)', type=str, default = 'F', choices = ['T', 'F'])
-  
+
+    #DR Env Arguments
+    parser.add_argument('--random', help='Whether to use domain randomization (DR), default = F', type=str, default='F', choices=['T','F'])
+    parser.add_argument('--low', help='Lower bound for uniform noise to response function, default = 0', type=int, default=0)
+    parser.add_argument('--high', help='Upper bound for uniform noise to response function, default = 50', type=int, default = 50)
+    parser.add_argument('--distr', help='Distribution for noise. Currently only Uniform distr. supported.', type=str, default='U', choices=['U','G'])
+
+    #Get args  
     args = parser.parse_args()
 
     return args
@@ -241,7 +259,7 @@ def main():
     
     #Train algo, (logging through Tensorboard)
     print("Beginning Training!")
-    train(model,args.num_steps)
+    model = train(model,args.num_steps)
     print("Training Completed! View TensorBoard logs at rl_tensorboard_logs/")
 
     #Print evaluation of policy

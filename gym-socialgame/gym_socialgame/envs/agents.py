@@ -264,9 +264,11 @@ class RandomizedFunctionPerson(DeterministicFunctionPerson):
 	 self.noise = []
 	 self.update_noise()
 
+	#TODO: Take in low, high updates
 	def update_noise(self):
+		#TODO: Rejection sampling
 		if(self.distr == 'G'):
-			#TODO: Update how to sample from Gausian
+			#TODO: Update how to sample from Gausian (look into truncated normal)
 			self.noise = np.random.normal(loc = (self.low + self.high) / 2, scale = 10, size = 10)
 		
 		elif(self.distr == 'U'):

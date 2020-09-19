@@ -2,36 +2,17 @@ import gym
 from gym import spaces
 
 import numpy as np
-import random
 
-import tensorflow as tf
 
 from gym_socialgame.envs.utils import price_signal
 from gym_socialgame.envs.agents import *
 from gym_socialgame.envs.reward import Reward
 
-import pickle
-
-#TODO: Rename one_day -> one_price & take out DR
 class SocialGameEnv(gym.Env):
     metadata = {'render.modes': ['human']}
 
-    def __init__(self, 
-        action_space_string = "continuous", 
-        response_type_string = "l", 
-        number_of_participants = 10,
-        one_day = 0, 
-        energy_in_state = False, 
-        yesterday_in_state = False,
-        day_of_week = False,
-        planning_flag = False,
-        planning_steps = 0,
-        planning_model_type = "Oracle",
-        random = False,
-        low = 0, 
-        high = 50, 
-        distr = "U"
-        ):
+    def __init__(self, action_space_string = "continuous", response_type_string = "l", number_of_participants = 10,
+                one_price = 0, energy_in_state = True, yesterday_in_state = False):
         """
         SocialGameEnv for an agent determining incentives in a social game. 
         
@@ -42,7 +23,7 @@ class SocialGameEnv(gym.Env):
             action_space_string: (String) either "continuous", or "multidiscrete"
             response_type_string: (String) either "t", "s", "l" , denoting whether the office's response function is threshold, sinusoidal, or linear
             number_of_participants: (Int) denoting the number of players in the social game (must be > 0 and < 20)
-            one_day: (Int) in range [-1,365] denoting which fixed day to train on . 
+            one_price: (Int) in range [-1,365] denoting which fixed day to train on . 
                     Note: -1 = Random Day, 0 = Train over entire Yr, [1,365] = Day of the Year
             energy_in_state: (Boolean) denoting whether (or not) to include the previous day's energy consumption within the state
             yesterday_in_state: (Boolean) denoting whether (or not) to append yesterday's price signal to the state
@@ -51,83 +32,61 @@ class SocialGameEnv(gym.Env):
         super(SocialGameEnv, self).__init__()
 
         #Verify that inputs are valid 
-        self.check_valid_init_inputs(action_space_string, 
-            response_type_string, 
-            number_of_participants, 
-            one_day, energy_in_state, 
-            yesterday_in_state)
+        self.check_valid_init_inputs(action_space_string, response_type_string, number_of_participants, one_price,
+                                    energy_in_state, yesterday_in_state)
 
         #Assigning Instance Variables
         self.action_space_string = action_space_string
         self.response_type_string = response_type_string
         self.number_of_participants = number_of_participants
-        self.one_day = self._find_one_day(one_day)
+        self.one_price = self._find_one_price(one_price)
         self.energy_in_state = energy_in_state
         self.yesterday_in_state = yesterday_in_state
-
-        self.day = 0
-        self.days_of_week = [0, 1, 2, 3, 4]
-        self.day_of_week_flag = day_of_week
-        self.day_of_week = self.days_of_week[self.day % 5]
 
         #Create Observation Space (aka State Space)
         self.observation_space = self._create_observation_space()
         self.prices = self._get_prices()
         #Day corresponds to day # of the yr
-
+        self.day = 0
         #Cur_iter counts length of trajectory for current step (i.e. cur_iter = i^th hour in a 10-hour trajectory)
         #For our case cur_iter just flips between 0-1 (b/c 1-step trajectory)
-        self.curr_iter = 0
+        self.cur_iter = 0
 
         #Create Action Space
         self.action_length = 10
         self.action_subspace = 3
         self.action_space = self._create_action_space()
-        self.random = random
 
         #Create Players
         self.player_dict = self._create_agents()
-        #Create Players
-
-        self.low = low
-        self.high = high
-        self.distr = distr.upper()
-
         #TODO: Check initialization of prev_energy
         self.prev_energy = np.zeros(10)
-        self.planning_flag = planning_flag
-        self.planning_steps = planning_steps
-        self.planning_model_type = planning_model_type
+
 
         print("\n Social Game Environment Initialized! Have Fun! \n")
     
-    def _find_one_day(self, one_day: int):
+    def _find_one_price(self, one_price: int):
         """
-        Purpose: Helper function to find one_day to train on (if applicable)
+        Purpose: Helper function to find one_price to train on (if applicable)
 
         Args:
-            One_day: (Int) in range [-1,365]
+            one_price: (Int) in range [-1,365]
 
         Returns:
-            0 if one_day = 0
-            one_day if one_day in range [1,365]
-            random_number(1,365) if one_day = -1
+            0 if one_price = 0
+            one_price if one_price in range [1,365]
+            random_number(1,365) if one_price = -1
         """
         
-        print("one_day")
-        print(one_day)
-
-        if(one_day != -1):
+        if(one_price == -1):
             return np.random.randint(0, high=365)
         
         else:
-            return one_day
+            return one_price
 
     def _create_observation_space(self):
         """
-        Purpose: Returns the observation space. 
-        If the state space includes yesterday, then it is +10 dim for yesterday's price signal
-        If the state space includes energy_in_state, then it is +1 dim for yesterday's energy
+        Purpose: Returns the observation space
 
         Args:
             None
@@ -136,7 +95,7 @@ class SocialGameEnv(gym.Env):
             Action Space for environment based on action_space_str 
         """
 
-        #TODO: Normalize obs_space !
+
         if(self.yesterday_in_state):
             if(self.energy_in_state):
                 return spaces.Box(low=-np.inf, high=np.inf, shape=(30,), dtype=np.float32)
@@ -188,7 +147,6 @@ class SocialGameEnv(gym.Env):
 
         #Sample Energy from average energy in the office (pre-treatment) from the last experiment 
         #Reference: Lucas Spangher, et al. Engineering  vs.  ambient  typevisualizations:  Quantifying effects of different data visualizations on energy consumption. 2019
-        
         sample_energy = np.array([ 0.28,  11.9,   16.34,  16.8,  17.43,  16.15,  16.23,  15.88,  15.09,  35.6, 
                                 123.5,  148.7,  158.49, 149.13, 159.32, 157.62, 158.8,  156.49, 147.04,  70.76,
                                 42.87,  23.13,  22.52,  16.8 ])
@@ -196,14 +154,10 @@ class SocialGameEnv(gym.Env):
         #only grab working hours (8am - 5pm)
         working_hour_energy = sample_energy[8:18]
 
-        my_baseline_energy = pd.DataFrame(data = {"net_energy_use" : working_hour_energy})
+        my_baseline_energy = pd.DataFrame(data={"net_energy_use": working_hour_energy})
 
         for i in range(self.number_of_participants):
-            if(self.random):
-                player = RandomizedFunctionPerson(my_baseline_energy, points_multiplier=10, response = self.response_type_string, 
-                                                low = self.low, high = self.high, distr = self.distr)
-            else:
-                player = DeterministicFunctionPerson(my_baseline_energy, points_multiplier = 10, response= self.response_type_string)
+            player = DeterministicFunctionPerson(my_baseline_energy, points_multiplier = 10, response= self.response_type_string)
             
             player_dict['player_{}'.format(i)] = player
 
@@ -221,34 +175,23 @@ class SocialGameEnv(gym.Env):
 
         """
         all_prices = []
-        print("--" * 10)
-        print(self.one_day)
-        print("--" * 10)
-        
-        if self.one_day != -1:
-            # If one_day we repeat the price signals from a fixed day
-            # Tweak One_Day Price Signal HERE
-            price = price_signal(self.one_day, type_of_DR="time_of_use")
-            price = np.array(price[8:18])
-            price = np.maximum(0.01 * np.ones_like(price), price)
-
-            print("price at get_price function")
-            print(price)
+        if self.one_price != 0:
+            # If one_price we repeat the price signals from a fixed day
+            #TODO: FIX!!!
 
             for i in range(365):
                 all_prices.append(price)
+
         else:
-            day = 0
-            for i in range(365):  
-                price = price_signal(day + 1, type_of_DR="time_of_use")
-                print("price at get_price function")
-                print(price)
+            for day in range(365):  
+                price = price_signal(day + 1, type_of_DR="real_time_pricing")
                 price = np.array(price[8:18])
                 # put a floor on the prices so we don't have negative prices
                 price = np.maximum(0.01 * np.ones_like(price), price)
                 all_prices.append(price)
-                day += 1
 
+        print(all_prices)
+        assert 3==2
         return np.array(all_prices)
 
     def _points_from_action(self, action):
@@ -287,11 +230,7 @@ class SocialGameEnv(gym.Env):
 
             #Get players response to agent's actions
             player = self.player_dict[player_name]
-
-            if (self.day_of_week_flag):
-                player_energy = player.get_response(action, day_of_week = self.day_of_week)
-            else: 
-                player_energy = player.get_response(action, day_of_week = None)
+            player_energy = player.get_response(action)
 
             #Calculate energy consumption by player and in total (over the office)
             energy_consumptions[player_name] = player_energy
@@ -329,140 +268,8 @@ class SocialGameEnv(gym.Env):
                 reward = player_reward.scaled_cost_distance(player_ideal_demands)
 
                 total_reward += reward
-
-        print("total reward")        
-        print(total_reward)
-
-        return total_reward
-
-    def _planning_prediction(
-        self,
-        action, 
-        day_of_week, 
-        planning_model_type = "OLS", 
-        loaded_model = None,
-    ):
         
-        
-        """
-        Function for calling the planning model and producing an average response 
-        
-        Inputs: 
-        
-        Action: [10-float] a list of 10 floats that are the points provided by the agent to the env
-        day_of_week: [int] a number indicating the day of the week
-        planning_model_type: str, either "Oracle" for a perfect planning model, 
-            "LSTM" for the rnn implementation, "OLS" for linear regression, or "
-            baseline" for a mean estimate
-        loaded_model: pass in a loaded model
-
-        """
-        
-        # if self.min_demand is not None and self.max_demand is not None: 
-        #     scaler = MinMaxScaler(feature_range = (self.min_demand, self.max_demand))
-
-        energy_consumptions = {}
-        total_consumption  = np.zeros(10)
-
-        if planning_model_type == "Oracle":
-            prev_observation = self.prices[(self.day)]
-            energy_consumptions = self._simulate_humans(action)
-            return energy_consumptions
-            
-        
-        ## Basic LSTM that follows the rules of the experiment    
-        elif planning_model_type == "LSTM":
-            ## load the minMaxScalers
-            with open ("scaler_X.pickle", "rb") as input_file:
-                scaler_X = pickle.load(input_file) 
-            with open ("scaler_y.pickle", "rb") as input_file:
-                scaler_y = pickle.load(input_file) 
-
-            ## prepare the data
-
-            d_X = pd.DataFrame(data = { "action"  : action, "dow" : day_of_week } )
-            scaled_X = scaler_X.transform(d_X)
-            sxr = scaled_X.reshape((scaled_X.shape[0], 1, scaled_X.shape[1])) 
-            print(sxr)
-
-            for player_name in self.player_dict:
-
-                player = self.player_dict[player_name]
-
-                # get the reward from the player's output
-                player_min_demand = player.get_min_demand()
-                player_max_demand = player.get_max_demand()
-
-                preds = loaded_model.predict(sxr)
-
-                inv_preds = scaler_y.inverse_transform(preds)  
-                
-                scaler = MinMaxScaler((player_min_demand, player_max_demand))
-                inv_preds = scaler.fit_transform(inv_preds.reshape(-1, 1))
-
-                energy_consumptions[player_name] = np.squeeze(inv_preds)
-
-                total_consumption += np.squeeze(inv_preds)
-
-            energy_consumptions["avg"] = total_consumption / self.number_of_participants
-            print(energy_consumptions["avg"])
-            return energy_consumptions
-        
-        
-        # simple OLS trained on small dataset without IV 
-        elif planning_model_type == "OLS":
-
-            for player_name in self.player_dict:
-
-                player = self.player_dict[player_name]
-
-                # get the reward from the player's output
-                player_min_demand = player.get_min_demand()
-                player_max_demand = player.get_max_demand()
-
-                energy = 246 + -3.26 * np.array(action)
-
-                scaler = MinMaxScaler((player_min_demand, player_max_demand))
-                energy = scaler.fit_transform(energy.reshape(-1, 1))
-                energy = np.squeeze(energy)
-
-                energy_consumptions[player_name] = energy
-                total_consumption += energy
-
-            energy_consumptions["avg"] = total_consumption / self.number_of_participants
-
-            return energy_consumptions
-        
-        # baseline model that just returns average of the sample energy day
-        elif planning_model_type == "Baseline":
-            for player_name in self.player_dict:
-                energy_consumptions[player_name] = np.repeat(70.7, len(action))
-
-            energy_consumptions["avg"] = np.repeat(70.7, len(action))
-
-            return energy_consumptions
-        
-        else:
-            raise ValueError("wrong planning model choice")
-            return
-
-
-    def load_model_from_disk(self, file_name = "GPyOpt_planning_model"):
-        json_file = open(file_name + ".json", 'r')
-        loaded_model_json = json_file.read()
-        json_file.close()
-        loaded_model = tf.keras.models.model_from_json(loaded_model_json)
-        # load weights into new model
-        loaded_model.load_weights(file_name + ".h5")
-        print("Loaded model from disk")
-
-        loaded_model.compile(loss="mse", optimizer="adam")
-        return loaded_model
-
-    def _update_randomization(self):
-        if self.random:
-            for i in range(self.number_of_participants):
-                self.player_dict['player_{}'.format(i)].update_noise()
+        return total_reward / self.number_of_participants
 
 
     def step(self, action):
@@ -481,8 +288,7 @@ class SocialGameEnv(gym.Env):
         Exceptions:
             raises AssertionError if action is not in the action space
         """
-        
-
+        #Checking that action is valid; If not, we clip (OpenAI algos don't take into account action space limits so we must do it ourselves)
         if(not self.action_space.contains(action)):
             action = np.asarray(action)
             if(self.action_space_string == 'continuous'):
@@ -493,43 +299,20 @@ class SocialGameEnv(gym.Env):
 
         prev_price = self.prices[(self.day)]
         self.day = (self.day + 1) % 365
-        self.curr_iter += 1
-        if self.curr_iter > 0:
+        self.cur_iter += 1
+        if self.cur_iter > 0:
             done = True
-            self._update_randomization()
+
         else:
             done = False
 
         points = self._points_from_action(action)
 
-        if self.planning_flag: 
-            if self.curr_iter == 1: 
-                energy_consumptions = self._simulate_humans(points)
-
-
-            else: 
-                if self.curr_iter >= self.planning_steps:
-                   done = True
-                   self.curr_iter = 0 # resetting curr_iter 
-
-                loaded_model = None
-
-                if self.planning_model_type == "LSTM":
-                    loaded_model = self.load_model_from_disk("GPyOpt_planning_model")
-
-                energy_consumptions = self._planning_prediction(
-                                action = points, 
-                                day_of_week = self.day_of_week, 
-                                planning_model_type = self.planning_model_type, 
-                                loaded_model = loaded_model,
-                                )
-        else:
-            energy_consumptions = self._simulate_humans(points)
-
-        # HACK ALERT. USING AVG ENERGY CONSUMPTION FOR STATE SPACE. this will not work if people are not all the same
+        energy_consumptions = self._simulate_humans(points)
         
+        # HACK ALERT. USING AVG ENERGY CONSUMPTION FOR STATE SPACE. this will not work if people are not all the same
         self.prev_energy = energy_consumptions["avg"]
-
+        
         observation = self._get_observation()
         reward = self._get_reward(prev_price, energy_consumptions)
         info = {}
@@ -562,8 +345,8 @@ class SocialGameEnv(gym.Env):
         pass
 
 
-    def check_valid_init_inputs(self, action_space_string: str, response_type_string: str, number_of_participants = 10,
-                one_day = False, energy_in_state = False, yesterday_in_state = False):
+    def check_valid_init_inputs(self, action_space_string, response_type_string, number_of_participants, one_price, 
+                                energy_in_state, yesterday_in_state):
         
         """
         Purpose: Verify that all initialization variables are valid 
@@ -572,7 +355,7 @@ class SocialGameEnv(gym.Env):
             action_space_string: String either "continuous" or "discrete" ; Denotes the type of action space
             response_type_string: String either "t", "s", "l" , denoting whether the office's response function is threshold, sinusoidal, or linear
             number_of_participants: Int denoting the number of players in the social game (must be > 0 and < 20)
-            one_day: Boolean denoting whether (or not) the environment is FIXED on ONE price signal
+            one_price: Boolean denoting whether (or not) the environment is FIXED on ONE price signal
             energy_in_state: Boolean denoting whether (or not) to include the previous day's energy consumption within the state
             yesterday_in_state: Boolean denoting whether (or not) to append yesterday's price signal to the state
 
@@ -580,7 +363,7 @@ class SocialGameEnv(gym.Env):
             Raises AssertionError if action_space_string is not a String or if it is not either "continuous", or "multidiscrete"
             Raises AssertionError if response_type_string is not a String or it is is not either "t","s","l"
             Raises AssertionError if number_of_participants is not an integer, is less than 1,  or greater than 20 (upper bound set arbitrarily for comp. purposes).
-            Raises AssertionError if any of {one_day, energy_in_state, yesterday_in_state} is not a Boolean
+            Raises AssertionError if any of {one_price, energy_in_state, yesterday_in_state} is not a Boolean
         """
 
         #Checking that action_space_string is valid
@@ -599,13 +382,13 @@ class SocialGameEnv(gym.Env):
         assert number_of_participants > 0, "Variable number_of_participants should be atleast 1, got number_of_participants = {}".format(number_of_participants)
         assert number_of_participants <= 20, "Variable number_of_participants should not be greater than 20, got number_of_participants = {}".format(number_of_participants)
 
-        #Checking that one_day is valid 
-        assert isinstance(one_day, int), "Variable one_day is not of type Int. Instead got type {}".format(type(one_day))
-        assert 366 > one_day and one_day > -2, "Variable one_day out of range [-1,365]. Got one_day = {}".format(one_day)
+        #Checking that one_price is valid 
+        assert isinstance(one_price, int), "Variable one_price is not of type Int. Instead got type {}".format(type(one_price))
+        assert 366 > one_price and one_price > -2, "Variable one_price out of range [-1,365]. Got one_price = {}".format(one_price)
 
         #Checking that energy_in_state is valid
-        assert isinstance(energy_in_state, bool), "Variable one_day is not of type Boolean. Instead got type {}".format(type(energy_in_state))
+        assert isinstance(energy_in_state, bool), "Variable one_price is not of type Boolean. Instead got type {}".format(type(energy_in_state))
 
         #Checking that yesterday_in_state is valid
-        assert isinstance(yesterday_in_state, bool), "Variable one_day is not of type Boolean. Instead got type {}".format(type(yesterday_in_state))
-        print("all inputs valid")
+        assert isinstance(yesterday_in_state, bool), "Variable one_price is not of type Boolean. Instead got type {}".format(type(yesterday_in_state))
+

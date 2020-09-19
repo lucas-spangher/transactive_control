@@ -18,8 +18,8 @@ def price_signal(day = 45, type_of_DR = "real_time_pricing"):
         optionally, we can return the optimized demand, which is the building
         calculating where the net demand should be allocated
     """
-    csv_path = "building_data.csv"
-    csv_path_2 = "../gym-socialgame/gym_socialgame/envs/building_data.csv"
+    csv_path = "./building_data.csv"
+    csv_path_2 = "./transactive_control/gym-socialgame/gym_socialgame/envs/building_data.csv"
     try:
         df = pd.read_csv(csv_path)
     except:
@@ -53,7 +53,7 @@ def price_signal(day = 45, type_of_DR = "real_time_pricing"):
             # Adding L1 regularisation to penalise shifting of occupant demand
             lambd = 0.005
             # Demand charge: attached to peak demand
-            return sum(np.maximum(cost,0)) + demand_charge@max(load) + lambd*sum(abs(x-0.1*netdemand_24))
+            return sum(np.maximum(cost,0)) + demand_charge*max(load) + lambd*sum(abs(x-0.1*netdemand_24))
 
         def constraint_sumofx(x):
             return sum(x) - controllable_load

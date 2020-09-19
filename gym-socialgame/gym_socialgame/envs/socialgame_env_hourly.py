@@ -12,12 +12,12 @@ class SocialGameEnvHourly(SocialGameEnv):
     metadata = {'render.modes': ['human']}
 
     def __init__(self, action_space_string = "continuous", response_type_string = "l", number_of_participants = 10,
-                one_price = 0, random = False, energy_in_state = False, yesterday_in_state = False):
+                one_price = 0, random = False, energy_in_state = True, yesterday_in_state = False):
         """
         SocialGameEnv for an agent determining incentives in a social game. 
         
         Note: One-step trajectory (i.e. agent submits a 10-dim vector containing incentives for each hour (8AM - 5PM) each day. 
-            Then, environment advances one-day and agent is told that the episode has finished.)
+            Agent provides incentives per hour until the end-of-the-day, when episode is finished.
 
         Args:
             action_space_string: (String) either "continuous", or "multidiscrete"
@@ -25,44 +25,16 @@ class SocialGameEnvHourly(SocialGameEnv):
             number_of_participants: (Int) denoting the number of players in the social game (must be > 0 and < 20)
             one_price: (Int) in range [-1,365] denoting which fixed day to train on . 
                     Note: -1 = Random Day, 0 = Train over entire Yr, [1,365] = Day of the Year
-            Random: (Boolean) denoting whether or not to use Domain Randomization
             energy_in_state: (Boolean) denoting whether (or not) to include the previous day's energy consumption within the state
             yesterday_in_state: (Boolean) denoting whether (or not) to append yesterday's price signal to the state
 
         """
-        
-        #Verify that inputs are valid 
-        self.check_valid_init_inputs(action_space_string, response_type_string, number_of_participants, one_price, energy_in_state, yesterday_in_state)
-
-        #Assigning Instance Variables
-        self.action_space_string = action_space_string
-        
-        self.response_type_string = response_type_string
-        self.number_of_participants = number_of_participants
-        self.one_price = self._find_one_day(one_price)
-        self.energy_in_state = energy_in_state
-        self.yesterday_in_state = yesterday_in_state
-
-        #Create Observation Space (aka State Space)
-        self.observation_space = self._create_observation_space()
-        self.prices = self._get_prices()
-        #Day corresponds to day # of the yr
-        self.day = 0
-
-        #Hour corresponds to Hour of day (setting b/c cur_iter is unbounded basically it counts the # of steps)
-        #Note self.hour is in [0,10] which maps to -> 8AM to 5PM
-        self.hour = 0
-
-        #Tracking reward
-        self.reward = 0
-
-        #Create Action Space
-        self.action_length = 1
-        self.action_space = self._create_action_space()
-
-        #Create Players
-        self.random = random
-        self.player_dict = self._create_agents()
+        super().__init__(action_space_string=action_space_string,
+                        response_type_string=response_type_string,
+                        number_of_participants=number_of_participants,
+                        one_price=one_price,
+                        energy_in_state=energy_in_state,
+                        yesterday_in_state=yesterday_in_state)
 
         #TODO: Check initialization of prev_energy
         self.prev_energy = np.zeros(1)
@@ -209,7 +181,6 @@ class SocialGameEnvHourly(SocialGameEnv):
             #Finish episode
             done = True
             reward = self.reward
-            self._update_randomization()
 
         else:
             done = False
