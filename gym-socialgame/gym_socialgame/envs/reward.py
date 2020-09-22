@@ -94,7 +94,7 @@ class Reward():
 		scaler = MinMaxScaler(feature_range = (self.min_demand, self.max_demand))
 		scaled_energy = np.squeeze(scaler.fit_transform(self.energy_use.reshape(-1, 1)))
 
-		return -np.log(np.dot(scaled_energy, self.prices)) - 10 * (np.sum(self.energy_use) < 15 * self.min_demand)
+		return -np.log(np.dot(scaled_energy, self.prices)) - 100 * (np.sum(self.energy_use) < 15 * self.min_demand)
 
 	def neg_distance_from_ideal(self, demands):
 		"""

@@ -224,19 +224,16 @@ class SocialGameEnv(gym.Env):
                 price[3:6]+=.3
             price = np.maximum(0.01 * np.ones_like(price), price)
 
-            print("price at get_price function")
-            print(price)
-
             for i in range(365):
                 all_prices.append(price)
         else:
             day = 0
             for i in range(365):  
                 price = price_signal(day + 1, type_of_DR=type_of_DR)
-                print("price at get_price function")
-                print(price)
                 price = np.array(price[8:18])
                 # put a floor on the prices so we don't have negative prices
+                if np.mean(price)==price[2]:
+                    price[3:6]+=.3
                 price = np.maximum(0.01 * np.ones_like(price), price)
                 all_prices.append(price)
                 day += 1
@@ -318,12 +315,9 @@ class SocialGameEnv(gym.Env):
                 
                 player_ideal_demands = player_reward.ideal_use_calculation()
 
-                reward = player_reward.scaled_cost_distance(player_ideal_demands)
+                reward = player_reward.log_cost_regularized(player_ideal_demands)
 
                 total_reward += reward
-
-        print("total reward")        
-        print(total_reward)
 
         return total_reward
 
