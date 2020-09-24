@@ -429,7 +429,7 @@ class SAC(OffPolicyRLModel):
                 if not self.num_timesteps % (planning_steps + 1):
 
                     # form the data_dict
-                    if self.num_timesteps in [10, 11, 12]:
+                    if self.num_timesteps in [100, 1000, 9500]:
                         person_data_dict["Step " + str(self.num_timesteps)] = {
                             "x" : list(range(8, 18)),
                             "grid_price" : self.non_vec_env.prices[self.non_vec_env.day - 1],
@@ -438,7 +438,7 @@ class SAC(OffPolicyRLModel):
                             "reward" : reward,
                         }
 
-                    if self.num_timesteps == 13:
+                    if self.num_timesteps == 9501:
 
                         # form the control
                         from sklearn.preprocessing import MinMaxScaler
