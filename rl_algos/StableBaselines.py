@@ -122,9 +122,11 @@ def get_environment(args, planning=False, include_non_vec_env = False):
         env_id = '-v0'
 
     if (args.reward_function == "lcr"):
-        args.reward_function = "log_cost_regularized"
+        reward_function = "log_cost_regularized"
     elif (args.reward_function == "scd"):
-        args.reward_function = "scaled_cost_distance"
+        reward_function = "scaled_cost_distance"
+    else:
+        reward_function = args.reward_function
 
     if not planning:
         socialgame_env = gym.make(
@@ -136,7 +138,7 @@ def get_environment(args, planning=False, include_non_vec_env = False):
             yesterday_in_state = args.yesterday, 
             energy_in_state = args.energy,
             pricing_type=args.pricing_type,
-            reward_function = args.reward_function,
+            reward_function = reward_function,
             )
     else:
         # go into the planning mode
@@ -153,7 +155,7 @@ def get_environment(args, planning=False, include_non_vec_env = False):
             planning_steps = args.planning_steps,
             planning_model_type = args.planning_model,
             own_tb_log = log_dir,
-            reward_function = args.reward_function,
+            reward_function = reward_function,
             )
                     
     #Check to make sure any new changes to environment follow OpenAI Gym API

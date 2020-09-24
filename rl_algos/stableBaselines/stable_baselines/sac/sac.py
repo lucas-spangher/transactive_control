@@ -429,16 +429,16 @@ class SAC(OffPolicyRLModel):
                 if not self.num_timesteps % (planning_steps + 1):
 
                     # form the data_dict
-                    if self.num_timesteps in [100, 1000, 10000]:
+                    if self.num_timesteps in [10, 11, 12]:
                         person_data_dict["Step " + str(self.num_timesteps)] = {
-                            "x" : list(range(8, 19)),
+                            "x" : list(range(8, 18)),
                             "grid_price" : self.non_vec_env.prices[self.non_vec_env.day - 1],
-                            "points" : unscaled_action,
+                            "points" : self.non_vec_env.action,
                             "energy_consumption" : self.non_vec_env.prev_energy,
                             "reward" : reward,
                         }
 
-                    if self.num_timesteps == 10000:
+                    if self.num_timesteps == 13:
 
                         # form the control
                         from sklearn.preprocessing import MinMaxScaler
@@ -447,7 +447,7 @@ class SAC(OffPolicyRLModel):
                         scaled_grid_price = scaler.fit_transform(np.array(grid_price).reshape(-1, 1))
                         energy_consumptions = self.non_vec_env._simulate_humans(scaled_grid_price)
                         person_data_dict["control"] = {
-                            "x" : list(range(8, 19)), 
+                            "x" : list(range(8, 18)), 
                             "grid_price" : scaled_grid_price,
                             "energy_consumption" : energy_consumptions["avg"],
                             "reward" : self.non_vec_env._get_reward(price = grid_price, energy_consumptions = energy_consumptions),
@@ -456,7 +456,7 @@ class SAC(OffPolicyRLModel):
                         # call the plotting statement 
                         dir_split = own_log_dir.split("/")
                         people_reaction_log_dir = dir_split[0]+ "/people_reaction_dir/" + dir_split[1]
-                        self.plotter_person_reaction(person_data_dict, people_reaction_dir)
+                        self.plotter_person_reaction(person_data_dict, people_reaction_log_dir)
 
 
                     new_obs, reward, done, info = self.env.step(unscaled_action) #, step_num = self.num_timesteps)
