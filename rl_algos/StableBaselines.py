@@ -53,7 +53,13 @@ def get_agent(env, args, non_vec_env = None):
     if args.algo == 'sac':
         from stableBaselines.stable_baselines.sac.sac import SAC as mySAC
         from stable_baselines.sac.policies import MlpPolicy as policy
-        return mySAC(policy, env, non_vec_env = non_vec_env, batch_size = args.batch_size, learning_starts = 30, verbose = 0, tensorboard_log = './rl_tensorboard_logs/')    
+        return mySAC(policy, env, 
+            non_vec_env = non_vec_env, 
+            batch_size = args.batch_size, 
+            learning_starts = 30, 
+            verbose = 0, 
+            tensorboard_log = './rl_tensorboard_logs/',
+            plotter_person_reaction = utils.plotter_person_reaction)    
         
      # I (Akash) still need to study PPO to understand it, I implemented b/c I know Joe's work used PPO
     elif args.algo == 'ppo':
@@ -115,6 +121,11 @@ def get_environment(args, planning=False, include_non_vec_env = False):
     else:
         env_id = '-v0'
 
+    if (args.reward_function == "lcr"):
+        args.reward_function = "log_cost_regularized"
+    elif (args.reward_function == "scd"):
+        args.reward_function = "scaled_cost_distance"
+
     if not planning:
         socialgame_env = gym.make(
             'gym_socialgame:socialgame{}'.format(env_id), 
@@ -125,6 +136,7 @@ def get_environment(args, planning=False, include_non_vec_env = False):
             yesterday_in_state = args.yesterday, 
             energy_in_state = args.energy,
             pricing_type=args.pricing_type,
+            reward_function = args.reward_function,
             )
     else:
         # go into the planning mode
@@ -141,6 +153,7 @@ def get_environment(args, planning=False, include_non_vec_env = False):
             planning_steps = args.planning_steps,
             planning_model_type = args.planning_model,
             own_tb_log = log_dir,
+            reward_function = args.reward_function,
             )
                     
     #Check to make sure any new changes to environment follow OpenAI Gym API
@@ -185,6 +198,8 @@ def parse_args():
     parser.add_argument("--own_tb_log", help = "log directory to store your own tb logs", type = str)
     parser.add_argument("--pricing_type", help = "time of use or real time pricing", type=str, choices=["TOU", "RTP"], default="TOU")
     parser.add_argument("--test_planning_env", help="flag if you want to test vanilla planning", type=str, default="F", choices = ["T", "F"])
+    parser.add_argument("--reward_function", help = "reward function to test", type = str, 
+        default = "scaled_cost_distance", choices = ["scaled_cost_distance",  "log_cost_regularized", "scd", "lcr"])
 
     args = parser.parse_args()
 

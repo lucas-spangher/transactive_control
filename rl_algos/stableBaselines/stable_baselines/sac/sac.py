@@ -67,7 +67,7 @@ class SAC(OffPolicyRLModel):
                  gradient_steps=1, target_entropy='auto', action_noise=None,
                  random_exploration=0.0, verbose=0, tensorboard_log=None,
                  _init_setup_model=True, policy_kwargs=None, full_tensorboard_log=False,
-                 seed=None, n_cpu_tf_sess=None, non_vec_env = None):
+                 seed=None, n_cpu_tf_sess=None, non_vec_env = None, plotter_person_reaction = None):
 
         super(SAC, self).__init__(policy=policy, env=env, replay_buffer=None, verbose=verbose,
                                   policy_base=SACPolicy, requires_vec_env=False, policy_kwargs=policy_kwargs,
@@ -123,7 +123,9 @@ class SAC(OffPolicyRLModel):
         self.processed_next_obs_ph = None
         self.log_ent_coef = None
 
+        # lucas added these
         self.non_vec_env = non_vec_env
+        self.plotter_person_reaction = plotter_person_reaction
 
         if _init_setup_model:
             self.setup_model()
@@ -368,6 +370,7 @@ class SAC(OffPolicyRLModel):
         tb_configure(own_log_dir)
 
         steps_in_real_env = 0
+        person_data_dict = {}
 
         if replay_wrapper is not None:
             self.replay_buffer = replay_wrapper(self.replay_buffer)
@@ -424,6 +427,38 @@ class SAC(OffPolicyRLModel):
                 # else: 
 
                 if not self.num_timesteps % (planning_steps + 1):
+
+                    # form the data_dict
+                    if self.num_timesteps in [100, 1000, 10000]:
+                        person_data_dict["Step " + str(self.num_timesteps)] = {
+                            "x" : list(range(8, 19)),
+                            "grid_price" : self.non_vec_env.prices[self.non_vec_env.day - 1],
+                            "points" : unscaled_action,
+                            "energy_consumption" : self.non_vec_env.prev_energy,
+                            "reward" : reward,
+                        }
+
+                    if self.num_timesteps == 10000:
+
+                        # form the control
+                        from sklearn.preprocessing import MinMaxScaler
+                        grid_price = self.non_vec_env.prices[self.non_vec_env.day - 1]
+                        scaler = MinMaxScaler(feature_range = (0, 10))
+                        scaled_grid_price = scaler.fit_transform(np.array(grid_price).reshape(-1, 1))
+                        energy_consumptions = self.non_vec_env._simulate_humans(scaled_grid_price)
+                        person_data_dict["control"] = {
+                            "x" : list(range(8, 19)), 
+                            "grid_price" : scaled_grid_price,
+                            "energy_consumption" : energy_consumptions["avg"],
+                            "reward" : self.non_vec_env._get_reward(price = grid_price, energy_consumptions = energy_consumptions),
+                        }
+
+                        # call the plotting statement 
+                        dir_split = own_log_dir.split("/")
+                        people_reaction_log_dir = dir_split[0]+ "/people_reaction_dir/" + dir_split[1]
+                        self.plotter_person_reaction(person_data_dict, people_reaction_dir)
+
+
                     new_obs, reward, done, info = self.env.step(unscaled_action) #, step_num = self.num_timesteps)
                     steps_in_real_env +=1
 

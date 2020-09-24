@@ -82,7 +82,7 @@ class Reward():
 
 		return -np.log(np.dot(scaled_energy, self.prices))
 
-	def log_cost_regularized(self, h = 15):
+	def log_cost_regularized(self):
 		"""
 		Scales energy_use to be between min and max energy demands (this is repeated 
 		in agent.routine_output_trasform), and then returns the simple total cost. 

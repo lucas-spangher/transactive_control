@@ -23,7 +23,8 @@ class SocialGameEnv(gym.Env):
         energy_in_state = False, 
         yesterday_in_state = False,
         day_of_week = False,
-        pricing_type="TOU"
+        pricing_type="TOU",
+        reward_function = "scaled_cost_distance",
         ):
         """
         SocialGameEnv for an agent determining incentives in a social game. 
@@ -57,6 +58,7 @@ class SocialGameEnv(gym.Env):
         self.one_day = self._find_one_day(one_day)
         self.energy_in_state = energy_in_state
         self.yesterday_in_state = yesterday_in_state
+        self.reward_function = reward_function
 
         self.day = 0
         self.days_of_week = [0, 1, 2, 3, 4]
@@ -192,7 +194,7 @@ class SocialGameEnv(gym.Env):
         my_baseline_energy = pd.DataFrame(data = {"net_energy_use" : working_hour_energy})
 
         for i in range(self.number_of_participants):
-            player = DeterministicFunctionPerson(my_baseline_energy, points_multiplier = 10, response= self.response_type_string)
+            player = CurtailandShiftPerson(my_baseline_energy, points_multiplier = 10) #, response= self.response_type_string)
             player_dict['player_{}'.format(i)] = player
 
         return player_dict
@@ -289,7 +291,7 @@ class SocialGameEnv(gym.Env):
         energy_consumptions["avg"] = total_consumption / self.number_of_participants
         return energy_consumptions
     
-    def _get_reward(self, price, energy_consumptions):
+    def _get_reward(self, price, energy_consumptions, reward_function = "scaled_cost_distance"):
         """
         Purpose: Compute reward given price signal and energy consumption of the office
 
@@ -312,10 +314,13 @@ class SocialGameEnv(gym.Env):
                 player_max_demand = player.get_max_demand()
                 player_energy = energy_consumptions[player_name]
                 player_reward = Reward(player_energy, price, player_min_demand, player_max_demand)
-                
-                player_ideal_demands = player_reward.ideal_use_calculation()
 
-                reward = player_reward.log_cost_regularized(player_ideal_demands)
+                if reward_function == "scaled_cost_distance":
+                    player_ideal_demands = player_reward.ideal_use_calculation()
+                    reward = player_reward.scaled_cost_distance(player_ideal_demands)
+
+                elif reward_function == "log_cost_regularized":
+                    reward = player_reward.log_cost_regularized()
 
                 total_reward += reward
 
@@ -369,7 +374,7 @@ class SocialGameEnv(gym.Env):
 
 
         observation = self._get_observation()
-        reward = self._get_reward(prev_price, energy_consumptions)
+        reward = self._get_reward(prev_price, energy_consumptions, reward_function = self.reward_function)
         info = {}
         return observation, reward, done, info
 
