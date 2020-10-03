@@ -316,6 +316,7 @@ class CurtailandShiftPerson(Person):
 		output = np.array(self.baseline_energy)[baseline_day*24:baseline_day*24+10]
 		energy_resp = output*(1 - self.curtailableLoadFraction - self.shiftableLoadFraction) + self.curtailedLoad(points) + self.shiftedLoad(points)
 		
+			
 		self.min_demand = np.maximum(0, min(energy_resp))
 		self.max_demand = np.maximum(0, max(energy_resp))
 

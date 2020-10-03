@@ -181,8 +181,8 @@ class SocialGameEnv(gym.Env):
 
         player_dict = {}
 
-        #Sample Energy from average energy in the office (pre-treatment) from the last experiment 
-        #Reference: Lucas Spangher, et al. Engineering  vs.  ambient  typevisualizations:  Quantifying effects of different data visualizations on energy consumption. 2019
+        # Sample Energy from average energy in the office (pre-treatment) from the last experiment 
+        # Reference: Lucas Spangher, et al. Engineering  vs.  ambient  typevisualizations:  Quantifying effects of different data visualizations on energy consumption. 2019
         
         sample_energy = np.array([ 0.28,  11.9,   16.34,  16.8,  17.43,  16.15,  16.23,  15.88,  15.09,  35.6, 
                                 123.5,  148.7,  158.49, 149.13, 159.32, 157.62, 158.8,  156.49, 147.04,  70.76,
@@ -354,8 +354,6 @@ class SocialGameEnv(gym.Env):
 
         prev_price = self.prices[(self.day)]
         self.day = (self.day + 1) % 365
-        self.curr_iter += 1
-
         self.curr_iter += 1
         
         if self.curr_iter > 0:

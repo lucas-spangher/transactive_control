@@ -3,6 +3,8 @@ import numpy as np
 import pandas as pd
 from scipy.optimize import minimize
 import os
+import matplotlib.pyplot as plt
+from sklearn.preprocessing import MinMaxScaler 
 
 #data_path = os.path.join(os.getcwd(), "baselines", "behavioral_sim", "building_data.csv")
 # csv_path = os.path.dirname(os.path.realpath(__file__)) + "/building_data.csv"
@@ -19,10 +21,14 @@ def price_signal(day = 45, type_of_DR = "real_time_pricing"):
     """
     csv_path = "building_data.csv"
     csv_path_2 = "../gym-socialgame/gym_socialgame/envs/building_data.csv"
+    csv_path_3 = "/global/home/users/lucas_spangher/transactive_control/gym-socialgame/gym_socialgame/envs/building_data.csv"
     try:
         df = pd.read_csv(csv_path)
     except:
-        df = pd.read_csv(csv_path_2)
+        try:
+            df = pd.read_csv(csv_path_2)
+        except:
+            df = pd.read_csv(csv_path_3)
 
     pv = 0.001*np.array(df['PV (W)'].tolist())
     price = np.array(df['Price( $ per kWh)'].tolist())
@@ -80,6 +86,7 @@ def price_signal(day = 45, type_of_DR = "real_time_pricing"):
         return price_24
     else:
         return "error!!!"
+
 
 
 
