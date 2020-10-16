@@ -435,6 +435,8 @@ class SAC(OffPolicyRLModel):
 
     def _train_step(self, step, writer, learning_rate):
         # Sample a batch from the replay buffer
+        # TODO-manan: Test with increasing self.batch_size, but still only calling train_step once
+
         batch = self.replay_buffer.sample(self.batch_size, env=self._vec_normalize_env)
         batch_obs, batch_actions, batch_rewards, batch_next_obs, batch_dones = batch
 
@@ -546,6 +548,11 @@ class SAC(OffPolicyRLModel):
                     action = self.policy_tf.step(
                         obs[None], deterministic=False
                     ).flatten()
+                    # TODO-manan: pass a player-dict parameter to the learn function
+                    # can loop over player dict
+                    # convert action to array
+                    # state space should be half grid prices, and half yesterday's energy (how to differente between people) [already done]
+
                     # Add noise to the action (improve exploration,
                     # not needed in general)
                     if self.action_noise is not None:
@@ -641,6 +648,10 @@ class SAC(OffPolicyRLModel):
 
                 # Store transition in the replay buffer.
                 self.replay_buffer_add(obs_, action, reward_, new_obs_, done, info)
+                # TODO-manan: to investigate decision-time planing, would need to flush the replay buffer at each timestep,
+                # and fill it in with data corresponding to what the planning model predicts for the next timestep
+                # TODO-manan: after you have array of rewards, new_obs, etc, add each of them incrementally to the replay buffer
+
                 obs = new_obs
                 # Save the unnormalized observation
                 if self._vec_normalize_env is not None:

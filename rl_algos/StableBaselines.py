@@ -276,7 +276,7 @@ def parse_args():
         "--energy",
         help="Whether to include energy in state (default = F)",
         type=str,
-        default="F",
+        default="T",
         choices=["T", "F"],
     )
     parser.add_argument(
