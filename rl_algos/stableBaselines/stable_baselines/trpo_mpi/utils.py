@@ -13,7 +13,7 @@ def add_vtarg_and_adv(seg, gamma, lam):
     episode_starts = np.append(seg["episode_starts"], False)
     vpred = np.append(seg["vpred"], seg["nextvpred"])
     rew_len = len(seg["rewards"])
-    seg["adv"] = np.empty(rew_len, 'float32')
+    seg["adv"] = np.empty(rew_len, "float32")
     rewards = seg["rewards"]
     lastgaelam = 0
     for step in reversed(range(rew_len)):

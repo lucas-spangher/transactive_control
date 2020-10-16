@@ -2,7 +2,12 @@
 import numpy as np
 import tensorflow as tf
 
-from stable_baselines.common.tf_util import function, initialize, single_threaded_session, is_image
+from stable_baselines.common.tf_util import (
+    function,
+    initialize,
+    single_threaded_session,
+    is_image,
+)
 
 
 def test_function():

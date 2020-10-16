@@ -32,11 +32,23 @@ class GAIL(TRPO):
         WARNING: this logging can take a lot of space quickly
     """
 
-    def __init__(self, policy, env, expert_dataset=None,
-                 hidden_size_adversary=100, adversary_entcoeff=1e-3,
-                 g_step=3, d_step=1, d_stepsize=3e-4, verbose=0,
-                 _init_setup_model=True, **kwargs):
-        super().__init__(policy, env, verbose=verbose, _init_setup_model=False, **kwargs)
+    def __init__(
+        self,
+        policy,
+        env,
+        expert_dataset=None,
+        hidden_size_adversary=100,
+        adversary_entcoeff=1e-3,
+        g_step=3,
+        d_step=1,
+        d_stepsize=3e-4,
+        verbose=0,
+        _init_setup_model=True,
+        **kwargs
+    ):
+        super().__init__(
+            policy, env, verbose=verbose, _init_setup_model=False, **kwargs
+        )
         self.using_gail = True
         self.expert_dataset = expert_dataset
         self.g_step = g_step
@@ -48,7 +60,17 @@ class GAIL(TRPO):
         if _init_setup_model:
             self.setup_model()
 
-    def learn(self, total_timesteps, callback=None, log_interval=100, tb_log_name="GAIL",
-              reset_num_timesteps=True):
-        assert self.expert_dataset is not None, "You must pass an expert dataset to GAIL for training"
-        return super().learn(total_timesteps, callback, log_interval, tb_log_name, reset_num_timesteps)
+    def learn(
+        self,
+        total_timesteps,
+        callback=None,
+        log_interval=100,
+        tb_log_name="GAIL",
+        reset_num_timesteps=True,
+    ):
+        assert (
+            self.expert_dataset is not None
+        ), "You must pass an expert dataset to GAIL for training"
+        return super().learn(
+            total_timesteps, callback, log_interval, tb_log_name, reset_num_timesteps
+        )

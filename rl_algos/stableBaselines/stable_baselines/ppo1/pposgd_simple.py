@@ -6,8 +6,15 @@ import numpy as np
 import tensorflow as tf
 from mpi4py import MPI
 
-from stable_baselines.common import Dataset, explained_variance, fmt_row, zipsame, ActorCriticRLModel, SetVerbosity, \
-    TensorboardWriter
+from stable_baselines.common import (
+    Dataset,
+    explained_variance,
+    fmt_row,
+    zipsame,
+    ActorCriticRLModel,
+    SetVerbosity,
+    TensorboardWriter,
+)
 from stable_baselines import logger
 import stable_baselines.common.tf_util as tf_util
 from stable_baselines.common.tf_util import total_episode_reward_logger
@@ -49,14 +56,40 @@ class PPO1(ActorCriticRLModel):
     :param n_cpu_tf_sess: (int) The number of threads for TensorFlow operations
         If None, the number of cpu of the current machine will be used.
     """
-    def __init__(self, policy, env, gamma=0.99, timesteps_per_actorbatch=256, clip_param=0.2, entcoeff=0.01,
-                 optim_epochs=4, optim_stepsize=1e-3, optim_batchsize=64, lam=0.95, adam_epsilon=1e-5,
-                 schedule='linear', verbose=0, tensorboard_log=None, _init_setup_model=True,
-                 policy_kwargs=None, full_tensorboard_log=False, seed=None, n_cpu_tf_sess=1):
 
-        super().__init__(policy=policy, env=env, verbose=verbose, requires_vec_env=False,
-                         _init_setup_model=_init_setup_model, policy_kwargs=policy_kwargs,
-                         seed=seed, n_cpu_tf_sess=n_cpu_tf_sess)
+    def __init__(
+        self,
+        policy,
+        env,
+        gamma=0.99,
+        timesteps_per_actorbatch=256,
+        clip_param=0.2,
+        entcoeff=0.01,
+        optim_epochs=4,
+        optim_stepsize=1e-3,
+        optim_batchsize=64,
+        lam=0.95,
+        adam_epsilon=1e-5,
+        schedule="linear",
+        verbose=0,
+        tensorboard_log=None,
+        _init_setup_model=True,
+        policy_kwargs=None,
+        full_tensorboard_log=False,
+        seed=None,
+        n_cpu_tf_sess=1,
+    ):
+
+        super().__init__(
+            policy=policy,
+            env=env,
+            verbose=verbose,
+            requires_vec_env=False,
+            _init_setup_model=_init_setup_model,
+            policy_kwargs=policy_kwargs,
+            seed=seed,
+            n_cpu_tf_sess=n_cpu_tf_sess,
+        )
 
         self.gamma = gamma
         self.timesteps_per_actorbatch = timesteps_per_actorbatch
@@ -101,16 +134,34 @@ class PPO1(ActorCriticRLModel):
             self.graph = tf.Graph()
             with self.graph.as_default():
                 self.set_random_seed(self.seed)
-                self.sess = tf_util.make_session(num_cpu=self.n_cpu_tf_sess, graph=self.graph)
+                self.sess = tf_util.make_session(
+                    num_cpu=self.n_cpu_tf_sess, graph=self.graph
+                )
 
                 # Construct network for new policy
-                self.policy_pi = self.policy(self.sess, self.observation_space, self.action_space, self.n_envs, 1,
-                                             None, reuse=False, **self.policy_kwargs)
+                self.policy_pi = self.policy(
+                    self.sess,
+                    self.observation_space,
+                    self.action_space,
+                    self.n_envs,
+                    1,
+                    None,
+                    reuse=False,
+                    **self.policy_kwargs
+                )
 
                 # Network for old policy
                 with tf.variable_scope("oldpi", reuse=False):
-                    old_pi = self.policy(self.sess, self.observation_space, self.action_space, self.n_envs, 1,
-                                         None, reuse=False, **self.policy_kwargs)
+                    old_pi = self.policy(
+                        self.sess,
+                        self.observation_space,
+                        self.action_space,
+                        self.n_envs,
+                        1,
+                        None,
+                        reuse=False,
+                        **self.policy_kwargs
+                    )
 
                 with tf.variable_scope("loss", reuse=False):
                     # Target advantage function (if applicable)
@@ -120,7 +171,7 @@ class PPO1(ActorCriticRLModel):
                     ret = tf.placeholder(dtype=tf.float32, shape=[None])
 
                     # learning rate multiplier, updated with schedule
-                    lrmult = tf.placeholder(name='lrmult', dtype=tf.float32, shape=[])
+                    lrmult = tf.placeholder(name="lrmult", dtype=tf.float32, shape=[])
 
                     # Annealed cliping parameter epislon
                     clip_param = self.clip_param * lrmult
@@ -128,58 +179,77 @@ class PPO1(ActorCriticRLModel):
                     obs_ph = self.policy_pi.obs_ph
                     action_ph = self.policy_pi.pdtype.sample_placeholder([None])
 
-                    kloldnew = old_pi.proba_distribution.kl(self.policy_pi.proba_distribution)
+                    kloldnew = old_pi.proba_distribution.kl(
+                        self.policy_pi.proba_distribution
+                    )
                     ent = self.policy_pi.proba_distribution.entropy()
                     meankl = tf.reduce_mean(kloldnew)
                     meanent = tf.reduce_mean(ent)
                     pol_entpen = (-self.entcoeff) * meanent
 
                     # pnew / pold
-                    ratio = tf.exp(self.policy_pi.proba_distribution.logp(action_ph) -
-                                   old_pi.proba_distribution.logp(action_ph))
+                    ratio = tf.exp(
+                        self.policy_pi.proba_distribution.logp(action_ph)
+                        - old_pi.proba_distribution.logp(action_ph)
+                    )
 
                     # surrogate from conservative policy iteration
                     surr1 = ratio * atarg
-                    surr2 = tf.clip_by_value(ratio, 1.0 - clip_param, 1.0 + clip_param) * atarg
+                    surr2 = (
+                        tf.clip_by_value(ratio, 1.0 - clip_param, 1.0 + clip_param)
+                        * atarg
+                    )
 
                     # PPO's pessimistic surrogate (L^CLIP)
-                    pol_surr = - tf.reduce_mean(tf.minimum(surr1, surr2))
+                    pol_surr = -tf.reduce_mean(tf.minimum(surr1, surr2))
                     vf_loss = tf.reduce_mean(tf.square(self.policy_pi.value_flat - ret))
                     total_loss = pol_surr + pol_entpen + vf_loss
                     losses = [pol_surr, pol_entpen, vf_loss, meankl, meanent]
                     self.loss_names = ["pol_surr", "pol_entpen", "vf_loss", "kl", "ent"]
 
-                    tf.summary.scalar('entropy_loss', pol_entpen)
-                    tf.summary.scalar('policy_gradient_loss', pol_surr)
-                    tf.summary.scalar('value_function_loss', vf_loss)
-                    tf.summary.scalar('approximate_kullback-leibler', meankl)
-                    tf.summary.scalar('clip_factor', clip_param)
-                    tf.summary.scalar('loss', total_loss)
+                    tf.summary.scalar("entropy_loss", pol_entpen)
+                    tf.summary.scalar("policy_gradient_loss", pol_surr)
+                    tf.summary.scalar("value_function_loss", vf_loss)
+                    tf.summary.scalar("approximate_kullback-leibler", meankl)
+                    tf.summary.scalar("clip_factor", clip_param)
+                    tf.summary.scalar("loss", total_loss)
 
                     self.params = tf_util.get_trainable_vars("model")
 
                     self.assign_old_eq_new = tf_util.function(
-                        [], [], updates=[tf.assign(oldv, newv) for (oldv, newv) in
-                                         zipsame(tf_util.get_globals_vars("oldpi"), tf_util.get_globals_vars("model"))])
+                        [],
+                        [],
+                        updates=[
+                            tf.assign(oldv, newv)
+                            for (oldv, newv) in zipsame(
+                                tf_util.get_globals_vars("oldpi"),
+                                tf_util.get_globals_vars("model"),
+                            )
+                        ],
+                    )
 
                 with tf.variable_scope("Adam_mpi", reuse=False):
-                    self.adam = MpiAdam(self.params, epsilon=self.adam_epsilon, sess=self.sess)
+                    self.adam = MpiAdam(
+                        self.params, epsilon=self.adam_epsilon, sess=self.sess
+                    )
 
                 with tf.variable_scope("input_info", reuse=False):
-                    tf.summary.scalar('discounted_rewards', tf.reduce_mean(ret))
-                    tf.summary.scalar('learning_rate', tf.reduce_mean(self.optim_stepsize))
-                    tf.summary.scalar('advantage', tf.reduce_mean(atarg))
-                    tf.summary.scalar('clip_range', tf.reduce_mean(self.clip_param))
+                    tf.summary.scalar("discounted_rewards", tf.reduce_mean(ret))
+                    tf.summary.scalar(
+                        "learning_rate", tf.reduce_mean(self.optim_stepsize)
+                    )
+                    tf.summary.scalar("advantage", tf.reduce_mean(atarg))
+                    tf.summary.scalar("clip_range", tf.reduce_mean(self.clip_param))
 
                     if self.full_tensorboard_log:
-                        tf.summary.histogram('discounted_rewards', ret)
-                        tf.summary.histogram('learning_rate', self.optim_stepsize)
-                        tf.summary.histogram('advantage', atarg)
-                        tf.summary.histogram('clip_range', self.clip_param)
+                        tf.summary.histogram("discounted_rewards", ret)
+                        tf.summary.histogram("learning_rate", self.optim_stepsize)
+                        tf.summary.histogram("advantage", atarg)
+                        tf.summary.histogram("clip_range", self.clip_param)
                         if tf_util.is_image(self.observation_space):
-                            tf.summary.image('observation', obs_ph)
+                            tf.summary.image("observation", obs_ph)
                         else:
-                            tf.summary.histogram('observation', obs_ph)
+                            tf.summary.histogram("observation", obs_ph)
 
                 self.step = self.policy_pi.step
                 self.proba_step = self.policy_pi.proba_step
@@ -189,31 +259,47 @@ class PPO1(ActorCriticRLModel):
 
                 self.summary = tf.summary.merge_all()
 
-                self.lossandgrad = tf_util.function([obs_ph, old_pi.obs_ph, action_ph, atarg, ret, lrmult],
-                                                    [self.summary, tf_util.flatgrad(total_loss, self.params)] + losses)
-                self.compute_losses = tf_util.function([obs_ph, old_pi.obs_ph, action_ph, atarg, ret, lrmult],
-                                                       losses)
+                self.lossandgrad = tf_util.function(
+                    [obs_ph, old_pi.obs_ph, action_ph, atarg, ret, lrmult],
+                    [self.summary, tf_util.flatgrad(total_loss, self.params)] + losses,
+                )
+                self.compute_losses = tf_util.function(
+                    [obs_ph, old_pi.obs_ph, action_ph, atarg, ret, lrmult], losses
+                )
 
-    def learn(self, total_timesteps, callback=None, log_interval=100, tb_log_name="PPO1",
-              reset_num_timesteps=True):
+    def learn(
+        self,
+        total_timesteps,
+        callback=None,
+        log_interval=100,
+        tb_log_name="PPO1",
+        reset_num_timesteps=True,
+    ):
 
         new_tb_log = self._init_num_timesteps(reset_num_timesteps)
         callback = self._init_callback(callback)
 
-        with SetVerbosity(self.verbose), TensorboardWriter(self.graph, self.tensorboard_log, tb_log_name, new_tb_log) \
-                as writer:
+        with SetVerbosity(self.verbose), TensorboardWriter(
+            self.graph, self.tensorboard_log, tb_log_name, new_tb_log
+        ) as writer:
             self._setup_learn()
 
-            assert issubclass(self.policy, ActorCriticPolicy), "Error: the input policy for the PPO1 model must be " \
-                                                               "an instance of common.policies.ActorCriticPolicy."
+            assert issubclass(self.policy, ActorCriticPolicy), (
+                "Error: the input policy for the PPO1 model must be "
+                "an instance of common.policies.ActorCriticPolicy."
+            )
 
             with self.sess.as_default():
                 self.adam.sync()
                 callback.on_training_start(locals(), globals())
 
                 # Prepare for rollouts
-                seg_gen = traj_segment_generator(self.policy_pi, self.env, self.timesteps_per_actorbatch,
-                                                 callback=callback)
+                seg_gen = traj_segment_generator(
+                    self.policy_pi,
+                    self.env,
+                    self.timesteps_per_actorbatch,
+                    callback=callback,
+                )
 
                 episodes_so_far = 0
                 timesteps_so_far = 0
@@ -229,10 +315,12 @@ class PPO1(ActorCriticRLModel):
                     if timesteps_so_far >= total_timesteps:
                         break
 
-                    if self.schedule == 'constant':
+                    if self.schedule == "constant":
                         cur_lrmult = 1.0
-                    elif self.schedule == 'linear':
-                        cur_lrmult = max(1.0 - float(timesteps_so_far) / total_timesteps, 0)
+                    elif self.schedule == "linear":
+                        cur_lrmult = max(
+                            1.0 - float(timesteps_so_far) / total_timesteps, 0
+                        )
                     else:
                         raise NotImplementedError
 
@@ -241,7 +329,9 @@ class PPO1(ActorCriticRLModel):
                     seg = seg_gen.__next__()
 
                     # Stop training early (triggered by the callback)
-                    if not seg.get('continue_training', True):  # pytype: disable=attribute-error
+                    if not seg.get(
+                        "continue_training", True
+                    ):  # pytype: disable=attribute-error
                         break
 
                     add_vtarg_and_adv(seg, self.gamma, self.lam)
@@ -252,18 +342,23 @@ class PPO1(ActorCriticRLModel):
 
                     # true_rew is the reward without discount
                     if writer is not None:
-                        total_episode_reward_logger(self.episode_reward,
-                                                    seg["true_rewards"].reshape((self.n_envs, -1)),
-                                                    seg["dones"].reshape((self.n_envs, -1)),
-                                                    writer, self.num_timesteps)
+                        total_episode_reward_logger(
+                            self.episode_reward,
+                            seg["true_rewards"].reshape((self.n_envs, -1)),
+                            seg["dones"].reshape((self.n_envs, -1)),
+                            writer,
+                            self.num_timesteps,
+                        )
 
                     # predicted value function before udpate
                     vpredbefore = seg["vpred"]
 
                     # standardized advantage function estimate
                     atarg = (atarg - atarg.mean()) / atarg.std()
-                    dataset = Dataset(dict(ob=observations, ac=actions, atarg=atarg, vtarg=tdlamret),
-                                      shuffle=not self.policy.recurrent)
+                    dataset = Dataset(
+                        dict(ob=observations, ac=actions, atarg=atarg, vtarg=tdlamret),
+                        shuffle=not self.policy.recurrent,
+                    )
                     optim_batchsize = self.optim_batchsize or observations.shape[0]
 
                     # set old parameter values to new parameter values
@@ -275,31 +370,57 @@ class PPO1(ActorCriticRLModel):
                     for k in range(self.optim_epochs):
                         # list of tuples, each of which gives the loss for a minibatch
                         losses = []
-                        for i, batch in enumerate(dataset.iterate_once(optim_batchsize)):
-                            steps = (self.num_timesteps +
-                                     k * optim_batchsize +
-                                     int(i * (optim_batchsize / len(dataset.data_map))))
+                        for i, batch in enumerate(
+                            dataset.iterate_once(optim_batchsize)
+                        ):
+                            steps = (
+                                self.num_timesteps
+                                + k * optim_batchsize
+                                + int(i * (optim_batchsize / len(dataset.data_map)))
+                            )
                             if writer is not None:
                                 # run loss backprop with summary, but once every 10 runs save the metadata
                                 # (memory, compute time, ...)
                                 if self.full_tensorboard_log and (1 + k) % 10 == 0:
-                                    run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
+                                    run_options = tf.RunOptions(
+                                        trace_level=tf.RunOptions.FULL_TRACE
+                                    )
                                     run_metadata = tf.RunMetadata()
-                                    summary, grad, *newlosses = self.lossandgrad(batch["ob"], batch["ob"], batch["ac"],
-                                                                                 batch["atarg"], batch["vtarg"],
-                                                                                 cur_lrmult, sess=self.sess,
-                                                                                 options=run_options,
-                                                                                 run_metadata=run_metadata)
-                                    writer.add_run_metadata(run_metadata, 'step%d' % steps)
+                                    summary, grad, *newlosses = self.lossandgrad(
+                                        batch["ob"],
+                                        batch["ob"],
+                                        batch["ac"],
+                                        batch["atarg"],
+                                        batch["vtarg"],
+                                        cur_lrmult,
+                                        sess=self.sess,
+                                        options=run_options,
+                                        run_metadata=run_metadata,
+                                    )
+                                    writer.add_run_metadata(
+                                        run_metadata, "step%d" % steps
+                                    )
                                 else:
-                                    summary, grad, *newlosses = self.lossandgrad(batch["ob"], batch["ob"], batch["ac"],
-                                                                                 batch["atarg"], batch["vtarg"],
-                                                                                 cur_lrmult, sess=self.sess)
+                                    summary, grad, *newlosses = self.lossandgrad(
+                                        batch["ob"],
+                                        batch["ob"],
+                                        batch["ac"],
+                                        batch["atarg"],
+                                        batch["vtarg"],
+                                        cur_lrmult,
+                                        sess=self.sess,
+                                    )
                                 writer.add_summary(summary, steps)
                             else:
-                                _, grad, *newlosses = self.lossandgrad(batch["ob"], batch["ob"], batch["ac"],
-                                                                       batch["atarg"], batch["vtarg"], cur_lrmult,
-                                                                       sess=self.sess)
+                                _, grad, *newlosses = self.lossandgrad(
+                                    batch["ob"],
+                                    batch["ob"],
+                                    batch["ac"],
+                                    batch["atarg"],
+                                    batch["vtarg"],
+                                    cur_lrmult,
+                                    sess=self.sess,
+                                )
 
                             self.adam.update(grad, self.optim_stepsize * cur_lrmult)
                             losses.append(newlosses)
@@ -308,14 +429,23 @@ class PPO1(ActorCriticRLModel):
                     logger.log("Evaluating losses...")
                     losses = []
                     for batch in dataset.iterate_once(optim_batchsize):
-                        newlosses = self.compute_losses(batch["ob"], batch["ob"], batch["ac"], batch["atarg"],
-                                                        batch["vtarg"], cur_lrmult, sess=self.sess)
+                        newlosses = self.compute_losses(
+                            batch["ob"],
+                            batch["ob"],
+                            batch["ac"],
+                            batch["atarg"],
+                            batch["vtarg"],
+                            cur_lrmult,
+                            sess=self.sess,
+                        )
                         losses.append(newlosses)
                     mean_losses, _, _ = mpi_moments(losses, axis=0)
                     logger.log(fmt_row(13, mean_losses))
                     for (loss_val, name) in zipsame(mean_losses, self.loss_names):
                         logger.record_tabular("loss_" + name, loss_val)
-                    logger.record_tabular("ev_tdlam_before", explained_variance(vpredbefore, tdlamret))
+                    logger.record_tabular(
+                        "ev_tdlam_before", explained_variance(vpredbefore, tdlamret)
+                    )
 
                     # local values
                     lrlocal = (seg["ep_lens"], seg["ep_rets"])
@@ -330,7 +460,9 @@ class PPO1(ActorCriticRLModel):
                         logger.record_tabular("EpRewMean", np.mean(reward_buffer))
                     logger.record_tabular("EpThisIter", len(lens))
                     episodes_so_far += len(lens)
-                    current_it_timesteps = MPI.COMM_WORLD.allreduce(seg["total_timestep"])
+                    current_it_timesteps = MPI.COMM_WORLD.allreduce(
+                        seg["total_timestep"]
+                    )
                     timesteps_so_far += current_it_timesteps
                     self.num_timesteps += current_it_timesteps
                     iters_so_far += 1
@@ -362,9 +494,11 @@ class PPO1(ActorCriticRLModel):
             "n_cpu_tf_sess": self.n_cpu_tf_sess,
             "seed": self.seed,
             "_vectorize_action": self._vectorize_action,
-            "policy_kwargs": self.policy_kwargs
+            "policy_kwargs": self.policy_kwargs,
         }
 
         params_to_save = self.get_parameters()
 
-        self._save_to_file(save_path, data=data, params=params_to_save, cloudpickle=cloudpickle)
+        self._save_to_file(
+            save_path, data=data, params=params_to_save, cloudpickle=cloudpickle
+        )

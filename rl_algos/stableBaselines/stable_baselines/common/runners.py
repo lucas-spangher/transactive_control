@@ -9,11 +9,15 @@ from stable_baselines.common.callbacks import BaseCallback
 from stable_baselines.common.vec_env import VecEnv
 
 if typing.TYPE_CHECKING:
-    from stable_baselines.common.base_class import BaseRLModel  # pytype: disable=pyi-error
+    from stable_baselines.common.base_class import (
+        BaseRLModel,
+    )  # pytype: disable=pyi-error
 
 
 class AbstractEnvRunner(ABC):
-    def __init__(self, *, env: Union[gym.Env, VecEnv], model: 'BaseRLModel', n_steps: int):
+    def __init__(
+        self, *, env: Union[gym.Env, VecEnv], model: "BaseRLModel", n_steps: int
+    ):
         """
         Collect experience by running `n_steps` in the environment.
         Note: if this is a `VecEnv`, the total number of steps will
@@ -27,7 +31,10 @@ class AbstractEnvRunner(ABC):
         self.model = model
         n_envs = env.num_envs
         self.batch_ob_shape = (n_envs * n_steps,) + env.observation_space.shape
-        self.obs = np.zeros((n_envs,) + env.observation_space.shape, dtype=env.observation_space.dtype.name)
+        self.obs = np.zeros(
+            (n_envs,) + env.observation_space.shape,
+            dtype=env.observation_space.dtype.name,
+        )
         self.obs[:] = env.reset()
         self.n_steps = n_steps
         self.states = model.initial_state
@@ -55,7 +62,9 @@ class AbstractEnvRunner(ABC):
         raise NotImplementedError
 
 
-def traj_segment_generator(policy, env, horizon, reward_giver=None, gail=False, callback=None):
+def traj_segment_generator(
+    policy, env, horizon, reward_giver=None, gail=False, callback=None
+):
     """
     Compute target value using TD(lambda) estimator, and advantage with GAE(lambda)
     :param policy: (MLPPolicy) the policy
@@ -81,7 +90,9 @@ def traj_segment_generator(policy, env, horizon, reward_giver=None, gail=False, 
             or stop early (triggered by the callback)
     """
     # Check when using GAIL
-    assert not (gail and reward_giver is None), "You must pass a reward giver when using GAIL"
+    assert not (
+        gail and reward_giver is None
+    ), "You must pass a reward giver when using GAIL"
 
     # Initialize state variables
     step = 0
@@ -98,11 +109,11 @@ def traj_segment_generator(policy, env, horizon, reward_giver=None, gail=False, 
 
     # Initialize history arrays
     observations = np.array([observation for _ in range(horizon)])
-    true_rewards = np.zeros(horizon, 'float32')
-    rewards = np.zeros(horizon, 'float32')
-    vpreds = np.zeros(horizon, 'float32')
-    episode_starts = np.zeros(horizon, 'bool')
-    dones = np.zeros(horizon, 'bool')
+    true_rewards = np.zeros(horizon, "float32")
+    rewards = np.zeros(horizon, "float32")
+    vpreds = np.zeros(horizon, "float32")
+    episode_starts = np.zeros(horizon, "bool")
+    dones = np.zeros(horizon, "bool")
     actions = np.array([action for _ in range(horizon)])
     states = policy.initial_state
     episode_start = True  # marks if we're on first timestep of an episode
@@ -111,7 +122,9 @@ def traj_segment_generator(policy, env, horizon, reward_giver=None, gail=False, 
     callback.on_rollout_start()
 
     while True:
-        action, vpred, states, _ = policy.step(observation.reshape(-1, *observation.shape), states, done)
+        action, vpred, states, _ = policy.step(
+            observation.reshape(-1, *observation.shape), states, done
+        )
         # Slight weirdness here because we need value function at time T
         # before returning segment [0, T-1] so we get the correct
         # terminal value
@@ -119,19 +132,19 @@ def traj_segment_generator(policy, env, horizon, reward_giver=None, gail=False, 
             callback.update_locals(locals())
             callback.on_rollout_end()
             yield {
-                    "observations": observations,
-                    "rewards": rewards,
-                    "dones": dones,
-                    "episode_starts": episode_starts,
-                    "true_rewards": true_rewards,
-                    "vpred": vpreds,
-                    "actions": actions,
-                    "nextvpred": vpred[0] * (1 - episode_start),
-                    "ep_rets": ep_rets,
-                    "ep_lens": ep_lens,
-                    "ep_true_rets": ep_true_rets,
-                    "total_timestep": current_it_len,
-                    'continue_training': True
+                "observations": observations,
+                "rewards": rewards,
+                "dones": dones,
+                "episode_starts": episode_starts,
+                "true_rewards": true_rewards,
+                "vpred": vpreds,
+                "actions": actions,
+                "nextvpred": vpred[0] * (1 - episode_start),
+                "ep_rets": ep_rets,
+                "ep_lens": ep_lens,
+                "ep_true_rets": ep_true_rets,
+                "total_timestep": current_it_len,
+                "continue_training": True,
             }
             _, vpred, _, _ = policy.step(observation.reshape(-1, *observation.shape))
             # Be careful!!! if you change the downstream algorithm to aggregate
@@ -151,7 +164,9 @@ def traj_segment_generator(policy, env, horizon, reward_giver=None, gail=False, 
         clipped_action = action
         # Clip the actions to avoid out of bound error
         if isinstance(env.action_space, gym.spaces.Box):
-            clipped_action = np.clip(action, env.action_space.low, env.action_space.high)
+            clipped_action = np.clip(
+                action, env.action_space.low, env.action_space.high
+            )
 
         if gail:
             reward = reward_giver.get_reward(observation, clipped_action[0])
@@ -177,8 +192,8 @@ def traj_segment_generator(policy, env, horizon, reward_giver=None, gail=False, 
                     "ep_lens": ep_lens,
                     "ep_true_rets": ep_true_rets,
                     "total_timestep": current_it_len,
-                    'continue_training': False
-                    }
+                    "continue_training": False,
+                }
                 return
 
         rewards[i] = reward
@@ -192,11 +207,11 @@ def traj_segment_generator(policy, env, horizon, reward_giver=None, gail=False, 
         current_ep_len += 1
         if done:
             # Retrieve unnormalized reward if using Monitor wrapper
-            maybe_ep_info = info.get('episode')
+            maybe_ep_info = info.get("episode")
             if maybe_ep_info is not None:
                 if not gail:
-                    cur_ep_ret = maybe_ep_info['r']
-                cur_ep_true_ret = maybe_ep_info['r']
+                    cur_ep_ret = maybe_ep_info["r"]
+                cur_ep_true_ret = maybe_ep_info["r"]
 
             ep_rets.append(cur_ep_ret)
             ep_true_rets.append(cur_ep_true_ret)

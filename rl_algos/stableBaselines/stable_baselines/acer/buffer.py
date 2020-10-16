@@ -102,7 +102,9 @@ class Buffer(object):
         # mus [n_env, n_steps, n_act]
 
         if self.enc_obs is None:
-            self.enc_obs = np.empty([self.size] + list(enc_obs.shape), dtype=self.obs_dtype)
+            self.enc_obs = np.empty(
+                [self.size] + list(enc_obs.shape), dtype=self.obs_dtype
+            )
             self.actions = np.empty([self.size] + list(actions.shape), dtype=np.int32)
             self.rewards = np.empty([self.size] + list(rewards.shape), dtype=np.float32)
             self.mus = np.empty([self.size] + list(mus.shape), dtype=np.float32)

@@ -30,11 +30,21 @@ class ExpertDataset(object):
     :param sequential_preprocessing: (bool) Do not use subprocess to preprocess
         the data (slower but use less memory for the CI)
     """
-    # Excluded attribute when pickling the object
-    EXCLUDED_KEYS = {'dataloader', 'train_loader', 'val_loader'}
 
-    def __init__(self, expert_path=None, traj_data=None, train_fraction=0.7, batch_size=64,
-                 traj_limitation=-1, randomize=True, verbose=1, sequential_preprocessing=False):
+    # Excluded attribute when pickling the object
+    EXCLUDED_KEYS = {"dataloader", "train_loader", "val_loader"}
+
+    def __init__(
+        self,
+        expert_path=None,
+        traj_data=None,
+        train_fraction=0.7,
+        batch_size=64,
+        traj_limitation=-1,
+        randomize=True,
+        verbose=1,
+        sequential_preprocessing=False,
+    ):
         if traj_data is not None and expert_path is not None:
             raise ValueError("Cannot specify both 'traj_data' and 'expert_path'")
         if traj_data is None and expert_path is None:
@@ -47,9 +57,9 @@ class ExpertDataset(object):
                 print(key, val.shape)
 
         # Array of bool where episode_starts[i] = True for each new episode
-        episode_starts = traj_data['episode_starts']
+        episode_starts = traj_data["episode_starts"]
 
-        traj_limit_idx = len(traj_data['obs'])
+        traj_limit_idx = len(traj_data["obs"])
 
         if traj_limitation > 0:
             n_episodes = 0
@@ -60,8 +70,8 @@ class ExpertDataset(object):
                 if n_episodes == (traj_limitation + 1):
                     traj_limit_idx = idx - 1
 
-        observations = traj_data['obs'][:traj_limit_idx]
-        actions = traj_data['actions'][:traj_limit_idx]
+        observations = traj_data["obs"][:traj_limit_idx]
+        actions = traj_data["actions"][:traj_limit_idx]
 
         # obs, actions: shape (N * L, ) + S
         # where N = # episodes, L = episode length
@@ -69,15 +79,17 @@ class ExpertDataset(object):
         # S = (1, ) for discrete space
         # Flatten to (N * L, prod(S))
         if len(observations.shape) > 2:
-            observations = np.reshape(observations, [-1, np.prod(observations.shape[1:])])
+            observations = np.reshape(
+                observations, [-1, np.prod(observations.shape[1:])]
+            )
         if len(actions.shape) > 2:
             actions = np.reshape(actions, [-1, np.prod(actions.shape[1:])])
 
         indices = np.random.permutation(len(observations)).astype(np.int64)
 
         # Train/Validation split when using behavior cloning
-        train_indices = indices[:int(train_fraction * len(indices))]
-        val_indices = indices[int(train_fraction * len(indices)):]
+        train_indices = indices[: int(train_fraction * len(indices))]
+        val_indices = indices[int(train_fraction * len(indices)) :]
 
         assert len(train_indices) > 0, "No sample for the training set"
         assert len(val_indices) > 0, "No sample for the validation set"
@@ -85,25 +97,39 @@ class ExpertDataset(object):
         self.observations = observations
         self.actions = actions
 
-        self.returns = traj_data['episode_returns'][:traj_limit_idx]
+        self.returns = traj_data["episode_returns"][:traj_limit_idx]
         self.avg_ret = sum(self.returns) / len(self.returns)
         self.std_ret = np.std(np.array(self.returns))
         self.verbose = verbose
 
-        assert len(self.observations) == len(self.actions), "The number of actions and observations differ " \
-                                                            "please check your expert dataset"
+        assert len(self.observations) == len(self.actions), (
+            "The number of actions and observations differ "
+            "please check your expert dataset"
+        )
         self.num_traj = min(traj_limitation, np.sum(episode_starts))
         self.num_transition = len(self.observations)
         self.randomize = randomize
         self.sequential_preprocessing = sequential_preprocessing
 
         self.dataloader = None
-        self.train_loader = DataLoader(train_indices, self.observations, self.actions, batch_size,
-                                       shuffle=self.randomize, start_process=False,
-                                       sequential=sequential_preprocessing)
-        self.val_loader = DataLoader(val_indices, self.observations, self.actions, batch_size,
-                                     shuffle=self.randomize, start_process=False,
-                                     sequential=sequential_preprocessing)
+        self.train_loader = DataLoader(
+            train_indices,
+            self.observations,
+            self.actions,
+            batch_size,
+            shuffle=self.randomize,
+            start_process=False,
+            sequential=sequential_preprocessing,
+        )
+        self.val_loader = DataLoader(
+            val_indices,
+            self.observations,
+            self.actions,
+            batch_size,
+            shuffle=self.randomize,
+            start_process=False,
+            sequential=sequential_preprocessing,
+        )
 
         if self.verbose >= 1:
             self.log_info()
@@ -115,9 +141,15 @@ class ExpertDataset(object):
         :param batch_size: (int)
         """
         indices = np.random.permutation(len(self.observations)).astype(np.int64)
-        self.dataloader = DataLoader(indices, self.observations, self.actions, batch_size,
-                                     shuffle=self.randomize, start_process=False,
-                                     sequential=self.sequential_preprocessing)
+        self.dataloader = DataLoader(
+            indices,
+            self.observations,
+            self.actions,
+            batch_size,
+            shuffle=self.randomize,
+            start_process=False,
+            sequential=self.sequential_preprocessing,
+        )
 
     def __del__(self):
         # Exit processes if needed
@@ -132,7 +164,11 @@ class ExpertDataset(object):
         Excludes processes that are not pickleable
         """
         # Remove processes in order to pickle the dataset.
-        return {key: val for key, val in self.__dict__.items() if key not in self.EXCLUDED_KEYS}
+        return {
+            key: val
+            for key, val in self.__dict__.items()
+            if key not in self.EXCLUDED_KEYS
+        }
 
     def __setstate__(self, state):
         """
@@ -168,8 +204,8 @@ class ExpertDataset(object):
         """
         dataloader = {
             None: self.dataloader,
-            'train': self.train_loader,
-            'val': self.val_loader
+            "train": self.train_loader,
+            "val": self.val_loader,
         }[split]
 
         if dataloader.process is None:
@@ -187,6 +223,7 @@ class ExpertDataset(object):
         # Isolate dependency since it is only used for plotting and also since
         # different matplotlib backends have further dependencies themselves.
         import matplotlib.pyplot as plt
+
         plt.hist(self.returns)
         plt.show()
 
@@ -217,9 +254,21 @@ class DataLoader(object):
         lesser than the batch_size)
     """
 
-    def __init__(self, indices, observations, actions, batch_size, n_workers=1,
-                 infinite_loop=True, max_queue_len=1, shuffle=False,
-                 start_process=True, backend='threading', sequential=False, partial_minibatch=True):
+    def __init__(
+        self,
+        indices,
+        observations,
+        actions,
+        batch_size,
+        n_workers=1,
+        infinite_loop=True,
+        max_queue_len=1,
+        shuffle=False,
+        start_process=True,
+        backend="threading",
+        sequential=False,
+        partial_minibatch=True,
+    ):
         super(DataLoader, self).__init__()
         self.n_workers = n_workers
         self.infinite_loop = infinite_loop
@@ -261,7 +310,7 @@ class DataLoader(object):
         (start_idx) and the minibatch size
         :return: (np.ndarray) 1D array of indices
         """
-        return self.indices[self.start_idx:self.start_idx + self.batch_size]
+        return self.indices[self.start_idx : self.start_idx + self.batch_size]
 
     def sequential_next(self):
         """
@@ -277,8 +326,9 @@ class DataLoader(object):
 
         obs = self.observations[self._minibatch_indices]
         if self.load_images:
-            obs = np.concatenate([self._make_batch_element(image_path) for image_path in obs],
-                                 axis=0)
+            obs = np.concatenate(
+                [self._make_batch_element(image_path) for image_path in obs], axis=0
+            )
 
         actions = self.actions[self._minibatch_indices]
         self.start_idx += self.batch_size
@@ -286,7 +336,9 @@ class DataLoader(object):
 
     def _run(self):
         start = True
-        with Parallel(n_jobs=self.n_workers, batch_size="auto", backend=self.backend) as parallel:
+        with Parallel(
+            n_jobs=self.n_workers, batch_size="auto", backend=self.backend
+        ) as parallel:
             while start or self.infinite_loop:
                 start = False
 
@@ -300,12 +352,16 @@ class DataLoader(object):
                     obs = self.observations[self._minibatch_indices]
                     if self.load_images:
                         if self.n_workers <= 1:
-                            obs = [self._make_batch_element(image_path)
-                                   for image_path in obs]
+                            obs = [
+                                self._make_batch_element(image_path)
+                                for image_path in obs
+                            ]
 
                         else:
-                            obs = parallel(delayed(self._make_batch_element)(image_path)
-                                           for image_path in obs)
+                            obs = parallel(
+                                delayed(self._make_batch_element)(image_path)
+                                for image_path in obs
+                            )
 
                         obs = np.concatenate(obs, axis=0)
 
@@ -334,7 +390,9 @@ class DataLoader(object):
             image = image[:, :, np.newaxis]
 
         if image is None:
-            raise ValueError("Tried to load {}, but it was not found".format(image_path))
+            raise ValueError(
+                "Tried to load {}, but it was not found".format(image_path)
+            )
         # Convert from BGR to RGB
         if image.shape[-1] == 3:
             image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
@@ -354,7 +412,9 @@ class DataLoader(object):
             return self.sequential_next()
 
         if self.process is None:
-            raise ValueError("You must call .start_process() before using the dataloader")
+            raise ValueError(
+                "You must call .start_process() before using the dataloader"
+            )
         while True:
             try:
                 val = self.queue.get_nowait()

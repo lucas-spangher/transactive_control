@@ -4,7 +4,12 @@ import warnings
 import numpy as np
 import tensorflow as tf
 
-from stable_baselines.common import tf_util, OffPolicyRLModel, SetVerbosity, TensorboardWriter
+from stable_baselines.common import (
+    tf_util,
+    OffPolicyRLModel,
+    SetVerbosity,
+    TensorboardWriter,
+)
 from stable_baselines.common.vec_env import VecEnv
 from stable_baselines.common.math_util import safe_mean, unscale_action, scale_action
 from stable_baselines.common.schedules import get_schedule_fn
@@ -14,6 +19,7 @@ from stable_baselines import logger
 
 from tensorboard_logger import configure as tb_configure
 from tensorboard_logger import log_value as tb_log_value
+
 
 class SAC(OffPolicyRLModel):
     """
@@ -61,17 +67,45 @@ class SAC(OffPolicyRLModel):
     :param non_vec_environment: (env) an alternate gym environment if needed. 
     """
 
-    def __init__(self, policy, env, gamma=0.99, learning_rate=3e-4, buffer_size=50000,
-                 learning_starts=100, train_freq=1, batch_size=64,
-                 tau=0.005, ent_coef='auto', target_update_interval=1,
-                 gradient_steps=1, target_entropy='auto', action_noise=None,
-                 random_exploration=0.0, verbose=0, tensorboard_log=None,
-                 _init_setup_model=True, policy_kwargs=None, full_tensorboard_log=False,
-                 seed=None, n_cpu_tf_sess=None, non_vec_env = None, plotter_person_reaction = None):
+    def __init__(
+        self,
+        policy,
+        env,
+        gamma=0.99,
+        learning_rate=3e-4,
+        buffer_size=50000,
+        learning_starts=100,
+        train_freq=1,
+        batch_size=64,
+        tau=0.005,
+        ent_coef="auto",
+        target_update_interval=1,
+        gradient_steps=1,
+        target_entropy="auto",
+        action_noise=None,
+        random_exploration=0.0,
+        verbose=0,
+        tensorboard_log=None,
+        _init_setup_model=True,
+        policy_kwargs=None,
+        full_tensorboard_log=False,
+        seed=None,
+        n_cpu_tf_sess=None,
+        non_vec_env=None,
+        plotter_person_reaction=None,
+    ):
 
-        super(SAC, self).__init__(policy=policy, env=env, replay_buffer=None, verbose=verbose,
-                                  policy_base=SACPolicy, requires_vec_env=False, policy_kwargs=policy_kwargs,
-                                  seed=seed, n_cpu_tf_sess=n_cpu_tf_sess)
+        super(SAC, self).__init__(
+            policy=policy,
+            env=env,
+            replay_buffer=None,
+            verbose=verbose,
+            policy_base=SACPolicy,
+            requires_vec_env=False,
+            policy_kwargs=policy_kwargs,
+            seed=seed,
+            n_cpu_tf_sess=n_cpu_tf_sess,
+        )
 
         self.buffer_size = buffer_size
         self.learning_rate = learning_rate
@@ -133,7 +167,9 @@ class SAC(OffPolicyRLModel):
     def _get_pretrain_placeholders(self):
         policy = self.policy_tf
         # Rescale
-        deterministic_action = unscale_action(self.action_space, self.deterministic_action)
+        deterministic_action = unscale_action(
+            self.action_space, self.deterministic_action
+        )
         return policy.obs_ph, self.actions_ph, deterministic_action
 
     def setup_model(self):
@@ -141,16 +177,26 @@ class SAC(OffPolicyRLModel):
             self.graph = tf.Graph()
             with self.graph.as_default():
                 self.set_random_seed(self.seed)
-                self.sess = tf_util.make_session(num_cpu=self.n_cpu_tf_sess, graph=self.graph)
+                self.sess = tf_util.make_session(
+                    num_cpu=self.n_cpu_tf_sess, graph=self.graph
+                )
 
                 self.replay_buffer = ReplayBuffer(self.buffer_size)
 
                 with tf.variable_scope("input", reuse=False):
                     # Create policy and target TF objects
-                    self.policy_tf = self.policy(self.sess, self.observation_space, self.action_space,
-                                                 **self.policy_kwargs)
-                    self.target_policy = self.policy(self.sess, self.observation_space, self.action_space,
-                                                     **self.policy_kwargs)
+                    self.policy_tf = self.policy(
+                        self.sess,
+                        self.observation_space,
+                        self.action_space,
+                        **self.policy_kwargs
+                    )
+                    self.target_policy = self.policy(
+                        self.sess,
+                        self.observation_space,
+                        self.action_space,
+                        **self.policy_kwargs
+                    )
 
                     # Initialize Placeholders
                     self.observations_ph = self.policy_tf.obs_ph
@@ -159,32 +205,55 @@ class SAC(OffPolicyRLModel):
                     self.next_observations_ph = self.target_policy.obs_ph
                     self.processed_next_obs_ph = self.target_policy.processed_obs
                     self.action_target = self.target_policy.action_ph
-                    self.terminals_ph = tf.placeholder(tf.float32, shape=(None, 1), name='terminals')
-                    self.rewards_ph = tf.placeholder(tf.float32, shape=(None, 1), name='rewards')
-                    self.actions_ph = tf.placeholder(tf.float32, shape=(None,) + self.action_space.shape,
-                                                     name='actions')
-                    self.learning_rate_ph = tf.placeholder(tf.float32, [], name="learning_rate_ph")
+                    self.terminals_ph = tf.placeholder(
+                        tf.float32, shape=(None, 1), name="terminals"
+                    )
+                    self.rewards_ph = tf.placeholder(
+                        tf.float32, shape=(None, 1), name="rewards"
+                    )
+                    self.actions_ph = tf.placeholder(
+                        tf.float32,
+                        shape=(None,) + self.action_space.shape,
+                        name="actions",
+                    )
+                    self.learning_rate_ph = tf.placeholder(
+                        tf.float32, [], name="learning_rate_ph"
+                    )
 
                 with tf.variable_scope("model", reuse=False):
                     # Create the policy
                     # first return value corresponds to deterministic actions
                     # policy_out corresponds to stochastic actions, used for training
                     # logp_pi is the log probability of actions taken by the policy
-                    self.deterministic_action, policy_out, logp_pi = self.policy_tf.make_actor(self.processed_obs_ph)
+                    (
+                        self.deterministic_action,
+                        policy_out,
+                        logp_pi,
+                    ) = self.policy_tf.make_actor(self.processed_obs_ph)
                     # Monitor the entropy of the policy,
                     # this is not used for training
                     self.entropy = tf.reduce_mean(self.policy_tf.entropy)
                     #  Use two Q-functions to improve performance by reducing overestimation bias.
-                    qf1, qf2, value_fn = self.policy_tf.make_critics(self.processed_obs_ph, self.actions_ph,
-                                                                     create_qf=True, create_vf=True)
-                    qf1_pi, qf2_pi, _ = self.policy_tf.make_critics(self.processed_obs_ph,
-                                                                    policy_out, create_qf=True, create_vf=False,
-                                                                    reuse=True)
+                    qf1, qf2, value_fn = self.policy_tf.make_critics(
+                        self.processed_obs_ph,
+                        self.actions_ph,
+                        create_qf=True,
+                        create_vf=True,
+                    )
+                    qf1_pi, qf2_pi, _ = self.policy_tf.make_critics(
+                        self.processed_obs_ph,
+                        policy_out,
+                        create_qf=True,
+                        create_vf=False,
+                        reuse=True,
+                    )
 
                     # Target entropy is used when learning the entropy coefficient
-                    if self.target_entropy == 'auto':
+                    if self.target_entropy == "auto":
                         # automatically set target entropy if needed
-                        self.target_entropy = -np.prod(self.action_space.shape).astype(np.float32)
+                        self.target_entropy = -np.prod(self.action_space.shape).astype(
+                            np.float32
+                        )
                     else:
                         # Force conversion
                         # this will also throw an error for unexpected string
@@ -193,15 +262,22 @@ class SAC(OffPolicyRLModel):
                     # The entropy coefficient or entropy can be learned automatically
                     # see Automating Entropy Adjustment for Maximum Entropy RL section
                     # of https://arxiv.org/abs/1812.05905
-                    if isinstance(self.ent_coef, str) and self.ent_coef.startswith('auto'):
+                    if isinstance(self.ent_coef, str) and self.ent_coef.startswith(
+                        "auto"
+                    ):
                         # Default initial value of ent_coef when learned
                         init_value = 1.0
-                        if '_' in self.ent_coef:
-                            init_value = float(self.ent_coef.split('_')[1])
-                            assert init_value > 0., "The initial value of ent_coef must be greater than 0"
+                        if "_" in self.ent_coef:
+                            init_value = float(self.ent_coef.split("_")[1])
+                            assert (
+                                init_value > 0.0
+                            ), "The initial value of ent_coef must be greater than 0"
 
-                        self.log_ent_coef = tf.get_variable('log_ent_coef', dtype=tf.float32,
-                                                            initializer=np.log(init_value).astype(np.float32))
+                        self.log_ent_coef = tf.get_variable(
+                            "log_ent_coef",
+                            dtype=tf.float32,
+                            initializer=np.log(init_value).astype(np.float32),
+                        )
                         self.ent_coef = tf.exp(self.log_ent_coef)
                     else:
                         # Force conversion to float
@@ -211,8 +287,9 @@ class SAC(OffPolicyRLModel):
 
                 with tf.variable_scope("target", reuse=False):
                     # Create the value network
-                    _, _, value_target = self.target_policy.make_critics(self.processed_next_obs_ph,
-                                                                         create_qf=False, create_vf=True)
+                    _, _, value_target = self.target_policy.make_critics(
+                        self.processed_next_obs_ph, create_qf=False, create_vf=True
+                    )
                     self.value_target = value_target
 
                 with tf.variable_scope("loss", reuse=False):
@@ -221,8 +298,8 @@ class SAC(OffPolicyRLModel):
 
                     # Target for Q value regression
                     q_backup = tf.stop_gradient(
-                        self.rewards_ph +
-                        (1 - self.terminals_ph) * self.gamma * self.value_target
+                        self.rewards_ph
+                        + (1 - self.terminals_ph) * self.gamma * self.value_target
                     )
 
                     # Compute Q-Function loss
@@ -235,8 +312,12 @@ class SAC(OffPolicyRLModel):
                     ent_coef_loss, entropy_optimizer = None, None
                     if not isinstance(self.ent_coef, float):
                         ent_coef_loss = -tf.reduce_mean(
-                            self.log_ent_coef * tf.stop_gradient(logp_pi + self.target_entropy))
-                        entropy_optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate_ph)
+                            self.log_ent_coef
+                            * tf.stop_gradient(logp_pi + self.target_entropy)
+                        )
+                        entropy_optimizer = tf.train.AdamOptimizer(
+                            learning_rate=self.learning_rate_ph
+                        )
 
                     # Compute the policy loss
                     # Alternative: policy_kl_loss = tf.reduce_mean(logp_pi - min_qf_pi)
@@ -258,12 +339,18 @@ class SAC(OffPolicyRLModel):
 
                     # Policy train op
                     # (has to be separate from value train op, because min_qf_pi appears in policy_loss)
-                    policy_optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate_ph)
-                    policy_train_op = policy_optimizer.minimize(policy_loss, var_list=tf_util.get_trainable_vars('model/pi'))
+                    policy_optimizer = tf.train.AdamOptimizer(
+                        learning_rate=self.learning_rate_ph
+                    )
+                    policy_train_op = policy_optimizer.minimize(
+                        policy_loss, var_list=tf_util.get_trainable_vars("model/pi")
+                    )
 
                     # Value train op
-                    value_optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate_ph)
-                    values_params = tf_util.get_trainable_vars('model/values_fn')
+                    value_optimizer = tf.train.AdamOptimizer(
+                        learning_rate=self.learning_rate_ph
+                    )
+                    values_params = tf_util.get_trainable_vars("model/values_fn")
 
                     source_params = tf_util.get_trainable_vars("model/values_fn")
                     target_params = tf_util.get_trainable_vars("target/values_fn")
@@ -282,32 +369,58 @@ class SAC(OffPolicyRLModel):
                     # Control flow is used because sess.run otherwise evaluates in nondeterministic order
                     # and we first need to compute the policy action before computing q values losses
                     with tf.control_dependencies([policy_train_op]):
-                        train_values_op = value_optimizer.minimize(values_losses, var_list=values_params)
+                        train_values_op = value_optimizer.minimize(
+                            values_losses, var_list=values_params
+                        )
 
-                        self.infos_names = ['policy_loss', 'qf1_loss', 'qf2_loss', 'value_loss', 'entropy']
+                        self.infos_names = [
+                            "policy_loss",
+                            "qf1_loss",
+                            "qf2_loss",
+                            "value_loss",
+                            "entropy",
+                        ]
                         # All ops to call during one training step
-                        self.step_ops = [policy_loss, qf1_loss, qf2_loss,
-                                         value_loss, qf1, qf2, value_fn, logp_pi,
-                                         self.entropy, policy_train_op, train_values_op]
+                        self.step_ops = [
+                            policy_loss,
+                            qf1_loss,
+                            qf2_loss,
+                            value_loss,
+                            qf1,
+                            qf2,
+                            value_fn,
+                            logp_pi,
+                            self.entropy,
+                            policy_train_op,
+                            train_values_op,
+                        ]
 
                         # Add entropy coefficient optimization operation if needed
                         if ent_coef_loss is not None:
                             with tf.control_dependencies([train_values_op]):
-                                ent_coef_op = entropy_optimizer.minimize(ent_coef_loss, var_list=self.log_ent_coef)
-                                self.infos_names += ['ent_coef_loss', 'ent_coef']
-                                self.step_ops += [ent_coef_op, ent_coef_loss, self.ent_coef]
+                                ent_coef_op = entropy_optimizer.minimize(
+                                    ent_coef_loss, var_list=self.log_ent_coef
+                                )
+                                self.infos_names += ["ent_coef_loss", "ent_coef"]
+                                self.step_ops += [
+                                    ent_coef_op,
+                                    ent_coef_loss,
+                                    self.ent_coef,
+                                ]
 
                     # Monitor losses and entropy in tensorboard
-                    tf.summary.scalar('policy_loss', policy_loss)
-                    tf.summary.scalar('qf1_loss', qf1_loss)
-                    tf.summary.scalar('qf2_loss', qf2_loss)
-                    tf.summary.scalar('value_loss', value_loss)
-                    tf.summary.scalar('entropy', self.entropy)
+                    tf.summary.scalar("policy_loss", policy_loss)
+                    tf.summary.scalar("qf1_loss", qf1_loss)
+                    tf.summary.scalar("qf2_loss", qf2_loss)
+                    tf.summary.scalar("value_loss", value_loss)
+                    tf.summary.scalar("entropy", self.entropy)
                     if ent_coef_loss is not None:
-                        tf.summary.scalar('ent_coef_loss', ent_coef_loss)
-                        tf.summary.scalar('ent_coef', self.ent_coef)
+                        tf.summary.scalar("ent_coef_loss", ent_coef_loss)
+                        tf.summary.scalar("ent_coef", self.ent_coef)
 
-                    tf.summary.scalar('learning_rate', tf.reduce_mean(self.learning_rate_ph))
+                    tf.summary.scalar(
+                        "learning_rate", tf.reduce_mean(self.learning_rate_ph)
+                    )
 
                 # Retrieve parameters that must be saved
                 self.params = tf_util.get_trainable_vars("model")
@@ -331,7 +444,7 @@ class SAC(OffPolicyRLModel):
             self.next_observations_ph: batch_next_obs,
             self.rewards_ph: batch_rewards.reshape(self.batch_size, -1),
             self.terminals_ph: batch_dones.reshape(self.batch_size, -1),
-            self.learning_rate_ph: learning_rate
+            self.learning_rate_ph: learning_rate,
         }
 
         # out  = [policy_loss, qf1_loss, qf2_loss,
@@ -354,15 +467,29 @@ class SAC(OffPolicyRLModel):
 
         if self.log_ent_coef is not None:
             ent_coef_loss, ent_coef = values[-2:]
-            return policy_loss, qf1_loss, qf2_loss, value_loss, entropy, ent_coef_loss, ent_coef
+            return (
+                policy_loss,
+                qf1_loss,
+                qf2_loss,
+                value_loss,
+                entropy,
+                ent_coef_loss,
+                ent_coef,
+            )
 
         return policy_loss, qf1_loss, qf2_loss, value_loss, entropy
 
-    def learn(self, total_timesteps, callback=None,
-              log_interval=4, tb_log_name="SAC", 
-              reset_num_timesteps=True, replay_wrapper=None,
-              own_log_dir = None, 
-              planning_steps = 0):
+    def learn(
+        self,
+        total_timesteps,
+        callback=None,
+        log_interval=4,
+        tb_log_name="SAC",
+        reset_num_timesteps=True,
+        replay_wrapper=None,
+        own_log_dir=None,
+        planning_steps=0,
+    ):
 
         new_tb_log = self._init_num_timesteps(reset_num_timesteps)
         callback = self._init_callback(callback)
@@ -375,8 +502,9 @@ class SAC(OffPolicyRLModel):
         if replay_wrapper is not None:
             self.replay_buffer = replay_wrapper(self.replay_buffer)
 
-        with SetVerbosity(self.verbose), TensorboardWriter(self.graph, self.tensorboard_log, tb_log_name, new_tb_log) \
-                as writer:
+        with SetVerbosity(self.verbose), TensorboardWriter(
+            self.graph, self.tensorboard_log, tb_log_name, new_tb_log
+        ) as writer:
 
             self._setup_learn()
 
@@ -406,13 +534,18 @@ class SAC(OffPolicyRLModel):
                 # from a uniform distribution for better exploration.
                 # Afterwards, use the learned policy
                 # if random_exploration is set to 0 (normal setting)
-                if self.num_timesteps < self.learning_starts or np.random.rand() < self.random_exploration:
+                if (
+                    self.num_timesteps < self.learning_starts
+                    or np.random.rand() < self.random_exploration
+                ):
                     # actions sampled from action space are from range specific to the environment
                     # but algorithm operates on tanh-squashed actions therefore simple scaling is used
                     unscaled_action = self.env.action_space.sample()
                     action = scale_action(self.action_space, unscaled_action)
                 else:
-                    action = self.policy_tf.step(obs[None], deterministic=False).flatten()
+                    action = self.policy_tf.step(
+                        obs[None], deterministic=False
+                    ).flatten()
                     # Add noise to the action (improve exploration,
                     # not needed in general)
                     if self.action_noise is not None:
@@ -422,54 +555,69 @@ class SAC(OffPolicyRLModel):
 
                 assert action.shape == self.env.action_space.shape
 
-                # if not planning: 
+                # if not planning:
                 #     new_obs, reward, done, info = self.env.step(unscaled_action)
-                # else: 
+                # else:
 
                 if not self.num_timesteps % (planning_steps + 1):
 
-
-                    if self.num_timesteps ==1: 
-                         # form the control
+                    if self.num_timesteps == 1:
+                        # form the control
                         from sklearn.preprocessing import MinMaxScaler
+
                         grid_price = self.non_vec_env.prices[self.non_vec_env.day - 1]
-                        scaler = MinMaxScaler(feature_range = (0, 10))
-                        scaled_grid_price = scaler.fit_transform(np.array(grid_price).reshape(-1, 1))
+                        scaler = MinMaxScaler(feature_range=(0, 10))
+                        scaled_grid_price = scaler.fit_transform(
+                            np.array(grid_price).reshape(-1, 1)
+                        )
                         scaled_grid_price = np.squeeze(scaled_grid_price)
-                        energy_consumptions = self.non_vec_env._simulate_humans(scaled_grid_price)
+                        energy_consumptions = self.non_vec_env._simulate_humans(
+                            scaled_grid_price
+                        )
                         person_data_dict["control"] = {
-                            "x" : list(range(8, 18)), 
-                            "grid_price" : scaled_grid_price,
-                            "energy_consumption" : energy_consumptions["avg"],
-                            "reward" : self.non_vec_env._get_reward(price = grid_price, energy_consumptions = energy_consumptions),
+                            "x": list(range(8, 18)),
+                            "grid_price": scaled_grid_price,
+                            "energy_consumption": energy_consumptions["avg"],
+                            "reward": self.non_vec_env._get_reward(
+                                price=grid_price,
+                                energy_consumptions=energy_consumptions,
+                            ),
                         }
 
                     # form the data_dict
                     if self.num_timesteps in [100, 1000, 9500]:
                         person_data_dict["Step " + str(self.num_timesteps)] = {
-                            "x" : list(range(8, 18)),
-                            "grid_price" : self.non_vec_env.prices[self.non_vec_env.day - 1],
-                            "points" : self.non_vec_env.action,
-                            "energy_consumption" : self.non_vec_env.prev_energy,
-                            "reward" : reward,
+                            "x": list(range(8, 18)),
+                            "grid_price": self.non_vec_env.prices[
+                                self.non_vec_env.day - 1
+                            ],
+                            "points": self.non_vec_env.action,
+                            "energy_consumption": self.non_vec_env.prev_energy,
+                            "reward": reward,
                         }
 
                     if self.num_timesteps == 9501:
 
-                       
-                        # call the plotting statement 
+                        # call the plotting statement
                         dir_split = own_log_dir.split("/")
-                        people_reaction_log_dir = dir_split[0]+ "/people_reaction_dir/" + dir_split[1]
-                        self.plotter_person_reaction(person_data_dict, people_reaction_log_dir)
+                        people_reaction_log_dir = (
+                            dir_split[0] + "/people_reaction_dir/" + dir_split[1]
+                        )
+                        self.plotter_person_reaction(
+                            person_data_dict, people_reaction_log_dir
+                        )
 
+                    new_obs, reward, done, info = self.env.step(
+                        unscaled_action
+                    )  # , step_num = self.num_timesteps)
+                    steps_in_real_env += 1
 
-                    new_obs, reward, done, info = self.env.step(unscaled_action) #, step_num = self.num_timesteps)
-                    steps_in_real_env +=1
-
-                else: 
+                else:
                     print("planning step")
-                    new_obs, reward, done, info = self.non_vec_env.planning_step(unscaled_action)
-                
+                    new_obs, reward, done, info = self.non_vec_env.planning_step(
+                        unscaled_action
+                    )
+
                 # Only stop training if return value is False, not when it is None. This is for backwards
                 # compatibility with callbacks that have no return statement.
                 callback.update_locals(locals())
@@ -499,7 +647,7 @@ class SAC(OffPolicyRLModel):
                     obs_ = new_obs_
 
                 # Retrieve reward and episode length if using Monitor wrapper
-                maybe_ep_info = info.get('episode')
+                maybe_ep_info = info.get("episode")
                 if maybe_ep_info is not None:
                     self.ep_info_buf.extend([maybe_ep_info])
 
@@ -507,8 +655,13 @@ class SAC(OffPolicyRLModel):
                     # Write reward per episode to tensorboard
                     ep_reward = np.array([reward_]).reshape((1, -1))
                     ep_done = np.array([done]).reshape((1, -1))
-                    tf_util.total_episode_reward_logger(self.episode_reward, ep_reward,
-                                                        ep_done, writer, self.num_timesteps)
+                    tf_util.total_episode_reward_logger(
+                        self.episode_reward,
+                        ep_reward,
+                        ep_done,
+                        writer,
+                        self.num_timesteps,
+                    )
 
                 if self.num_timesteps % self.train_freq == 0:
                     callback.on_rollout_end()
@@ -518,8 +671,10 @@ class SAC(OffPolicyRLModel):
                     for grad_step in range(self.gradient_steps):
                         # Break if the warmup phase is not over
                         # or if there are not enough samples in the replay buffer
-                        if not self.replay_buffer.can_sample(self.batch_size) \
-                           or self.num_timesteps < self.learning_starts:
+                        if (
+                            not self.replay_buffer.can_sample(self.batch_size)
+                            or self.num_timesteps < self.learning_starts
+                        ):
                             break
                         n_updates += 1
                         # Compute current learning_rate
@@ -545,7 +700,7 @@ class SAC(OffPolicyRLModel):
                         obs = self.env.reset()
                     episode_rewards.append(0.0)
 
-                    maybe_is_success = info.get('is_success')
+                    maybe_is_success = info.get("is_success")
                     if maybe_is_success is not None:
                         episode_successes.append(float(maybe_is_success))
 
@@ -555,19 +710,30 @@ class SAC(OffPolicyRLModel):
                     mean_reward = round(float(np.mean(episode_rewards[-101:-1])), 1)
 
                 # substract 1 as we appended a new term just now
-                num_episodes = len(episode_rewards) - 1 
+                num_episodes = len(episode_rewards) - 1
                 # Display training infos
-                if self.verbose >= 1 and done and log_interval is not None and num_episodes % log_interval == 0:
+                if (
+                    self.verbose >= 1
+                    and done
+                    and log_interval is not None
+                    and num_episodes % log_interval == 0
+                ):
                     fps = int(step / (time.time() - start_time))
                     logger.logkv("episodes", num_episodes)
                     logger.logkv("mean 100 episode reward", mean_reward)
                     if len(self.ep_info_buf) > 0 and len(self.ep_info_buf[0]) > 0:
-                        logger.logkv('ep_rewmean', safe_mean([ep_info['r'] for ep_info in self.ep_info_buf]))
-                        logger.logkv('eplenmean', safe_mean([ep_info['l'] for ep_info in self.ep_info_buf]))
+                        logger.logkv(
+                            "ep_rewmean",
+                            safe_mean([ep_info["r"] for ep_info in self.ep_info_buf]),
+                        )
+                        logger.logkv(
+                            "eplenmean",
+                            safe_mean([ep_info["l"] for ep_info in self.ep_info_buf]),
+                        )
                     logger.logkv("n_updates", n_updates)
                     logger.logkv("current_lr", current_lr)
                     logger.logkv("fps", fps)
-                    logger.logkv('time_elapsed', int(time.time() - start_time))
+                    logger.logkv("time_elapsed", int(time.time() - start_time))
                     if len(episode_successes) > 0:
                         logger.logkv("success rate", np.mean(episode_successes[-100:]))
                     if len(infos_values) > 0:
@@ -578,25 +744,35 @@ class SAC(OffPolicyRLModel):
                     # Reset infos:
                     infos_values = []
             callback.on_training_end()
-            return self #, ep_reward #, reward_
+            return self  # , ep_reward #, reward_
 
-    def action_probability(self, observation, state=None, mask=None, actions=None, logp=False):
+    def action_probability(
+        self, observation, state=None, mask=None, actions=None, logp=False
+    ):
         if actions is not None:
             raise ValueError("Error: SAC does not have action probabilities.")
 
-        warnings.warn("Even though SAC has a Gaussian policy, it cannot return a distribution as it "
-                      "is squashed by a tanh before being scaled and outputed.")
+        warnings.warn(
+            "Even though SAC has a Gaussian policy, it cannot return a distribution as it "
+            "is squashed by a tanh before being scaled and outputed."
+        )
 
         return None
 
     def predict(self, observation, state=None, mask=None, deterministic=True):
         observation = np.array(observation)
-        vectorized_env = self._is_vectorized_observation(observation, self.observation_space)
+        vectorized_env = self._is_vectorized_observation(
+            observation, self.observation_space
+        )
 
         observation = observation.reshape((-1,) + self.observation_space.shape)
         actions = self.policy_tf.step(observation, deterministic=deterministic)
-        actions = actions.reshape((-1,) + self.action_space.shape)  # reshape to the correct action shape
-        actions = unscale_action(self.action_space, actions)  # scale the output for the prediction
+        actions = actions.reshape(
+            (-1,) + self.action_space.shape
+        )  # reshape to the correct action shape
+        actions = unscale_action(
+            self.action_space, actions
+        )  # scale the output for the prediction
 
         if not vectorized_env:
             actions = actions[0]
@@ -604,8 +780,7 @@ class SAC(OffPolicyRLModel):
         return actions, None
 
     def get_parameter_list(self):
-        return (self.params +
-                self.target_params)
+        return self.params + self.target_params
 
     def save(self, save_path, cloudpickle=False):
         data = {
@@ -615,7 +790,7 @@ class SAC(OffPolicyRLModel):
             "train_freq": self.train_freq,
             "batch_size": self.batch_size,
             "tau": self.tau,
-            "ent_coef": self.ent_coef if isinstance(self.ent_coef, float) else 'auto',
+            "ent_coef": self.ent_coef if isinstance(self.ent_coef, float) else "auto",
             "target_entropy": self.target_entropy,
             # Should we also store the replay buffer?
             # this may lead to high memory usage
@@ -632,9 +807,11 @@ class SAC(OffPolicyRLModel):
             "action_noise": self.action_noise,
             "random_exploration": self.random_exploration,
             "_vectorize_action": self._vectorize_action,
-            "policy_kwargs": self.policy_kwargs
+            "policy_kwargs": self.policy_kwargs,
         }
 
         params_to_save = self.get_parameters()
 
-        self._save_to_file(save_path, data=data, params=params_to_save, cloudpickle=cloudpickle)
+        self._save_to_file(
+            save_path, data=data, params=params_to_save, cloudpickle=cloudpickle
+        )

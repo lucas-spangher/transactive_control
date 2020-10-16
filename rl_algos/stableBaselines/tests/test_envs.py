@@ -5,14 +5,25 @@ import numpy as np
 
 from stable_baselines.common.env_checker import check_env
 from stable_baselines.common.bit_flipping_env import BitFlippingEnv
-from stable_baselines.common.identity_env import (IdentityEnv, IdentityEnvBox,
-                                                  IdentityEnvMultiBinary, IdentityEnvMultiDiscrete,)
+from stable_baselines.common.identity_env import (
+    IdentityEnv,
+    IdentityEnvBox,
+    IdentityEnvMultiBinary,
+    IdentityEnvMultiDiscrete,
+)
 
-ENV_CLASSES = [BitFlippingEnv, IdentityEnv, IdentityEnvBox, IdentityEnvMultiBinary,
-               IdentityEnvMultiDiscrete]
+ENV_CLASSES = [
+    BitFlippingEnv,
+    IdentityEnv,
+    IdentityEnvBox,
+    IdentityEnvMultiBinary,
+    IdentityEnvMultiDiscrete,
+]
 
 
-@pytest.mark.parametrize("env_id", ['CartPole-v0', 'Pendulum-v0', 'BreakoutNoFrameskip-v4'])
+@pytest.mark.parametrize(
+    "env_id", ["CartPole-v0", "Pendulum-v0", "BreakoutNoFrameskip-v4"]
+)
 def test_env(env_id):
     """
     Check that environmnent integrated in Gym pass the test.
@@ -25,7 +36,7 @@ def test_env(env_id):
 
     # Pendulum-v0 will produce a warning because the action space is
     # in [-2, 2] and not [-1, 1]
-    if env_id == 'Pendulum-v0':
+    if env_id == "Pendulum-v0":
         assert len(record) == 1
     else:
         # The other environments must pass without warning
@@ -43,32 +54,36 @@ def test_high_dimension_action_space():
     Test for continuous action space
     with more than one action.
     """
-    env = gym.make('Pendulum-v0')
+    env = gym.make("Pendulum-v0")
     # Patch the action space
     env.action_space = spaces.Box(low=-1, high=1, shape=(20,), dtype=np.float32)
     # Patch to avoid error
     def patched_step(_action):
         return env.observation_space.sample(), 0.0, False, {}
+
     env.step = patched_step
     check_env(env)
 
 
-@pytest.mark.parametrize("new_obs_space", [
-    # Small image
-    spaces.Box(low=0, high=255, shape=(32, 32, 3), dtype=np.uint8),
-    # Range not in [0, 255]
-    spaces.Box(low=0, high=1, shape=(64, 64, 3), dtype=np.uint8),
-    # Wrong dtype
-    spaces.Box(low=0, high=255, shape=(64, 64, 3), dtype=np.float32),
-    # Not an image, it should be a 1D vector
-    spaces.Box(low=-1, high=1, shape=(64, 3), dtype=np.float32),
-    # Tuple space is not supported by SB
-    spaces.Tuple([spaces.Discrete(5), spaces.Discrete(10)]),
-    # Dict space is not supported by SB when env is not a GoalEnv
-    spaces.Dict({"position": spaces.Discrete(5)}),
-])
+@pytest.mark.parametrize(
+    "new_obs_space",
+    [
+        # Small image
+        spaces.Box(low=0, high=255, shape=(32, 32, 3), dtype=np.uint8),
+        # Range not in [0, 255]
+        spaces.Box(low=0, high=1, shape=(64, 64, 3), dtype=np.uint8),
+        # Wrong dtype
+        spaces.Box(low=0, high=255, shape=(64, 64, 3), dtype=np.float32),
+        # Not an image, it should be a 1D vector
+        spaces.Box(low=-1, high=1, shape=(64, 3), dtype=np.float32),
+        # Tuple space is not supported by SB
+        spaces.Tuple([spaces.Discrete(5), spaces.Discrete(10)]),
+        # Dict space is not supported by SB when env is not a GoalEnv
+        spaces.Dict({"position": spaces.Discrete(5)}),
+    ],
+)
 def test_non_default_spaces(new_obs_space):
-    env = gym.make('BreakoutNoFrameskip-v4')
+    env = gym.make("BreakoutNoFrameskip-v4")
     env.observation_space = new_obs_space
     # Patch methods to avoid errors
     env.reset = new_obs_space.sample
@@ -139,7 +154,9 @@ def test_common_failures_step():
     check_step_assert_error(env, (1, 1.0, False, {}))
 
     # Return a wrong reward
-    check_step_assert_error(env, (env.observation_space.sample(), np.ones(1), False, {}))
+    check_step_assert_error(
+        env, (env.observation_space.sample(), np.ones(1), False, {})
+    )
 
     # Info dict is not returned
     check_step_assert_error(env, (env.observation_space.sample(), 0.0, False))

@@ -25,8 +25,17 @@ class VecNormalize(VecEnvWrapper):
     :param epsilon: (float) To avoid division by zero
     """
 
-    def __init__(self, venv, training=True, norm_obs=True, norm_reward=True,
-                 clip_obs=10., clip_reward=10., gamma=0.99, epsilon=1e-8):
+    def __init__(
+        self,
+        venv,
+        training=True,
+        norm_obs=True,
+        norm_reward=True,
+        clip_obs=10.0,
+        clip_reward=10.0,
+        gamma=0.99,
+        epsilon=1e-8,
+    ):
         VecEnvWrapper.__init__(self, venv)
         self.obs_rms = RunningMeanStd(shape=self.observation_space.shape)
         self.ret_rms = RunningMeanStd(shape=())
@@ -49,10 +58,10 @@ class VecNormalize(VecEnvWrapper):
         Excludes self.venv, as in general VecEnv's may not be pickleable."""
         state = self.__dict__.copy()
         # these attributes are not pickleable
-        del state['venv']
-        del state['class_attributes']
+        del state["venv"]
+        del state["class_attributes"]
         # these attributes depend on the above and so we would prefer not to pickle
-        del state['ret']
+        del state["ret"]
         return state
 
     def __setstate__(self, state):
@@ -63,7 +72,7 @@ class VecNormalize(VecEnvWrapper):
 
         :param state: (dict)"""
         self.__dict__.update(state)
-        assert 'venv' not in state
+        assert "venv" not in state
         self.venv = None
 
     def set_venv(self, venv):
@@ -75,7 +84,9 @@ class VecNormalize(VecEnvWrapper):
         :param venv: (VecEnv)
         """
         if self.venv is not None:
-            raise ValueError("Trying to set venv of already initialized VecNormalize wrapper.")
+            raise ValueError(
+                "Trying to set venv of already initialized VecNormalize wrapper."
+            )
         VecEnvWrapper.__init__(self, venv)
         if self.obs_rms.mean.shape != self.observation_space.shape:
             raise ValueError("venv is incompatible with current statistics.")
@@ -114,9 +125,11 @@ class VecNormalize(VecEnvWrapper):
         Calling this method does not update statistics.
         """
         if self.norm_obs:
-            obs = np.clip((obs - self.obs_rms.mean) / np.sqrt(self.obs_rms.var + self.epsilon),
-                          -self.clip_obs,
-                          self.clip_obs)
+            obs = np.clip(
+                (obs - self.obs_rms.mean) / np.sqrt(self.obs_rms.var + self.epsilon),
+                -self.clip_obs,
+                self.clip_obs,
+            )
         return obs
 
     def normalize_reward(self, reward: np.ndarray) -> np.ndarray:
@@ -125,8 +138,11 @@ class VecNormalize(VecEnvWrapper):
         Calling this method does not update statistics.
         """
         if self.norm_reward:
-            reward = np.clip(reward / np.sqrt(self.ret_rms.var + self.epsilon),
-                           -self.clip_reward, self.clip_reward)
+            reward = np.clip(
+                reward / np.sqrt(self.ret_rms.var + self.epsilon),
+                -self.clip_reward,
+                self.clip_reward,
+            )
         return reward
 
     def get_original_obs(self) -> np.ndarray:
@@ -178,10 +194,13 @@ class VecNormalize(VecEnvWrapper):
         .. deprecated:: 2.9.0
             This function will be removed in a future version
         """
-        warnings.warn("Usage of `save_running_average` is deprecated. Please "
-                      "use `save` or pickle instead.", DeprecationWarning)
-        for rms, name in zip([self.obs_rms, self.ret_rms], ['obs_rms', 'ret_rms']):
-            with open("{}/{}.pkl".format(path, name), 'wb') as file_handler:
+        warnings.warn(
+            "Usage of `save_running_average` is deprecated. Please "
+            "use `save` or pickle instead.",
+            DeprecationWarning,
+        )
+        for rms, name in zip([self.obs_rms, self.ret_rms], ["obs_rms", "ret_rms"]):
+            with open("{}/{}.pkl".format(path, name), "wb") as file_handler:
                 pickle.dump(rms, file_handler)
 
     def load_running_average(self, path):
@@ -191,8 +210,11 @@ class VecNormalize(VecEnvWrapper):
         .. deprecated:: 2.9.0
             This function will be removed in a future version
         """
-        warnings.warn("Usage of `load_running_average` is deprecated. Please "
-                      "use `load` or pickle instead.", DeprecationWarning)
-        for name in ['obs_rms', 'ret_rms']:
-            with open("{}/{}.pkl".format(path, name), 'rb') as file_handler:
+        warnings.warn(
+            "Usage of `load_running_average` is deprecated. Please "
+            "use `load` or pickle instead.",
+            DeprecationWarning,
+        )
+        for name in ["obs_rms", "ret_rms"]:
+            with open("{}/{}.pkl".format(path, name), "rb") as file_handler:
                 setattr(self, name, pickle.load(file_handler))

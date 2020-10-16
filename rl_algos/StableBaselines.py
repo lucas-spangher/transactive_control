@@ -248,8 +248,8 @@ def parse_args():
         "--response",
         help="Player response function (l = linear, t = threshold_exponential, s = sinusoidal",
         type=str,
-        default="l",
-        choices=["l", "t", "s"],
+        default="m",
+        choices=["l", "t", "s", "m"],
     )
     parser.add_argument(
         "--one_day",

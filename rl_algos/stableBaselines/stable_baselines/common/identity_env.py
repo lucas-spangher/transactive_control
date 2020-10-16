@@ -6,10 +6,12 @@ from gym.spaces import Discrete, MultiDiscrete, MultiBinary, Box
 
 
 class IdentityEnv(Env):
-    def __init__(self,
-                 dim: Optional[int] = None,
-                 space: Optional[Space] = None,
-                 ep_length: int = 100):
+    def __init__(
+        self,
+        dim: Optional[int] = None,
+        space: Optional[Space] = None,
+        ep_length: int = 100,
+    ):
         """
         Identity environment for testing purposes
 
@@ -25,7 +27,9 @@ class IdentityEnv(Env):
                 dim = 1
             space = Discrete(dim)
         else:
-            assert dim is None, "arguments for both 'dim' and 'space' provided: at most one allowed"
+            assert (
+                dim is None
+            ), "arguments for both 'dim' and 'space' provided: at most one allowed"
 
         self.action_space = self.observation_space = space
         self.ep_length = ep_length
@@ -52,7 +56,7 @@ class IdentityEnv(Env):
     def _get_reward(self, action):
         return 1 if np.all(self.state == action) else 0
 
-    def render(self, mode='human'):
+    def render(self, mode="human"):
         pass
 
 

@@ -5,7 +5,7 @@ from gym import spaces
 
 # Important: gym mixes up ordered and unordered keys
 # and the Dict space may return a different order of keys that the actual one
-KEY_ORDER = ['observation', 'achieved_goal', 'desired_goal']
+KEY_ORDER = ["observation", "achieved_goal", "desired_goal"]
 
 
 class HERGoalEnvWrapper(object):
@@ -26,21 +26,26 @@ class HERGoalEnvWrapper(object):
         # Check that all spaces are of the same type
         # (current limitation of the wrapper)
         space_types = [type(env.observation_space.spaces[key]) for key in KEY_ORDER]
-        assert len(set(space_types)) == 1, "The spaces for goal and observation"\
-                                           " must be of the same type"
+        assert len(set(space_types)) == 1, (
+            "The spaces for goal and observation" " must be of the same type"
+        )
 
         if isinstance(self.spaces[0], spaces.Discrete):
             self.obs_dim = 1
             self.goal_dim = 1
         else:
-            goal_space_shape = env.observation_space.spaces['achieved_goal'].shape
-            self.obs_dim = env.observation_space.spaces['observation'].shape[0]
+            goal_space_shape = env.observation_space.spaces["achieved_goal"].shape
+            self.obs_dim = env.observation_space.spaces["observation"].shape[0]
             self.goal_dim = goal_space_shape[0]
 
             if len(goal_space_shape) == 2:
-                assert goal_space_shape[1] == 1, "Only 1D observation spaces are supported yet"
+                assert (
+                    goal_space_shape[1] == 1
+                ), "Only 1D observation spaces are supported yet"
             else:
-                assert len(goal_space_shape) == 1, "Only 1D observation spaces are supported yet"
+                assert (
+                    len(goal_space_shape) == 1
+                ), "Only 1D observation spaces are supported yet"
 
         if isinstance(self.spaces[0], spaces.MultiBinary):
             total_dim = self.obs_dim + 2 * self.goal_dim
@@ -56,7 +61,9 @@ class HERGoalEnvWrapper(object):
             self.observation_space = spaces.MultiDiscrete(dimensions)
 
         else:
-            raise NotImplementedError("{} space is not supported".format(type(self.spaces[0])))
+            raise NotImplementedError(
+                "{} space is not supported".format(type(self.spaces[0]))
+            )
 
     def convert_dict_to_obs(self, obs_dict):
         """
@@ -77,11 +84,16 @@ class HERGoalEnvWrapper(object):
         :param observations: (np.ndarray)
         :return: (OrderedDict<np.ndarray>)
         """
-        return OrderedDict([
-            ('observation', observations[:self.obs_dim]),
-            ('achieved_goal', observations[self.obs_dim:self.obs_dim + self.goal_dim]),
-            ('desired_goal', observations[self.obs_dim + self.goal_dim:]),
-        ])
+        return OrderedDict(
+            [
+                ("observation", observations[: self.obs_dim]),
+                (
+                    "achieved_goal",
+                    observations[self.obs_dim : self.obs_dim + self.goal_dim],
+                ),
+                ("desired_goal", observations[self.obs_dim + self.goal_dim :]),
+            ]
+        )
 
     def step(self, action):
         obs, reward, done, info = self.env.step(action)
@@ -96,7 +108,7 @@ class HERGoalEnvWrapper(object):
     def compute_reward(self, achieved_goal, desired_goal, info):
         return self.env.compute_reward(achieved_goal, desired_goal, info)
 
-    def render(self, mode='human'):
+    def render(self, mode="human"):
         return self.env.render(mode)
 
     def close(self):

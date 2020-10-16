@@ -8,12 +8,27 @@ from collections import deque
 
 from stable_baselines import logger
 from stable_baselines.common.schedules import Scheduler
-from stable_baselines.common.tf_util import batch_to_seq, seq_to_batch, \
-    check_shape, avg_norm, gradient_add, q_explained_variance, total_episode_reward_logger
+from stable_baselines.common.tf_util import (
+    batch_to_seq,
+    seq_to_batch,
+    check_shape,
+    avg_norm,
+    gradient_add,
+    q_explained_variance,
+    total_episode_reward_logger,
+)
 from stable_baselines.acer.buffer import Buffer
-from stable_baselines.common import ActorCriticRLModel, tf_util, SetVerbosity, TensorboardWriter
+from stable_baselines.common import (
+    ActorCriticRLModel,
+    tf_util,
+    SetVerbosity,
+    TensorboardWriter,
+)
 from stable_baselines.common.runners import AbstractEnvRunner
-from stable_baselines.common.policies import ActorCriticPolicy, RecurrentActorCriticPolicy
+from stable_baselines.common.policies import (
+    ActorCriticPolicy,
+    RecurrentActorCriticPolicy,
+)
 
 
 # For ACER
@@ -27,9 +42,12 @@ def get_by_index(input_tensor, idx):
     """
     assert len(input_tensor.get_shape()) == 2
     assert len(idx.get_shape()) == 1
-    idx_flattened = tf.range(0, input_tensor.shape[0], dtype=tf.int64) * input_tensor.shape[1] + idx
-    offset_tensor = tf.gather(tf.reshape(input_tensor, [-1]),  # flatten input
-                              idx_flattened)  # use flattened indices
+    idx_flattened = (
+        tf.range(0, input_tensor.shape[0], dtype=tf.int64) * input_tensor.shape[1] + idx
+    )
+    offset_tensor = tf.gather(
+        tf.reshape(input_tensor, [-1]), idx_flattened  # flatten input
+    )  # use flattened indices
     return offset_tensor
 
 
@@ -61,16 +79,25 @@ def q_retrace(rewards, dones, q_i, values, rho_i, n_envs, n_steps, gamma):
     :param gamma: (float) The discount value
     :return: ([TensorFlow Tensor]) the target Q-retrace
     """
-    rho_bar = batch_to_seq(tf.minimum(1.0, rho_i), n_envs, n_steps, True)  # list of len steps, shape [n_envs]
-    reward_seq = batch_to_seq(rewards, n_envs, n_steps, True)  # list of len steps, shape [n_envs]
-    done_seq = batch_to_seq(dones, n_envs, n_steps, True)  # list of len steps, shape [n_envs]
+    rho_bar = batch_to_seq(
+        tf.minimum(1.0, rho_i), n_envs, n_steps, True
+    )  # list of len steps, shape [n_envs]
+    reward_seq = batch_to_seq(
+        rewards, n_envs, n_steps, True
+    )  # list of len steps, shape [n_envs]
+    done_seq = batch_to_seq(
+        dones, n_envs, n_steps, True
+    )  # list of len steps, shape [n_envs]
     q_is = batch_to_seq(q_i, n_envs, n_steps, True)
     value_sequence = batch_to_seq(values, n_envs, n_steps + 1, True)
     final_value = value_sequence[-1]
     qret = final_value
     qrets = []
     for i in range(n_steps - 1, -1, -1):
-        check_shape([qret, done_seq[i], reward_seq[i], rho_bar[i], q_is[i], value_sequence[i]], [[n_envs]] * 6)
+        check_shape(
+            [qret, done_seq[i], reward_seq[i], rho_bar[i], q_is[i], value_sequence[i]],
+            [[n_envs]] * 6,
+        )
         qret = reward_seq[i] + gamma * qret * (1.0 - done_seq[i])
         qrets.append(qret)
         qret = (rho_bar[i] * (qret - q_is[i])) + value_sequence[i]
@@ -182,16 +209,42 @@ class ACER(ActorCriticRLModel):
         If None, the number of cpu of the current machine will be used.
     """
 
-    def __init__(self, policy, env, gamma=0.99, n_steps=20, num_procs=None, q_coef=0.5, ent_coef=0.01, max_grad_norm=10,
-                 learning_rate=7e-4, lr_schedule='linear', rprop_alpha=0.99, rprop_epsilon=1e-5, buffer_size=5000,
-                 replay_ratio=4, replay_start=1000, correction_term=10.0, trust_region=True,
-                 alpha=0.99, delta=1, verbose=0, tensorboard_log=None,
-                 _init_setup_model=True, policy_kwargs=None,
-                 full_tensorboard_log=False, seed=None, n_cpu_tf_sess=1):
+    def __init__(
+        self,
+        policy,
+        env,
+        gamma=0.99,
+        n_steps=20,
+        num_procs=None,
+        q_coef=0.5,
+        ent_coef=0.01,
+        max_grad_norm=10,
+        learning_rate=7e-4,
+        lr_schedule="linear",
+        rprop_alpha=0.99,
+        rprop_epsilon=1e-5,
+        buffer_size=5000,
+        replay_ratio=4,
+        replay_start=1000,
+        correction_term=10.0,
+        trust_region=True,
+        alpha=0.99,
+        delta=1,
+        verbose=0,
+        tensorboard_log=None,
+        _init_setup_model=True,
+        policy_kwargs=None,
+        full_tensorboard_log=False,
+        seed=None,
+        n_cpu_tf_sess=1,
+    ):
 
         if num_procs is not None:
-            warnings.warn("num_procs will be removed in a future version (v3.x.x) "
-                          "use n_cpu_tf_sess instead", DeprecationWarning)
+            warnings.warn(
+                "num_procs will be removed in a future version (v3.x.x) "
+                "use n_cpu_tf_sess instead",
+                DeprecationWarning,
+            )
             n_cpu_tf_sess = num_procs
 
         self.n_steps = n_steps
@@ -229,9 +282,16 @@ class ACER(ActorCriticRLModel):
         self.n_batch = None
         self.summary = None
 
-        super(ACER, self).__init__(policy=policy, env=env, verbose=verbose, requires_vec_env=True,
-                                   _init_setup_model=_init_setup_model, policy_kwargs=policy_kwargs,
-                                   seed=seed, n_cpu_tf_sess=n_cpu_tf_sess)
+        super(ACER, self).__init__(
+            policy=policy,
+            env=env,
+            verbose=verbose,
+            requires_vec_env=True,
+            _init_setup_model=_init_setup_model,
+            policy_kwargs=policy_kwargs,
+            seed=seed,
+            n_cpu_tf_sess=n_cpu_tf_sess,
+        )
 
         if _init_setup_model:
             self.setup_model()
@@ -244,21 +304,26 @@ class ACER(ActorCriticRLModel):
         action_ph = policy.pdtype.sample_placeholder([None])
         if isinstance(self.action_space, Discrete):
             return policy.obs_ph, action_ph, policy.policy
-        raise NotImplementedError('Only discrete actions are supported for ACER for now')
+        raise NotImplementedError(
+            "Only discrete actions are supported for ACER for now"
+        )
 
     def set_env(self, env):
         if env is not None:
-            assert self.n_envs == env.num_envs, \
-                "Error: the environment passed must have the same number of environments as the model was trained on." \
+            assert self.n_envs == env.num_envs, (
+                "Error: the environment passed must have the same number of environments as the model was trained on."
                 "This is due to ACER not being capable of changing the number of environments."
+            )
 
         super().set_env(env)
 
     def setup_model(self):
         with SetVerbosity(self.verbose):
 
-            assert issubclass(self.policy, ActorCriticPolicy), "Error: the input policy for the ACER model must be " \
-                                                               "an instance of common.policies.ActorCriticPolicy."
+            assert issubclass(self.policy, ActorCriticPolicy), (
+                "Error: the input policy for the ACER model must be "
+                "an instance of common.policies.ActorCriticPolicy."
+            )
 
             if isinstance(self.action_space, Discrete):
                 self.n_act = self.action_space.n
@@ -266,30 +331,57 @@ class ACER(ActorCriticRLModel):
             elif isinstance(self.action_space, Box):
                 # self.n_act = self.action_space.shape[-1]
                 # continuous = True
-                raise NotImplementedError("WIP: Acer does not support Continuous actions yet.")
+                raise NotImplementedError(
+                    "WIP: Acer does not support Continuous actions yet."
+                )
             else:
-                raise ValueError("Error: ACER does not work with {} actions space.".format(self.action_space))
+                raise ValueError(
+                    "Error: ACER does not work with {} actions space.".format(
+                        self.action_space
+                    )
+                )
 
             self.n_batch = self.n_envs * self.n_steps
 
             self.graph = tf.Graph()
             with self.graph.as_default():
-                self.sess = tf_util.make_session(num_cpu=self.n_cpu_tf_sess, graph=self.graph)
+                self.sess = tf_util.make_session(
+                    num_cpu=self.n_cpu_tf_sess, graph=self.graph
+                )
                 self.set_random_seed(self.seed)
                 n_batch_step = None
                 if issubclass(self.policy, RecurrentActorCriticPolicy):
                     n_batch_step = self.n_envs
                 n_batch_train = self.n_envs * (self.n_steps + 1)
 
-                step_model = self.policy(self.sess, self.observation_space, self.action_space, self.n_envs, 1,
-                                         n_batch_step, reuse=False, **self.policy_kwargs)
+                step_model = self.policy(
+                    self.sess,
+                    self.observation_space,
+                    self.action_space,
+                    self.n_envs,
+                    1,
+                    n_batch_step,
+                    reuse=False,
+                    **self.policy_kwargs
+                )
 
                 self.params = tf_util.get_trainable_vars("model")
 
-                with tf.variable_scope("train_model", reuse=True,
-                                       custom_getter=tf_util.outer_scope_getter("train_model")):
-                    train_model = self.policy(self.sess, self.observation_space, self.action_space, self.n_envs,
-                                              self.n_steps + 1, n_batch_train, reuse=True, **self.policy_kwargs)
+                with tf.variable_scope(
+                    "train_model",
+                    reuse=True,
+                    custom_getter=tf_util.outer_scope_getter("train_model"),
+                ):
+                    train_model = self.policy(
+                        self.sess,
+                        self.observation_space,
+                        self.action_space,
+                        self.n_envs,
+                        self.n_steps + 1,
+                        n_batch_train,
+                        reuse=True,
+                        **self.policy_kwargs
+                    )
 
                 with tf.variable_scope("moving_average"):
                     # create averaged model
@@ -301,17 +393,31 @@ class ACER(ActorCriticRLModel):
                         val = ema.average(getter(name, *args, **kwargs))
                         return val
 
-                with tf.variable_scope("polyak_model", reuse=True, custom_getter=custom_getter):
-                    self.polyak_model = polyak_model = self.policy(self.sess, self.observation_space, self.action_space,
-                                                                   self.n_envs, self.n_steps + 1,
-                                                                   self.n_envs * (self.n_steps + 1), reuse=True,
-                                                                   **self.policy_kwargs)
+                with tf.variable_scope(
+                    "polyak_model", reuse=True, custom_getter=custom_getter
+                ):
+                    self.polyak_model = polyak_model = self.policy(
+                        self.sess,
+                        self.observation_space,
+                        self.action_space,
+                        self.n_envs,
+                        self.n_steps + 1,
+                        self.n_envs * (self.n_steps + 1),
+                        reuse=True,
+                        **self.policy_kwargs
+                    )
 
                 with tf.variable_scope("loss", reuse=False):
                     self.done_ph = tf.placeholder(tf.float32, [self.n_batch])  # dones
-                    self.reward_ph = tf.placeholder(tf.float32, [self.n_batch])  # rewards, not returns
-                    self.mu_ph = tf.placeholder(tf.float32, [self.n_batch, self.n_act])  # mu's
-                    self.action_ph = train_model.pdtype.sample_placeholder([self.n_batch])
+                    self.reward_ph = tf.placeholder(
+                        tf.float32, [self.n_batch]
+                    )  # rewards, not returns
+                    self.mu_ph = tf.placeholder(
+                        tf.float32, [self.n_batch, self.n_act]
+                    )  # mu's
+                    self.action_ph = train_model.pdtype.sample_placeholder(
+                        [self.n_batch]
+                    )
                     self.learning_rate_ph = tf.placeholder(tf.float32, [])
                     eps = 1e-6
 
@@ -321,22 +427,50 @@ class ACER(ActorCriticRLModel):
                     if continuous:
                         value = train_model.value_flat
                     else:
-                        value = tf.reduce_sum(train_model.policy_proba * train_model.q_value, axis=-1)
+                        value = tf.reduce_sum(
+                            train_model.policy_proba * train_model.q_value, axis=-1
+                        )
 
                     rho, rho_i_ = None, None
                     if continuous:
-                        action_ = strip(train_model.proba_distribution.sample(), self.n_envs, self.n_steps)
+                        action_ = strip(
+                            train_model.proba_distribution.sample(),
+                            self.n_envs,
+                            self.n_steps,
+                        )
                         distribution_f = tf.contrib.distributions.MultivariateNormalDiag(
-                            loc=strip(train_model.proba_distribution.mean, self.n_envs, self.n_steps),
-                            scale_diag=strip(train_model.proba_distribution.logstd, self.n_envs, self.n_steps))
+                            loc=strip(
+                                train_model.proba_distribution.mean,
+                                self.n_envs,
+                                self.n_steps,
+                            ),
+                            scale_diag=strip(
+                                train_model.proba_distribution.logstd,
+                                self.n_envs,
+                                self.n_steps,
+                            ),
+                        )
                         f_polyak = tf.contrib.distributions.MultivariateNormalDiag(
-                            loc=strip(polyak_model.proba_distribution.mean, self.n_envs, self.n_steps),
-                            scale_diag=strip(polyak_model.proba_distribution.logstd, self.n_envs, self.n_steps))
+                            loc=strip(
+                                polyak_model.proba_distribution.mean,
+                                self.n_envs,
+                                self.n_steps,
+                            ),
+                            scale_diag=strip(
+                                polyak_model.proba_distribution.logstd,
+                                self.n_envs,
+                                self.n_steps,
+                            ),
+                        )
 
                         f_i = distribution_f.prob(self.action_ph)
                         f_i_ = distribution_f.prob(action_)
                         f_polyak_i = f_polyak.prob(self.action_ph)
-                        phi_i = strip(train_model.proba_distribution.mean, self.n_envs, self.n_steps)
+                        phi_i = strip(
+                            train_model.proba_distribution.mean,
+                            self.n_envs,
+                            self.n_steps,
+                        )
 
                         q_value = strip(train_model.value_fn, self.n_envs, self.n_steps)
                         q_i = q_value[:, 0]
@@ -344,16 +478,31 @@ class ACER(ActorCriticRLModel):
                         rho_i = tf.reshape(f_i, [-1, 1]) / (self.mu_ph + eps)
                         rho_i_ = tf.reshape(f_i_, [-1, 1]) / (self.mu_ph + eps)
 
-                        qret = q_retrace(self.reward_ph, self.done_ph, q_i, value, tf.pow(rho_i, 1 / self.n_act),
-                                         self.n_envs, self.n_steps, self.gamma)
+                        qret = q_retrace(
+                            self.reward_ph,
+                            self.done_ph,
+                            q_i,
+                            value,
+                            tf.pow(rho_i, 1 / self.n_act),
+                            self.n_envs,
+                            self.n_steps,
+                            self.gamma,
+                        )
                     else:
                         # strip off last step
                         # f is a distribution, chosen to be Gaussian distributions
                         # with fixed diagonal covariance and mean \phi(x)
                         # in the paper
-                        distribution_f, f_polyak, q_value = \
-                            map(lambda variables: strip(variables, self.n_envs, self.n_steps),
-                                [train_model.policy_proba, polyak_model.policy_proba, train_model.q_value])
+                        distribution_f, f_polyak, q_value = map(
+                            lambda variables: strip(
+                                variables, self.n_envs, self.n_steps
+                            ),
+                            [
+                                train_model.policy_proba,
+                                polyak_model.policy_proba,
+                                train_model.q_value,
+                            ],
+                        )
 
                         # Get pi and q values for actions taken
                         f_i = get_by_index(distribution_f, self.action_ph)
@@ -368,8 +517,16 @@ class ACER(ActorCriticRLModel):
                         rho_i = get_by_index(rho, self.action_ph)
 
                         # Calculate Q_retrace targets
-                        qret = q_retrace(self.reward_ph, self.done_ph, q_i, value, rho_i, self.n_envs, self.n_steps,
-                                         self.gamma)
+                        qret = q_retrace(
+                            self.reward_ph,
+                            self.done_ph,
+                            q_i,
+                            value,
+                            rho_i,
+                            self.n_envs,
+                            self.n_steps,
+                            self.gamma,
+                        )
 
                     # Calculate losses
                     # Entropy
@@ -384,25 +541,34 @@ class ACER(ActorCriticRLModel):
                     adv = qret - value
                     log_f = tf.log(f_i + eps)
                     # [n_envs * n_steps]
-                    gain_f = log_f * tf.stop_gradient(adv * tf.minimum(self.correction_term, rho_i))
+                    gain_f = log_f * tf.stop_gradient(
+                        adv * tf.minimum(self.correction_term, rho_i)
+                    )
                     loss_f = -tf.reduce_mean(gain_f)
 
                     # Bias correction for the truncation
-                    adv_bc = (q_value - tf.reshape(value, [self.n_envs * self.n_steps, 1]))  # [n_envs * n_steps, n_act]
+                    adv_bc = q_value - tf.reshape(
+                        value, [self.n_envs * self.n_steps, 1]
+                    )  # [n_envs * n_steps, n_act]
 
                     # check_shape([adv_bc, log_f_bc], [[self.n_envs * self.n_steps, self.n_act]] * 2)
                     if continuous:
-                        gain_bc = tf.stop_gradient(adv_bc *
-                                                   tf.nn.relu(1.0 - (self.correction_term / (rho_i_ + eps))) *
-                                                   f_i_)
+                        gain_bc = tf.stop_gradient(
+                            adv_bc
+                            * tf.nn.relu(1.0 - (self.correction_term / (rho_i_ + eps)))
+                            * f_i_
+                        )
                     else:
                         log_f_bc = tf.log(f_i_ + eps)  # / (f_old + eps)
-                        gain_bc = tf.reduce_sum(log_f_bc *
-                                                tf.stop_gradient(
-                                                    adv_bc *
-                                                    tf.nn.relu(1.0 - (self.correction_term / (rho + eps))) *
-                                                    f_i_),
-                                                axis=1)
+                        gain_bc = tf.reduce_sum(
+                            log_f_bc
+                            * tf.stop_gradient(
+                                adv_bc
+                                * tf.nn.relu(1.0 - (self.correction_term / (rho + eps)))
+                                * f_i_
+                            ),
+                            axis=1,
+                        )
                     # IMP: This is sum, as expectation wrt f
                     loss_bc = -tf.reduce_mean(gain_bc)
 
@@ -410,30 +576,46 @@ class ACER(ActorCriticRLModel):
 
                     # Value/Q function loss, and explained variance
                     check_shape([qret, q_i], [[self.n_envs * self.n_steps]] * 2)
-                    explained_variance = q_explained_variance(tf.reshape(q_i, [self.n_envs, self.n_steps]),
-                                                              tf.reshape(qret, [self.n_envs, self.n_steps]))
-                    loss_q = tf.reduce_mean(tf.square(tf.stop_gradient(qret) - q_i) * 0.5)
+                    explained_variance = q_explained_variance(
+                        tf.reshape(q_i, [self.n_envs, self.n_steps]),
+                        tf.reshape(qret, [self.n_envs, self.n_steps]),
+                    )
+                    loss_q = tf.reduce_mean(
+                        tf.square(tf.stop_gradient(qret) - q_i) * 0.5
+                    )
 
                     # Net loss
                     check_shape([loss_policy, loss_q, entropy], [[]] * 3)
                     loss = loss_policy + self.q_coef * loss_q - self.ent_coef * entropy
 
-                    tf.summary.scalar('entropy_loss', entropy)
-                    tf.summary.scalar('policy_gradient_loss', loss_policy)
-                    tf.summary.scalar('value_function_loss', loss_q)
-                    tf.summary.scalar('loss', loss)
+                    tf.summary.scalar("entropy_loss", entropy)
+                    tf.summary.scalar("policy_gradient_loss", loss_policy)
+                    tf.summary.scalar("value_function_loss", loss_q)
+                    tf.summary.scalar("loss", loss)
 
                     norm_grads_q, norm_grads_policy, avg_norm_grads_f = None, None, None
-                    avg_norm_k, avg_norm_g, avg_norm_k_dot_g, avg_norm_adj = None, None, None, None
+                    avg_norm_k, avg_norm_g, avg_norm_k_dot_g, avg_norm_adj = (
+                        None,
+                        None,
+                        None,
+                        None,
+                    )
                     if self.trust_region:
                         # [n_envs * n_steps, n_act]
-                        grad = tf.gradients(- (loss_policy - self.ent_coef * entropy) * self.n_steps * self.n_envs,
-                                            phi_i)
+                        grad = tf.gradients(
+                            -(loss_policy - self.ent_coef * entropy)
+                            * self.n_steps
+                            * self.n_envs,
+                            phi_i,
+                        )
                         # [n_envs * n_steps, n_act] # Directly computed gradient of KL divergence wrt f
-                        kl_grad = - f_polyak_i / (f_i_ + eps)
+                        kl_grad = -f_polyak_i / (f_i_ + eps)
                         k_dot_g = tf.reduce_sum(kl_grad * grad, axis=-1)
-                        adj = tf.maximum(0.0, (tf.reduce_sum(kl_grad * grad, axis=-1) - self.delta) / (
-                                tf.reduce_sum(tf.square(kl_grad), axis=-1) + eps))  # [n_envs * n_steps]
+                        adj = tf.maximum(
+                            0.0,
+                            (tf.reduce_sum(kl_grad * grad, axis=-1) - self.delta)
+                            / (tf.reduce_sum(tf.square(kl_grad), axis=-1) + eps),
+                        )  # [n_envs * n_steps]
 
                         # Calculate stats (before doing adjustment) for logging.
                         avg_norm_k = avg_norm(kl_grad)
@@ -441,15 +623,24 @@ class ACER(ActorCriticRLModel):
                         avg_norm_k_dot_g = tf.reduce_mean(tf.abs(k_dot_g))
                         avg_norm_adj = tf.reduce_mean(tf.abs(adj))
 
-                        grad = grad - tf.reshape(adj, [self.n_envs * self.n_steps, 1]) * kl_grad
+                        grad = (
+                            grad
+                            - tf.reshape(adj, [self.n_envs * self.n_steps, 1]) * kl_grad
+                        )
                         # These are turst region adjusted gradients wrt f ie statistics of policy pi
                         grads_f = -grad / (self.n_envs * self.n_steps)
                         grads_policy = tf.gradients(f_i_, self.params, grads_f)
                         grads_q = tf.gradients(loss_q * self.q_coef, self.params)
-                        grads = [gradient_add(g1, g2, param, verbose=self.verbose)
-                                 for (g1, g2, param) in zip(grads_policy, grads_q, self.params)]
+                        grads = [
+                            gradient_add(g1, g2, param, verbose=self.verbose)
+                            for (g1, g2, param) in zip(
+                                grads_policy, grads_q, self.params
+                            )
+                        ]
 
-                        avg_norm_grads_f = avg_norm(grads_f) * (self.n_steps * self.n_envs)
+                        avg_norm_grads_f = avg_norm(grads_f) * (
+                            self.n_steps * self.n_envs
+                        )
                         norm_grads_q = tf.global_norm(grads_q)
                         norm_grads_policy = tf.global_norm(grads_policy)
                     else:
@@ -457,27 +648,34 @@ class ACER(ActorCriticRLModel):
 
                     norm_grads = None
                     if self.max_grad_norm is not None:
-                        grads, norm_grads = tf.clip_by_global_norm(grads, self.max_grad_norm)
+                        grads, norm_grads = tf.clip_by_global_norm(
+                            grads, self.max_grad_norm
+                        )
                     grads = list(zip(grads, self.params))
 
                 with tf.variable_scope("input_info", reuse=False):
-                    tf.summary.scalar('rewards', tf.reduce_mean(self.reward_ph))
-                    tf.summary.scalar('learning_rate', tf.reduce_mean(self.learning_rate))
-                    tf.summary.scalar('advantage', tf.reduce_mean(adv))
-                    tf.summary.scalar('action_probability', tf.reduce_mean(self.mu_ph))
+                    tf.summary.scalar("rewards", tf.reduce_mean(self.reward_ph))
+                    tf.summary.scalar(
+                        "learning_rate", tf.reduce_mean(self.learning_rate)
+                    )
+                    tf.summary.scalar("advantage", tf.reduce_mean(adv))
+                    tf.summary.scalar("action_probability", tf.reduce_mean(self.mu_ph))
 
                     if self.full_tensorboard_log:
-                        tf.summary.histogram('rewards', self.reward_ph)
-                        tf.summary.histogram('learning_rate', self.learning_rate)
-                        tf.summary.histogram('advantage', adv)
-                        tf.summary.histogram('action_probability', self.mu_ph)
+                        tf.summary.histogram("rewards", self.reward_ph)
+                        tf.summary.histogram("learning_rate", self.learning_rate)
+                        tf.summary.histogram("advantage", adv)
+                        tf.summary.histogram("action_probability", self.mu_ph)
                         if tf_util.is_image(self.observation_space):
-                            tf.summary.image('observation', train_model.obs_ph)
+                            tf.summary.image("observation", train_model.obs_ph)
                         else:
-                            tf.summary.histogram('observation', train_model.obs_ph)
+                            tf.summary.histogram("observation", train_model.obs_ph)
 
-                trainer = tf.train.RMSPropOptimizer(learning_rate=self.learning_rate_ph, decay=self.rprop_alpha,
-                                                    epsilon=self.rprop_epsilon)
+                trainer = tf.train.RMSPropOptimizer(
+                    learning_rate=self.learning_rate_ph,
+                    decay=self.rprop_alpha,
+                    epsilon=self.rprop_epsilon,
+                )
                 _opt_op = trainer.apply_gradients(grads)
 
                 # so when you call _train, you first do the gradient step, then you apply ema
@@ -486,14 +684,46 @@ class ACER(ActorCriticRLModel):
 
                 # Ops/Summaries to run, and their names for logging
                 assert norm_grads is not None
-                run_ops = [_train, loss, loss_q, entropy, loss_policy, loss_f, loss_bc, explained_variance, norm_grads]
-                names_ops = ['loss', 'loss_q', 'entropy', 'loss_policy', 'loss_f', 'loss_bc', 'explained_variance',
-                             'norm_grads']
+                run_ops = [
+                    _train,
+                    loss,
+                    loss_q,
+                    entropy,
+                    loss_policy,
+                    loss_f,
+                    loss_bc,
+                    explained_variance,
+                    norm_grads,
+                ]
+                names_ops = [
+                    "loss",
+                    "loss_q",
+                    "entropy",
+                    "loss_policy",
+                    "loss_f",
+                    "loss_bc",
+                    "explained_variance",
+                    "norm_grads",
+                ]
                 if self.trust_region:
-                    self.run_ops = run_ops + [norm_grads_q, norm_grads_policy, avg_norm_grads_f, avg_norm_k, avg_norm_g,
-                                              avg_norm_k_dot_g, avg_norm_adj]
-                    self.names_ops = names_ops + ['norm_grads_q', 'norm_grads_policy', 'avg_norm_grads_f', 'avg_norm_k',
-                                                  'avg_norm_g', 'avg_norm_k_dot_g', 'avg_norm_adj']
+                    self.run_ops = run_ops + [
+                        norm_grads_q,
+                        norm_grads_policy,
+                        avg_norm_grads_f,
+                        avg_norm_k,
+                        avg_norm_g,
+                        avg_norm_k_dot_g,
+                        avg_norm_adj,
+                    ]
+                    self.names_ops = names_ops + [
+                        "norm_grads_q",
+                        "norm_grads_policy",
+                        "avg_norm_grads_f",
+                        "avg_norm_k",
+                        "avg_norm_g",
+                        "avg_norm_k_dot_g",
+                        "avg_norm_adj",
+                    ]
 
                 self.train_model = train_model
                 self.step_model = step_model
@@ -505,7 +735,9 @@ class ACER(ActorCriticRLModel):
 
                 self.summary = tf.summary.merge_all()
 
-    def _train_step(self, obs, actions, rewards, dones, mus, states, masks, steps, writer=None):
+    def _train_step(
+        self, obs, actions, rewards, dones, mus, states, masks, steps, writer=None
+    ):
         """
         applies a training step to the model
 
@@ -521,8 +753,15 @@ class ACER(ActorCriticRLModel):
         :return: ([str], [float]) the list of update operation name, and the list of the results of the operations
         """
         cur_lr = self.learning_rate_schedule.value_steps(steps)
-        td_map = {self.train_model.obs_ph: obs, self.polyak_model.obs_ph: obs, self.action_ph: actions,
-                  self.reward_ph: rewards, self.done_ph: dones, self.mu_ph: mus, self.learning_rate_ph: cur_lr}
+        td_map = {
+            self.train_model.obs_ph: obs,
+            self.polyak_model.obs_ph: obs,
+            self.action_ph: actions,
+            self.reward_ph: rewards,
+            self.done_ph: dones,
+            self.mu_ph: mus,
+            self.learning_rate_ph: cur_lr,
+        }
 
         if states is not None:
             td_map[self.train_model.states_ph] = states
@@ -535,9 +774,13 @@ class ACER(ActorCriticRLModel):
             if self.full_tensorboard_log and (1 + (steps / self.n_batch)) % 10 == 0:
                 run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
                 run_metadata = tf.RunMetadata()
-                step_return = self.sess.run([self.summary] + self.run_ops, td_map, options=run_options,
-                                            run_metadata=run_metadata)
-                writer.add_run_metadata(run_metadata, 'step%d' % steps)
+                step_return = self.sess.run(
+                    [self.summary] + self.run_ops,
+                    td_map,
+                    options=run_options,
+                    run_metadata=run_metadata,
+                )
+                writer.add_run_metadata(run_metadata, "step%d" % steps)
             else:
                 step_return = self.sess.run([self.summary] + self.run_ops, td_map)
             writer.add_summary(step_return[0], steps)
@@ -547,23 +790,35 @@ class ACER(ActorCriticRLModel):
 
         return self.names_ops, step_return[1:]  # strip off _train
 
-    def learn(self, total_timesteps, callback=None, log_interval=100, tb_log_name="ACER",
-              reset_num_timesteps=True):
+    def learn(
+        self,
+        total_timesteps,
+        callback=None,
+        log_interval=100,
+        tb_log_name="ACER",
+        reset_num_timesteps=True,
+    ):
 
         new_tb_log = self._init_num_timesteps(reset_num_timesteps)
         callback = self._init_callback(callback)
 
-        with SetVerbosity(self.verbose), TensorboardWriter(self.graph, self.tensorboard_log, tb_log_name, new_tb_log) \
-                as writer:
+        with SetVerbosity(self.verbose), TensorboardWriter(
+            self.graph, self.tensorboard_log, tb_log_name, new_tb_log
+        ) as writer:
             self._setup_learn()
 
-            self.learning_rate_schedule = Scheduler(initial_value=self.learning_rate, n_values=total_timesteps,
-                                                    schedule=self.lr_schedule)
+            self.learning_rate_schedule = Scheduler(
+                initial_value=self.learning_rate,
+                n_values=total_timesteps,
+                schedule=self.lr_schedule,
+            )
 
             episode_stats = EpisodeStats(self.n_steps, self.n_envs)
 
             if self.replay_ratio > 0:
-                buffer = Buffer(env=self.env, n_steps=self.n_steps, size=self.buffer_size)
+                buffer = Buffer(
+                    env=self.env, n_steps=self.n_steps, size=self.buffer_size
+                )
             else:
                 buffer = None
 
@@ -575,7 +830,9 @@ class ACER(ActorCriticRLModel):
 
                 callback.on_rollout_start()
 
-                enc_obs, obs, actions, rewards, mus, dones, masks = self.runner.run(callback)
+                enc_obs, obs, actions, rewards, mus, dones, masks = self.runner.run(
+                    callback
+                )
                 callback.update_locals(locals())
                 callback.on_rollout_end()
 
@@ -589,10 +846,13 @@ class ACER(ActorCriticRLModel):
                     buffer.put(enc_obs, actions, rewards, mus, dones, masks)
 
                 if writer is not None:
-                    total_episode_reward_logger(self.episode_reward,
-                                                rewards.reshape((self.n_envs, self.n_steps)),
-                                                dones.reshape((self.n_envs, self.n_steps)),
-                                                writer, self.num_timesteps)
+                    total_episode_reward_logger(
+                        self.episode_reward,
+                        rewards.reshape((self.n_envs, self.n_steps)),
+                        dones.reshape((self.n_envs, self.n_steps)),
+                        writer,
+                        self.num_timesteps,
+                    )
 
                 # reshape stuff correctly
                 obs = obs.reshape(self.runner.batch_ob_shape)
@@ -602,24 +862,41 @@ class ACER(ActorCriticRLModel):
                 dones = dones.reshape([self.n_batch])
                 masks = masks.reshape([self.runner.batch_ob_shape[0]])
 
-                names_ops, values_ops = self._train_step(obs, actions, rewards, dones, mus, self.initial_state, masks,
-                                                         self.num_timesteps, writer)
+                names_ops, values_ops = self._train_step(
+                    obs,
+                    actions,
+                    rewards,
+                    dones,
+                    mus,
+                    self.initial_state,
+                    masks,
+                    self.num_timesteps,
+                    writer,
+                )
 
-                if self.verbose >= 1 and (int(steps / self.n_batch) % log_interval == 0):
+                if self.verbose >= 1 and (
+                    int(steps / self.n_batch) % log_interval == 0
+                ):
                     logger.record_tabular("total_timesteps", self.num_timesteps)
                     logger.record_tabular("fps", int(steps / (time.time() - t_start)))
                     # IMP: In EpisodicLife env, during training, we get done=True at each loss of life,
                     # not just at the terminal state. Thus, this is mean until end of life, not end of episode.
                     # For true episode rewards, see the monitor files in the log folder.
-                    logger.record_tabular("mean_episode_length", episode_stats.mean_length())
-                    logger.record_tabular("mean_episode_reward", episode_stats.mean_reward())
+                    logger.record_tabular(
+                        "mean_episode_length", episode_stats.mean_length()
+                    )
+                    logger.record_tabular(
+                        "mean_episode_reward", episode_stats.mean_reward()
+                    )
                     for name, val in zip(names_ops, values_ops):
                         logger.record_tabular(name, float(val))
                     logger.dump_tabular()
 
-                if (self.replay_ratio > 0 and
-                    buffer is not None and
-                    buffer.has_atleast(self.replay_start)):
+                if (
+                    self.replay_ratio > 0
+                    and buffer is not None
+                    and buffer.has_atleast(self.replay_start)
+                ):
                     samples_number = np.random.poisson(self.replay_ratio)
                     for _ in range(samples_number):
                         # get obs, actions, rewards, mus, dones from buffer.
@@ -633,8 +910,16 @@ class ACER(ActorCriticRLModel):
                         dones = dones.reshape([self.n_batch])
                         masks = masks.reshape([self.runner.batch_ob_shape[0]])
 
-                        self._train_step(obs, actions, rewards, dones, mus, self.initial_state, masks,
-                                         self.num_timesteps)
+                        self._train_step(
+                            obs,
+                            actions,
+                            rewards,
+                            dones,
+                            mus,
+                            self.initial_state,
+                            masks,
+                            self.num_timesteps,
+                        )
 
         callback.on_training_end()
 
@@ -658,15 +943,17 @@ class ACER(ActorCriticRLModel):
             "observation_space": self.observation_space,
             "action_space": self.action_space,
             "n_envs": self.n_envs,
-            'n_cpu_tf_sess': self.n_cpu_tf_sess,
-            'seed': self.seed,
+            "n_cpu_tf_sess": self.n_cpu_tf_sess,
+            "seed": self.seed,
             "_vectorize_action": self._vectorize_action,
-            "policy_kwargs": self.policy_kwargs
+            "policy_kwargs": self.policy_kwargs,
         }
 
         params_to_save = self.get_parameters()
 
-        self._save_to_file(save_path, data=data, params=params_to_save, cloudpickle=cloudpickle)
+        self._save_to_file(
+            save_path, data=data, params=params_to_save, cloudpickle=cloudpickle
+        )
 
 
 class _Runner(AbstractEnvRunner):
@@ -692,9 +979,16 @@ class _Runner(AbstractEnvRunner):
         if len(env.observation_space.shape) > 1:
             self.raw_pixels = True
             obs_height, obs_width, obs_num_channels = env.observation_space.shape
-            self.batch_ob_shape = (n_env * (n_steps + 1), obs_height, obs_width, obs_num_channels)
+            self.batch_ob_shape = (
+                n_env * (n_steps + 1),
+                obs_height,
+                obs_width,
+                obs_num_channels,
+            )
             self.obs_dtype = np.uint8
-            self.obs = np.zeros((n_env, obs_height, obs_width, obs_num_channels), dtype=self.obs_dtype)
+            self.obs = np.zeros(
+                (n_env, obs_height, obs_width, obs_num_channels), dtype=self.obs_dtype
+            )
             self.num_channels = obs_num_channels
         else:
             if len(env.observation_space.shape) == 1:
@@ -731,7 +1025,9 @@ class _Runner(AbstractEnvRunner):
             clipped_actions = actions
             # Clip the actions to avoid out of bound error
             if isinstance(self.env.action_space, Box):
-                clipped_actions = np.clip(actions, self.env.action_space.low, self.env.action_space.high)
+                clipped_actions = np.clip(
+                    actions, self.env.action_space.low, self.env.action_space.high
+                )
             obs, rewards, dones, _ = self.env.step(clipped_actions)
 
             self.model.num_timesteps += self.n_envs
@@ -760,8 +1056,12 @@ class _Runner(AbstractEnvRunner):
         mb_mus = np.asarray(mb_mus, dtype=np.float32).swapaxes(1, 0)
         mb_dones = np.asarray(mb_dones, dtype=np.bool).swapaxes(1, 0)
 
-        mb_masks = mb_dones  # Used for statefull models like LSTM's to mask state when done
-        mb_dones = mb_dones[:, 1:]  # Used for calculating returns. The dones array is now aligned with rewards
+        mb_masks = (
+            mb_dones  # Used for statefull models like LSTM's to mask state when done
+        )
+        mb_dones = mb_dones[
+            :, 1:
+        ]  # Used for calculating returns. The dones array is now aligned with rewards
 
         # shapes are now [nenv, nsteps, []]
         # When pulling from buffer, arrays will now be reshaped in place, preventing a deep copy.

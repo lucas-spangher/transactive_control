@@ -28,5 +28,5 @@ def main():
     train(args.env, num_timesteps=args.num_timesteps, seed=args.seed, num_cpu=32)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

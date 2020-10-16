@@ -11,8 +11,14 @@ from stable_baselines.common.vec_env import VecEnv, VecFrameStack
 from stable_baselines.common.base_class import _UnvecWrapper
 
 
-def generate_expert_traj(model, save_path=None, env=None, n_timesteps=0,
-                         n_episodes=100, image_folder='recorded_images'):
+def generate_expert_traj(
+    model,
+    save_path=None,
+    env=None,
+    n_timesteps=0,
+    n_episodes=100,
+    image_folder="recorded_images",
+):
     """
     Train expert controller (if needed) and record expert trajectories.
 
@@ -38,42 +44,55 @@ def generate_expert_traj(model, save_path=None, env=None, n_timesteps=0,
     if env is None and isinstance(model, BaseRLModel):
         env = model.get_env()
 
-    assert env is not None, "You must set the env in the model or pass it to the function."
+    assert (
+        env is not None
+    ), "You must set the env in the model or pass it to the function."
 
     is_vec_env = False
     if isinstance(env, VecEnv) and not isinstance(env, _UnvecWrapper):
         is_vec_env = True
         if env.num_envs > 1:
-            warnings.warn("You are using multiple envs, only the data from the first one will be recorded.")
+            warnings.warn(
+                "You are using multiple envs, only the data from the first one will be recorded."
+            )
 
     # Sanity check
-    assert (isinstance(env.observation_space, spaces.Box) or
-            isinstance(env.observation_space, spaces.Discrete)), "Observation space type not supported"
+    assert isinstance(env.observation_space, spaces.Box) or isinstance(
+        env.observation_space, spaces.Discrete
+    ), "Observation space type not supported"
 
-    assert (isinstance(env.action_space, spaces.Box) or
-            isinstance(env.action_space, spaces.Discrete)), "Action space type not supported"
+    assert isinstance(env.action_space, spaces.Box) or isinstance(
+        env.action_space, spaces.Discrete
+    ), "Action space type not supported"
 
     # Check if we need to record images
     obs_space = env.observation_space
-    record_images = len(obs_space.shape) == 3 and obs_space.shape[-1] in [1, 3, 4] \
-                    and obs_space.dtype == np.uint8
+    record_images = (
+        len(obs_space.shape) == 3
+        and obs_space.shape[-1] in [1, 3, 4]
+        and obs_space.dtype == np.uint8
+    )
     if record_images and save_path is None:
-        warnings.warn("Observations are images but no save path was specified, so will save in numpy archive; "
-                      "this can lead to higher memory usage.")
+        warnings.warn(
+            "Observations are images but no save path was specified, so will save in numpy archive; "
+            "this can lead to higher memory usage."
+        )
         record_images = False
 
     if not record_images and len(obs_space.shape) == 3 and obs_space.dtype == np.uint8:
-        warnings.warn("The observations looks like images (shape = {}) "
-                      "but the number of channel > 4, so it will be saved in the numpy archive "
-                      "which can lead to high memory usage".format(obs_space.shape))
+        warnings.warn(
+            "The observations looks like images (shape = {}) "
+            "but the number of channel > 4, so it will be saved in the numpy archive "
+            "which can lead to high memory usage".format(obs_space.shape)
+        )
 
-    image_ext = 'jpg'
+    image_ext = "jpg"
     if record_images:
         # We save images as jpg or png, that have only 3/4 color channels
         if isinstance(env, VecFrameStack) and env.n_stack == 4:
             # assert env.n_stack < 5, "The current data recorder does no support"\
             #                          "VecFrameStack with n_stack > 4"
-            image_ext = 'png'
+            image_ext = "png"
 
         folder_path = os.path.dirname(save_path)
         image_folder = os.path.join(folder_path, image_folder)
@@ -146,7 +165,9 @@ def generate_expert_traj(model, save_path=None, env=None, n_timesteps=0,
             ep_idx += 1
 
     if isinstance(env.observation_space, spaces.Box) and not record_images:
-        observations = np.concatenate(observations).reshape((-1,) + env.observation_space.shape)
+        observations = np.concatenate(observations).reshape(
+            (-1,) + env.observation_space.shape
+        )
     elif isinstance(env.observation_space, spaces.Discrete):
         observations = np.array(observations).reshape((-1, 1))
     elif record_images:
@@ -163,11 +184,11 @@ def generate_expert_traj(model, save_path=None, env=None, n_timesteps=0,
     assert len(observations) == len(actions)
 
     numpy_dict = {
-        'actions': actions,
-        'obs': observations,
-        'rewards': rewards,
-        'episode_returns': episode_returns,
-        'episode_starts': episode_starts
+        "actions": actions,
+        "obs": observations,
+        "rewards": rewards,
+        "episode_returns": episode_returns,
+        "episode_starts": episode_starts,
     }  # type: Dict[str, np.ndarray]
 
     for key, val in numpy_dict.items():

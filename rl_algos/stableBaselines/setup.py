@@ -5,11 +5,13 @@ from setuptools import setup, find_packages
 from distutils.version import LooseVersion
 
 if sys.version_info.major != 3:
-    print('This Python is only compatible with Python 3, but you are running '
-          'Python {}. The installation will likely fail.'.format(sys.version_info.major))
+    print(
+        "This Python is only compatible with Python 3, but you are running "
+        "Python {}. The installation will likely fail.".format(sys.version_info.major)
+    )
 
 # Read version from file
-with open(os.path.join('stable_baselines', 'version.txt'), 'r') as file_handler:
+with open(os.path.join("stable_baselines", "version.txt"), "r") as file_handler:
     __version__ = file_handler.read().strip()
 
 
@@ -19,26 +21,29 @@ def find_tf_dependency():
     install_tf, tf_gpu = False, False
     try:
         import tensorflow as tf
-        if tf.__version__ < LooseVersion('1.8.0'):
+
+        if tf.__version__ < LooseVersion("1.8.0"):
             install_tf = True
             # check if a gpu version is needed
             tf_gpu = tf.test.is_gpu_available()
     except ImportError:
         install_tf = True
         # Check if a nvidia gpu is present
-        for command in ['nvidia-smi', '/usr/bin/nvidia-smi', 'nvidia-smi.exe']:
+        for command in ["nvidia-smi", "/usr/bin/nvidia-smi", "nvidia-smi.exe"]:
             try:
                 if subprocess.call([command]) == 0:
                     tf_gpu = True
                     break
             except IOError:  # command does not exist / is not executable
                 pass
-        if os.environ.get('USE_GPU') == 'True':  # force GPU even if not auto-detected
+        if os.environ.get("USE_GPU") == "True":  # force GPU even if not auto-detected
             tf_gpu = True
 
     tf_dependency = []
     if install_tf:
-        tf_dependency = ['tensorflow-gpu>=1.8.0,<2.0.0'] if tf_gpu else ['tensorflow>=1.8.0,<2.0.0']
+        tf_dependency = (
+            ["tensorflow-gpu>=1.8.0,<2.0.0"] if tf_gpu else ["tensorflow>=1.8.0,<2.0.0"]
+        )
         if tf_gpu:
             print("A GPU was detected, tensorflow-gpu will be installed")
 
@@ -115,50 +120,39 @@ model = PPO2('MlpPolicy', 'CartPole-v1').learn(10000)
 
 """
 
-setup(name='stable_baselines',
-      packages=[package for package in find_packages()
-                if package.startswith('stable_baselines')],
-      package_data={
-          'stable_baselines': ['py.typed', 'version.txt'],
-      },
-      install_requires=[
-          'gym[atari,classic_control]>=0.11',
-          'scipy',
-          'joblib',
-          'cloudpickle>=0.5.5',
-          'opencv-python',
-          'numpy',
-          'pandas',
-          'matplotlib'
-      ] + find_tf_dependency(),
-      extras_require={
-        'mpi': [
-            'mpi4py',
-        ],
-        'tests': [
-            'pytest',
-            'pytest-cov',
-            'pytest-env',
-            'pytest-xdist',
-            'pytype',
-        ],
-        'docs': [
-            'sphinx',
-            'sphinx-autobuild',
-            'sphinx-rtd-theme'
-        ]
-      },
-      description='A fork of OpenAI Baselines, implementations of reinforcement learning algorithms.',
-      author='Ashley Hill',
-      url='https://github.com/hill-a/stable-baselines',
-      author_email='ashley.hill@u-psud.fr',
-      keywords="reinforcement-learning-algorithms reinforcement-learning machine-learning "
-               "gym openai baselines toolbox python data-science",
-      license="MIT",
-      long_description=long_description,
-      long_description_content_type='text/markdown',
-      version=__version__,
-      )
+setup(
+    name="stable_baselines",
+    packages=[
+        package for package in find_packages() if package.startswith("stable_baselines")
+    ],
+    package_data={"stable_baselines": ["py.typed", "version.txt"],},
+    install_requires=[
+        "gym[atari,classic_control]>=0.11",
+        "scipy",
+        "joblib",
+        "cloudpickle>=0.5.5",
+        "opencv-python",
+        "numpy",
+        "pandas",
+        "matplotlib",
+    ]
+    + find_tf_dependency(),
+    extras_require={
+        "mpi": ["mpi4py",],
+        "tests": ["pytest", "pytest-cov", "pytest-env", "pytest-xdist", "pytype",],
+        "docs": ["sphinx", "sphinx-autobuild", "sphinx-rtd-theme"],
+    },
+    description="A fork of OpenAI Baselines, implementations of reinforcement learning algorithms.",
+    author="Ashley Hill",
+    url="https://github.com/hill-a/stable-baselines",
+    author_email="ashley.hill@u-psud.fr",
+    keywords="reinforcement-learning-algorithms reinforcement-learning machine-learning "
+    "gym openai baselines toolbox python data-science",
+    license="MIT",
+    long_description=long_description,
+    long_description_content_type="text/markdown",
+    version=__version__,
+)
 
 # python setup.py sdist
 # python setup.py bdist_wheel

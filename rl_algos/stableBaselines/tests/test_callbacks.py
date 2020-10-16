@@ -4,42 +4,49 @@ import shutil
 import pytest
 
 from stable_baselines import A2C, ACKTR, ACER, DQN, DDPG, PPO1, PPO2, SAC, TD3, TRPO
-from stable_baselines.common.callbacks import (CallbackList, CheckpointCallback, EvalCallback,
-    EveryNTimesteps, StopTrainingOnRewardThreshold, BaseCallback)
+from stable_baselines.common.callbacks import (
+    CallbackList,
+    CheckpointCallback,
+    EvalCallback,
+    EveryNTimesteps,
+    StopTrainingOnRewardThreshold,
+    BaseCallback,
+)
 
 
-LOG_FOLDER = './logs/callbacks/'
+LOG_FOLDER = "./logs/callbacks/"
 
 
 class CustomCallback(BaseCallback):
     """
     Callback to check that every method was called once at least
     """
+
     def __init__(self):
         super(CustomCallback, self).__init__()
         self.calls = {
-            'training_start': False,
-            'rollout_start': False,
-            'step': False,
-            'rollout_end': False,
-            'training_end': False,
+            "training_start": False,
+            "rollout_start": False,
+            "step": False,
+            "rollout_end": False,
+            "training_end": False,
         }
 
     def _on_training_start(self):
-        self.calls['training_start'] = True
+        self.calls["training_start"] = True
 
     def _on_rollout_start(self):
-        self.calls['rollout_start'] = True
+        self.calls["rollout_start"] = True
 
     def _on_step(self):
-        self.calls['step'] = True
+        self.calls["step"] = True
         return True
 
     def _on_rollout_end(self):
-        self.calls['rollout_end'] = True
+        self.calls["rollout_end"] = True
 
     def _on_training_end(self):
-        self.calls['training_end'] = True
+        self.calls["training_end"] = True
 
     def validate(self, allowed_failures):
         for allowed_failure in allowed_failures:
@@ -47,22 +54,24 @@ class CustomCallback(BaseCallback):
         assert all(self.calls.values())
 
 
-@pytest.mark.parametrize("model_class", [A2C, ACER, ACKTR, DQN, DDPG, PPO1, PPO2, SAC, TD3, TRPO])
+@pytest.mark.parametrize(
+    "model_class", [A2C, ACER, ACKTR, DQN, DDPG, PPO1, PPO2, SAC, TD3, TRPO]
+)
 def test_callbacks(model_class):
 
-    env_id = 'Pendulum-v0'
+    env_id = "Pendulum-v0"
     if model_class in [ACER, DQN]:
-        env_id = 'CartPole-v1'
+        env_id = "CartPole-v1"
 
     allowed_failures = []
     # Number of training timesteps is too short
     # otherwise, the training would take too long, or would require
     # custom parameter per algorithm
     if model_class in [PPO1, DQN, TRPO]:
-        allowed_failures = ['rollout_end']
+        allowed_failures = ["rollout_end"]
 
     # Create RL model
-    model = model_class('MlpPolicy', env_id)
+    model = model_class("MlpPolicy", env_id)
 
     checkpoint_callback = CheckpointCallback(save_freq=500, save_path=LOG_FOLDER)
 
@@ -71,14 +80,19 @@ def test_callbacks(model_class):
     # Stop training if the performance is good enough
     callback_on_best = StopTrainingOnRewardThreshold(reward_threshold=-1200, verbose=1)
 
-    eval_callback = EvalCallback(eval_env, callback_on_new_best=callback_on_best,
-                                 best_model_save_path=LOG_FOLDER,
-                                 log_path=LOG_FOLDER, eval_freq=100)
+    eval_callback = EvalCallback(
+        eval_env,
+        callback_on_new_best=callback_on_best,
+        best_model_save_path=LOG_FOLDER,
+        log_path=LOG_FOLDER,
+        eval_freq=100,
+    )
 
     # Equivalent to the `checkpoint_callback`
     # but here in an event-driven manner
-    checkpoint_on_event = CheckpointCallback(save_freq=1, save_path=LOG_FOLDER,
-                                             name_prefix='event')
+    checkpoint_on_event = CheckpointCallback(
+        save_freq=1, save_path=LOG_FOLDER, name_prefix="event"
+    )
     event_callback = EveryNTimesteps(n_steps=500, callback=checkpoint_on_event)
 
     callback = CallbackList([checkpoint_callback, eval_callback, event_callback])

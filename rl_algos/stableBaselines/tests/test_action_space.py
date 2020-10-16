@@ -2,16 +2,14 @@ import pytest
 import numpy as np
 
 from stable_baselines import A2C, PPO1, PPO2, TRPO
-from stable_baselines.common.identity_env import IdentityEnvMultiBinary, IdentityEnvMultiDiscrete
+from stable_baselines.common.identity_env import (
+    IdentityEnvMultiBinary,
+    IdentityEnvMultiDiscrete,
+)
 from stable_baselines.common.vec_env import DummyVecEnv
 from stable_baselines.common.evaluation import evaluate_policy
 
-MODEL_LIST = [
-    A2C,
-    PPO1,
-    PPO2,
-    TRPO
-]
+MODEL_LIST = [A2C, PPO1, PPO2, TRPO]
 
 
 @pytest.mark.slow
@@ -31,10 +29,15 @@ def test_identity_multidiscrete(model_class):
     evaluate_policy(model, env, n_eval_episodes=5)
     obs = env.reset()
 
-    assert np.array(model.action_probability(obs)).shape == (2, 1, 10), \
-        "Error: action_probability not returning correct shape"
-    assert np.prod(model.action_probability(obs, actions=env.action_space.sample()).shape) == 1, \
-        "Error: not scalar probability"
+    assert np.array(model.action_probability(obs)).shape == (
+        2,
+        1,
+        10,
+    ), "Error: action_probability not returning correct shape"
+    assert (
+        np.prod(model.action_probability(obs, actions=env.action_space.sample()).shape)
+        == 1
+    ), "Error: not scalar probability"
 
 
 @pytest.mark.slow
@@ -54,7 +57,11 @@ def test_identity_multibinary(model_class):
     evaluate_policy(model, env, n_eval_episodes=5)
     obs = env.reset()
 
-    assert model.action_probability(obs).shape == (1, 10), \
-        "Error: action_probability not returning correct shape"
-    assert np.prod(model.action_probability(obs, actions=env.action_space.sample()).shape) == 1, \
-        "Error: not scalar probability"
+    assert model.action_probability(obs).shape == (
+        1,
+        10,
+    ), "Error: action_probability not returning correct shape"
+    assert (
+        np.prod(model.action_probability(obs, actions=env.action_space.sample()).shape)
+        == 1
+    ), "Error: not scalar probability"

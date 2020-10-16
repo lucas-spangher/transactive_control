@@ -69,7 +69,9 @@ class PiecewiseSchedule(Schedule):
         raised when outside value is requested.
     """
 
-    def __init__(self, endpoints, interpolation=linear_interpolation, outside_value=None):
+    def __init__(
+        self, endpoints, interpolation=linear_interpolation, outside_value=None
+    ):
         idxes = [e[0] for e in endpoints]
         assert idxes == sorted(idxes)
         self._interpolation = interpolation
@@ -77,7 +79,9 @@ class PiecewiseSchedule(Schedule):
         self._endpoints = endpoints
 
     def value(self, step):
-        for (left_t, left), (right_t, right) in zip(self._endpoints[:-1], self._endpoints[1:]):
+        for (left_t, left), (right_t, right) in zip(
+            self._endpoints[:-1], self._endpoints[1:]
+        ):
             if left_t <= step < right_t:
                 alpha = float(step - left_t) / (right_t - left_t)
                 return self._interpolation(left, right, alpha)
@@ -145,6 +149,7 @@ def constfn(val):
 # Legacy scheduler used by A2C, AKCTR and ACER
 # ================================================================
 
+
 def constant(_):
     """
     Returns a constant value for the Scheduler
@@ -152,7 +157,7 @@ def constant(_):
     :param _: ignored
     :return: (float) 1
     """
-    return 1.
+    return 1.0
 
 
 def linear_schedule(progress):
@@ -209,11 +214,11 @@ def double_middle_drop(progress):
 
 
 SCHEDULES = {
-    'linear': linear_schedule,
-    'constant': constant,
-    'double_linear_con': double_linear_con,
-    'middle_drop': middle_drop,
-    'double_middle_drop': double_middle_drop
+    "linear": linear_schedule,
+    "constant": constant,
+    "double_linear_con": double_linear_con,
+    "middle_drop": middle_drop,
+    "double_middle_drop": double_middle_drop,
 }
 
 
@@ -229,7 +234,7 @@ class Scheduler(object):
         :param n_values: (int) the total number of iterations
         :param schedule: (function) the curve you wish to follow for your value
         """
-        self.step = 0.
+        self.step = 0.0
         self.initial_value = initial_value
         self.nvalues = n_values
         self.schedule = SCHEDULES[schedule]
@@ -241,7 +246,7 @@ class Scheduler(object):
         :return: (float) the current value
         """
         current_value = self.initial_value * self.schedule(self.step / self.nvalues)
-        self.step += 1.
+        self.step += 1.0
         return current_value
 
     def value_steps(self, steps):

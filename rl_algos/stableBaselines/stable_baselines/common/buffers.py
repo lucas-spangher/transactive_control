@@ -89,8 +89,9 @@ class ReplayBuffer(object):
             self._next_idx = (self._next_idx + 1) % self._maxsize
 
     @staticmethod
-    def _normalize_obs(obs: np.ndarray,
-                       env: Optional[VecNormalize] = None) -> np.ndarray:
+    def _normalize_obs(
+        obs: np.ndarray, env: Optional[VecNormalize] = None
+    ) -> np.ndarray:
         """
         Helper for normalizing the observation.
         """
@@ -99,8 +100,9 @@ class ReplayBuffer(object):
         return obs
 
     @staticmethod
-    def _normalize_reward(reward: np.ndarray,
-                          env: Optional[VecNormalize] = None) -> np.ndarray:
+    def _normalize_reward(
+        reward: np.ndarray, env: Optional[VecNormalize] = None
+    ) -> np.ndarray:
         """
         Helper for normalizing the reward.
         """
@@ -108,7 +110,9 @@ class ReplayBuffer(object):
             return env.normalize_reward(reward)
         return reward
 
-    def _encode_sample(self, idxes: Union[List[int], np.ndarray], env: Optional[VecNormalize] = None):
+    def _encode_sample(
+        self, idxes: Union[List[int], np.ndarray], env: Optional[VecNormalize] = None
+    ):
         obses_t, actions, rewards, obses_tp1, dones = [], [], [], [], []
         for i in idxes:
             data = self._storage[i]
@@ -118,11 +122,13 @@ class ReplayBuffer(object):
             rewards.append(reward)
             obses_tp1.append(np.array(obs_tp1, copy=False))
             dones.append(done)
-        return (self._normalize_obs(np.array(obses_t), env),
-                np.array(actions),
-                self._normalize_reward(np.array(rewards), env),
-                self._normalize_obs(np.array(obses_tp1), env),
-                np.array(dones))
+        return (
+            self._normalize_obs(np.array(obses_t), env),
+            np.array(actions),
+            self._normalize_reward(np.array(rewards), env),
+            self._normalize_obs(np.array(obses_tp1), env),
+            np.array(dones),
+        )
 
     def sample(self, batch_size: int, env: Optional[VecNormalize] = None, **_kwargs):
         """
@@ -209,7 +215,9 @@ class PrioritizedReplayBuffer(ReplayBuffer):
         idx = self._it_sum.find_prefixsum_idx(mass)
         return idx
 
-    def sample(self, batch_size: int, beta: float = 0, env: Optional[VecNormalize] = None):
+    def sample(
+        self, batch_size: int, beta: float = 0, env: Optional[VecNormalize] = None
+    ):
         """
         Sample a batch of experiences.
 

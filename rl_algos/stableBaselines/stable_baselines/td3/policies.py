@@ -19,9 +19,23 @@ class TD3Policy(BasePolicy):
     :param scale: (bool) whether or not to scale the input
     """
 
-    def __init__(self, sess, ob_space, ac_space, n_env=1, n_steps=1, n_batch=None, reuse=False, scale=False):
-        super(TD3Policy, self).__init__(sess, ob_space, ac_space, n_env, n_steps, n_batch, reuse=reuse, scale=scale)
-        assert isinstance(ac_space, Box), "Error: the action space must be of type gym.spaces.Box"
+    def __init__(
+        self,
+        sess,
+        ob_space,
+        ac_space,
+        n_env=1,
+        n_steps=1,
+        n_batch=None,
+        reuse=False,
+        scale=False,
+    ):
+        super(TD3Policy, self).__init__(
+            sess, ob_space, ac_space, n_env, n_steps, n_batch, reuse=reuse, scale=scale
+        )
+        assert isinstance(
+            ac_space, Box
+        ), "Error: the action space must be of type gym.spaces.Box"
 
         self.qf1 = None
         self.qf2 = None
@@ -38,8 +52,7 @@ class TD3Policy(BasePolicy):
         """
         raise NotImplementedError
 
-    def make_critics(self, obs=None, action=None, reuse=False,
-                     scope="qvalues_fn"):
+    def make_critics(self, obs=None, action=None, reuse=False, scope="qvalues_fn"):
         """
         Creates the two Q-Values approximator
 
@@ -93,11 +106,32 @@ class FeedForwardPolicy(TD3Policy):
     :param kwargs: (dict) Extra keyword arguments for the nature CNN feature extraction
     """
 
-    def __init__(self, sess, ob_space, ac_space, n_env=1, n_steps=1, n_batch=None, reuse=False, layers=None,
-                 cnn_extractor=nature_cnn, feature_extraction="cnn",
-                 layer_norm=False, act_fun=tf.nn.relu, **kwargs):
-        super(FeedForwardPolicy, self).__init__(sess, ob_space, ac_space, n_env, n_steps, n_batch,
-                                                reuse=reuse, scale=(feature_extraction == "cnn"))
+    def __init__(
+        self,
+        sess,
+        ob_space,
+        ac_space,
+        n_env=1,
+        n_steps=1,
+        n_batch=None,
+        reuse=False,
+        layers=None,
+        cnn_extractor=nature_cnn,
+        feature_extraction="cnn",
+        layer_norm=False,
+        act_fun=tf.nn.relu,
+        **kwargs
+    ):
+        super(FeedForwardPolicy, self).__init__(
+            sess,
+            ob_space,
+            ac_space,
+            n_env,
+            n_steps,
+            n_batch,
+            reuse=reuse,
+            scale=(feature_extraction == "cnn"),
+        )
 
         self._kwargs_check(feature_extraction, kwargs)
         self.layer_norm = layer_norm
@@ -109,7 +143,9 @@ class FeedForwardPolicy(TD3Policy):
             layers = [64, 64]
         self.layers = layers
 
-        assert len(layers) >= 1, "Error: must have at least one hidden layer for the policy."
+        assert (
+            len(layers) >= 1
+        ), "Error: must have at least one hidden layer for the policy."
 
         self.activ_fn = act_fun
 
@@ -125,7 +161,9 @@ class FeedForwardPolicy(TD3Policy):
 
             pi_h = mlp(pi_h, self.layers, self.activ_fn, layer_norm=self.layer_norm)
 
-            self.policy = policy = tf.layers.dense(pi_h, self.ac_space.shape[0], activation=tf.tanh)
+            self.policy = policy = tf.layers.dense(
+                pi_h, self.ac_space.shape[0], activation=tf.tanh
+            )
 
         return policy
 
@@ -143,12 +181,16 @@ class FeedForwardPolicy(TD3Policy):
             qf_h = tf.concat([critics_h, action], axis=-1)
 
             # Double Q values to reduce overestimation
-            with tf.variable_scope('qf1', reuse=reuse):
-                qf1_h = mlp(qf_h, self.layers, self.activ_fn, layer_norm=self.layer_norm)
+            with tf.variable_scope("qf1", reuse=reuse):
+                qf1_h = mlp(
+                    qf_h, self.layers, self.activ_fn, layer_norm=self.layer_norm
+                )
                 qf1 = tf.layers.dense(qf1_h, 1, name="qf1")
 
-            with tf.variable_scope('qf2', reuse=reuse):
-                qf2_h = mlp(qf_h, self.layers, self.activ_fn, layer_norm=self.layer_norm)
+            with tf.variable_scope("qf2", reuse=reuse):
+                qf2_h = mlp(
+                    qf_h, self.layers, self.activ_fn, layer_norm=self.layer_norm
+                )
                 qf2 = tf.layers.dense(qf2_h, 1, name="qf2")
 
             self.qf1 = qf1
@@ -174,9 +216,28 @@ class CnnPolicy(FeedForwardPolicy):
     :param _kwargs: (dict) Extra keyword arguments for the nature CNN feature extraction
     """
 
-    def __init__(self, sess, ob_space, ac_space, n_env=1, n_steps=1, n_batch=None, reuse=False, **_kwargs):
-        super(CnnPolicy, self).__init__(sess, ob_space, ac_space, n_env, n_steps, n_batch, reuse,
-                                        feature_extraction="cnn", **_kwargs)
+    def __init__(
+        self,
+        sess,
+        ob_space,
+        ac_space,
+        n_env=1,
+        n_steps=1,
+        n_batch=None,
+        reuse=False,
+        **_kwargs
+    ):
+        super(CnnPolicy, self).__init__(
+            sess,
+            ob_space,
+            ac_space,
+            n_env,
+            n_steps,
+            n_batch,
+            reuse,
+            feature_extraction="cnn",
+            **_kwargs
+        )
 
 
 class LnCnnPolicy(FeedForwardPolicy):
@@ -193,9 +254,29 @@ class LnCnnPolicy(FeedForwardPolicy):
     :param _kwargs: (dict) Extra keyword arguments for the nature CNN feature extraction
     """
 
-    def __init__(self, sess, ob_space, ac_space, n_env=1, n_steps=1, n_batch=None, reuse=False, **_kwargs):
-        super(LnCnnPolicy, self).__init__(sess, ob_space, ac_space, n_env, n_steps, n_batch, reuse,
-                                          feature_extraction="cnn", layer_norm=True, **_kwargs)
+    def __init__(
+        self,
+        sess,
+        ob_space,
+        ac_space,
+        n_env=1,
+        n_steps=1,
+        n_batch=None,
+        reuse=False,
+        **_kwargs
+    ):
+        super(LnCnnPolicy, self).__init__(
+            sess,
+            ob_space,
+            ac_space,
+            n_env,
+            n_steps,
+            n_batch,
+            reuse,
+            feature_extraction="cnn",
+            layer_norm=True,
+            **_kwargs
+        )
 
 
 class MlpPolicy(FeedForwardPolicy):
@@ -212,9 +293,28 @@ class MlpPolicy(FeedForwardPolicy):
     :param _kwargs: (dict) Extra keyword arguments for the nature CNN feature extraction
     """
 
-    def __init__(self, sess, ob_space, ac_space, n_env=1, n_steps=1, n_batch=None, reuse=False, **_kwargs):
-        super(MlpPolicy, self).__init__(sess, ob_space, ac_space, n_env, n_steps, n_batch, reuse,
-                                        feature_extraction="mlp", **_kwargs)
+    def __init__(
+        self,
+        sess,
+        ob_space,
+        ac_space,
+        n_env=1,
+        n_steps=1,
+        n_batch=None,
+        reuse=False,
+        **_kwargs
+    ):
+        super(MlpPolicy, self).__init__(
+            sess,
+            ob_space,
+            ac_space,
+            n_env,
+            n_steps,
+            n_batch,
+            reuse,
+            feature_extraction="mlp",
+            **_kwargs
+        )
 
 
 class LnMlpPolicy(FeedForwardPolicy):
@@ -231,9 +331,29 @@ class LnMlpPolicy(FeedForwardPolicy):
     :param _kwargs: (dict) Extra keyword arguments for the nature CNN feature extraction
     """
 
-    def __init__(self, sess, ob_space, ac_space, n_env=1, n_steps=1, n_batch=None, reuse=False, **_kwargs):
-        super(LnMlpPolicy, self).__init__(sess, ob_space, ac_space, n_env, n_steps, n_batch, reuse,
-                                          feature_extraction="mlp", layer_norm=True, **_kwargs)
+    def __init__(
+        self,
+        sess,
+        ob_space,
+        ac_space,
+        n_env=1,
+        n_steps=1,
+        n_batch=None,
+        reuse=False,
+        **_kwargs
+    ):
+        super(LnMlpPolicy, self).__init__(
+            sess,
+            ob_space,
+            ac_space,
+            n_env,
+            n_steps,
+            n_batch,
+            reuse,
+            feature_extraction="mlp",
+            layer_norm=True,
+            **_kwargs
+        )
 
 
 register_policy("CnnPolicy", CnnPolicy)

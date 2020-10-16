@@ -35,9 +35,11 @@ def ortho_init(scale=1.0):
             raise NotImplementedError
         gaussian_noise = np.random.normal(0.0, 1.0, flat_shape)
         u, _, v = np.linalg.svd(gaussian_noise, full_matrices=False)
-        weights = u if u.shape == flat_shape else v  # pick the one with the correct shape
+        weights = (
+            u if u.shape == flat_shape else v
+        )  # pick the one with the correct shape
         weights = weights.reshape(shape)
-        return (scale * weights[:shape[0], :shape[1]]).astype(np.float32)
+        return (scale * weights[: shape[0], : shape[1]]).astype(np.float32)
 
     return _ortho_init
 
@@ -54,15 +56,25 @@ def mlp(input_tensor, layers, activ_fn=tf.nn.relu, layer_norm=False):
     """
     output = input_tensor
     for i, layer_size in enumerate(layers):
-        output = tf.layers.dense(output, layer_size, name='fc' + str(i))
+        output = tf.layers.dense(output, layer_size, name="fc" + str(i))
         if layer_norm:
             output = tf.contrib.layers.layer_norm(output, center=True, scale=True)
         output = activ_fn(output)
     return output
 
 
-def conv(input_tensor, scope, *, n_filters, filter_size, stride,
-         pad='VALID', init_scale=1.0, data_format='NHWC', one_dim_bias=False):
+def conv(
+    input_tensor,
+    scope,
+    *,
+    n_filters,
+    filter_size,
+    stride,
+    pad="VALID",
+    init_scale=1.0,
+    data_format="NHWC",
+    one_dim_bias=False
+):
     """
     Creates a 2d convolutional layer for TensorFlow
 
@@ -79,18 +91,21 @@ def conv(input_tensor, scope, *, n_filters, filter_size, stride,
     :return: (TensorFlow Tensor) 2d convolutional layer
     """
     if isinstance(filter_size, list) or isinstance(filter_size, tuple):
-        assert len(filter_size) == 2, \
-            "Filter size must have 2 elements (height, width), {} were given".format(len(filter_size))
+        assert (
+            len(filter_size) == 2
+        ), "Filter size must have 2 elements (height, width), {} were given".format(
+            len(filter_size)
+        )
         filter_height = filter_size[0]
         filter_width = filter_size[1]
     else:
         filter_height = filter_size
         filter_width = filter_size
-    if data_format == 'NHWC':
+    if data_format == "NHWC":
         channel_ax = 3
         strides = [1, stride, stride, 1]
         bshape = [1, 1, 1, n_filters]
-    elif data_format == 'NCHW':
+    elif data_format == "NCHW":
         channel_ax = 1
         strides = [1, 1, stride, stride]
         bshape = [1, n_filters, 1, 1]
@@ -101,10 +116,14 @@ def conv(input_tensor, scope, *, n_filters, filter_size, stride,
     wshape = [filter_height, filter_width, n_input, n_filters]
     with tf.variable_scope(scope):
         weight = tf.get_variable("w", wshape, initializer=ortho_init(init_scale))
-        bias = tf.get_variable("b", bias_var_shape, initializer=tf.constant_initializer(0.0))
-        if not one_dim_bias and data_format == 'NHWC':
+        bias = tf.get_variable(
+            "b", bias_var_shape, initializer=tf.constant_initializer(0.0)
+        )
+        if not one_dim_bias and data_format == "NHWC":
             bias = tf.reshape(bias, bshape)
-        return bias + tf.nn.conv2d(input_tensor, weight, strides=strides, padding=pad, data_format=data_format)
+        return bias + tf.nn.conv2d(
+            input_tensor, weight, strides=strides, padding=pad, data_format=data_format
+        )
 
 
 def linear(input_tensor, scope, n_hidden, *, init_scale=1.0, init_bias=0.0):
@@ -120,12 +139,24 @@ def linear(input_tensor, scope, n_hidden, *, init_scale=1.0, init_bias=0.0):
     """
     with tf.variable_scope(scope):
         n_input = input_tensor.get_shape()[1].value
-        weight = tf.get_variable("w", [n_input, n_hidden], initializer=ortho_init(init_scale))
-        bias = tf.get_variable("b", [n_hidden], initializer=tf.constant_initializer(init_bias))
+        weight = tf.get_variable(
+            "w", [n_input, n_hidden], initializer=ortho_init(init_scale)
+        )
+        bias = tf.get_variable(
+            "b", [n_hidden], initializer=tf.constant_initializer(init_bias)
+        )
         return tf.matmul(input_tensor, weight) + bias
 
 
-def lstm(input_tensor, mask_tensor, cell_state_hidden, scope, n_hidden, init_scale=1.0, layer_norm=False):
+def lstm(
+    input_tensor,
+    mask_tensor,
+    cell_state_hidden,
+    scope,
+    n_hidden,
+    init_scale=1.0,
+    layer_norm=False,
+):
     """
     Creates an Long Short Term Memory (LSTM) cell for TensorFlow
 
@@ -140,31 +171,54 @@ def lstm(input_tensor, mask_tensor, cell_state_hidden, scope, n_hidden, init_sca
     """
     _, n_input = [v.value for v in input_tensor[0].get_shape()]
     with tf.variable_scope(scope):
-        weight_x = tf.get_variable("wx", [n_input, n_hidden * 4], initializer=ortho_init(init_scale))
-        weight_h = tf.get_variable("wh", [n_hidden, n_hidden * 4], initializer=ortho_init(init_scale))
-        bias = tf.get_variable("b", [n_hidden * 4], initializer=tf.constant_initializer(0.0))
+        weight_x = tf.get_variable(
+            "wx", [n_input, n_hidden * 4], initializer=ortho_init(init_scale)
+        )
+        weight_h = tf.get_variable(
+            "wh", [n_hidden, n_hidden * 4], initializer=ortho_init(init_scale)
+        )
+        bias = tf.get_variable(
+            "b", [n_hidden * 4], initializer=tf.constant_initializer(0.0)
+        )
 
         if layer_norm:
             # Gain and bias of layer norm
-            gain_x = tf.get_variable("gx", [n_hidden * 4], initializer=tf.constant_initializer(1.0))
-            bias_x = tf.get_variable("bx", [n_hidden * 4], initializer=tf.constant_initializer(0.0))
+            gain_x = tf.get_variable(
+                "gx", [n_hidden * 4], initializer=tf.constant_initializer(1.0)
+            )
+            bias_x = tf.get_variable(
+                "bx", [n_hidden * 4], initializer=tf.constant_initializer(0.0)
+            )
 
-            gain_h = tf.get_variable("gh", [n_hidden * 4], initializer=tf.constant_initializer(1.0))
-            bias_h = tf.get_variable("bh", [n_hidden * 4], initializer=tf.constant_initializer(0.0))
+            gain_h = tf.get_variable(
+                "gh", [n_hidden * 4], initializer=tf.constant_initializer(1.0)
+            )
+            bias_h = tf.get_variable(
+                "bh", [n_hidden * 4], initializer=tf.constant_initializer(0.0)
+            )
 
-            gain_c = tf.get_variable("gc", [n_hidden], initializer=tf.constant_initializer(1.0))
-            bias_c = tf.get_variable("bc", [n_hidden], initializer=tf.constant_initializer(0.0))
+            gain_c = tf.get_variable(
+                "gc", [n_hidden], initializer=tf.constant_initializer(1.0)
+            )
+            bias_c = tf.get_variable(
+                "bc", [n_hidden], initializer=tf.constant_initializer(0.0)
+            )
 
     cell_state, hidden = tf.split(axis=1, num_or_size_splits=2, value=cell_state_hidden)
     for idx, (_input, mask) in enumerate(zip(input_tensor, mask_tensor)):
         cell_state = cell_state * (1 - mask)
         hidden = hidden * (1 - mask)
         if layer_norm:
-            gates = _ln(tf.matmul(_input, weight_x), gain_x, bias_x) \
-                    + _ln(tf.matmul(hidden, weight_h), gain_h, bias_h) + bias
+            gates = (
+                _ln(tf.matmul(_input, weight_x), gain_x, bias_x)
+                + _ln(tf.matmul(hidden, weight_h), gain_h, bias_h)
+                + bias
+            )
         else:
             gates = tf.matmul(_input, weight_x) + tf.matmul(hidden, weight_h) + bias
-        in_gate, forget_gate, out_gate, cell_candidate = tf.split(axis=1, num_or_size_splits=4, value=gates)
+        in_gate, forget_gate, out_gate, cell_candidate = tf.split(
+            axis=1, num_or_size_splits=4, value=gates
+        )
         in_gate = tf.nn.sigmoid(in_gate)
         forget_gate = tf.nn.sigmoid(forget_gate)
         out_gate = tf.nn.sigmoid(out_gate)
@@ -210,7 +264,15 @@ def lnlstm(input_tensor, mask_tensor, cell_state, scope, n_hidden, init_scale=1.
     :param init_scale: (int) The initialization scale
     :return: (TensorFlow Tensor) lnlstm cell
     """
-    return lstm(input_tensor, mask_tensor, cell_state, scope, n_hidden, init_scale, layer_norm=True)
+    return lstm(
+        input_tensor,
+        mask_tensor,
+        cell_state,
+        scope,
+        n_hidden,
+        init_scale,
+        layer_norm=True,
+    )
 
 
 def conv_to_fc(input_tensor):

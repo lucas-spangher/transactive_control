@@ -72,7 +72,10 @@ def test_prefixsum_idx():
     assert tree.find_prefixsum_idx(1.01) == 3
     assert tree.find_prefixsum_idx(3.00) == 3
     assert tree.find_prefixsum_idx(4.00) == 3
-    assert np.all(tree.find_prefixsum_idx([0.0, 0.5, 0.99, 1.01, 3.00, 4.00]) == [2, 2, 2, 3, 3, 3])
+    assert np.all(
+        tree.find_prefixsum_idx([0.0, 0.5, 0.99, 1.01, 3.00, 4.00])
+        == [2, 2, 2, 3, 3, 3]
+    )
 
     tree = SumSegmentTree(4)
 
@@ -84,7 +87,10 @@ def test_prefixsum_idx():
     assert tree.find_prefixsum_idx(1.01) == 3
     assert tree.find_prefixsum_idx(3.00) == 3
     assert tree.find_prefixsum_idx(4.00) == 3
-    assert np.all(tree.find_prefixsum_idx([0.0, 0.5, 0.99, 1.01, 3.00, 4.00]) == [2, 2, 2, 3, 3, 3])
+    assert np.all(
+        tree.find_prefixsum_idx([0.0, 0.5, 0.99, 1.01, 3.00, 4.00])
+        == [2, 2, 2, 3, 3, 3]
+    )
 
 
 def test_prefixsum_idx2():
@@ -186,7 +192,7 @@ def test_max_interval_tree():
     assert np.isclose(tree.min(3, 4), 3.0)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     test_tree_set()
     test_tree_set_overlap()
     test_prefixsum_idx()

@@ -17,7 +17,7 @@ class AlreadySteppingError(Exception):
     """
 
     def __init__(self):
-        msg = 'already running an async step'
+        msg = "already running an async step"
         Exception.__init__(self, msg)
 
 
@@ -28,7 +28,7 @@ class NotSteppingError(Exception):
     """
 
     def __init__(self):
-        msg = 'not running an async step'
+        msg = "not running an async step"
         Exception.__init__(self, msg)
 
 
@@ -40,9 +40,8 @@ class VecEnv(ABC):
     :param observation_space: (Gym Space) the observation space
     :param action_space: (Gym Space) the action space
     """
-    metadata = {
-        'render.modes': ['human', 'rgb_array']
-    }
+
+    metadata = {"render.modes": ["human", "rgb_array"]}
 
     def __init__(self, num_envs, observation_space, action_space):
         self.num_envs = num_envs
@@ -157,7 +156,7 @@ class VecEnv(ABC):
         """
         raise NotImplementedError
 
-    def render(self, mode: str = 'human'):
+    def render(self, mode: str = "human"):
         """
         Gym environment rendering
 
@@ -166,16 +165,17 @@ class VecEnv(ABC):
         try:
             imgs = self.get_images()
         except NotImplementedError:
-            logger.warn('Render not defined for {}'.format(self))
+            logger.warn("Render not defined for {}".format(self))
             return
 
         # Create a big image by tiling images from subprocesses
         bigimg = tile_images(imgs)
-        if mode == 'human':
+        if mode == "human":
             import cv2  # pytype:disable=import-error
-            cv2.imshow('vecenv', bigimg[:, :, ::-1])
+
+            cv2.imshow("vecenv", bigimg[:, :, ::-1])
             cv2.waitKey(1)
-        elif mode == 'rgb_array':
+        elif mode == "rgb_array":
             return bigimg
         else:
             raise NotImplementedError
@@ -224,8 +224,12 @@ class VecEnvWrapper(VecEnv):
 
     def __init__(self, venv, observation_space=None, action_space=None):
         self.venv = venv
-        VecEnv.__init__(self, num_envs=venv.num_envs, observation_space=observation_space or venv.observation_space,
-                        action_space=action_space or venv.action_space)
+        VecEnv.__init__(
+            self,
+            num_envs=venv.num_envs,
+            observation_space=observation_space or venv.observation_space,
+            action_space=action_space or venv.action_space,
+        )
         self.class_attributes = dict(inspect.getmembers(self.__class__))
 
     def step_async(self, actions):
@@ -245,7 +249,7 @@ class VecEnvWrapper(VecEnv):
     def close(self):
         return self.venv.close()
 
-    def render(self, mode: str = 'human'):
+    def render(self, mode: str = "human"):
         return self.venv.render(mode=mode)
 
     def get_images(self):
@@ -258,7 +262,9 @@ class VecEnvWrapper(VecEnv):
         return self.venv.set_attr(attr_name, value, indices)
 
     def env_method(self, method_name, *method_args, indices=None, **method_kwargs):
-        return self.venv.env_method(method_name, *method_args, indices=indices, **method_kwargs)
+        return self.venv.env_method(
+            method_name, *method_args, indices=indices, **method_kwargs
+        )
 
     def __getattr__(self, name):
         """Find attribute from wrapped venv(s) if this wrapper does not have it.
@@ -268,8 +274,10 @@ class VecEnvWrapper(VecEnv):
         blocked_class = self.getattr_depth_check(name, already_found=False)
         if blocked_class is not None:
             own_class = "{0}.{1}".format(type(self).__module__, type(self).__name__)
-            format_str = ("Error: Recursive attribute lookup for {0} from {1} is "
-                          "ambiguous and hides attribute from {2}")
+            format_str = (
+                "Error: Recursive attribute lookup for {0} from {1} is "
+                "ambiguous and hides attribute from {2}"
+            )
             raise AttributeError(format_str.format(name, own_class, blocked_class))
 
         return self.getattr_recursive(name)
@@ -292,7 +300,7 @@ class VecEnvWrapper(VecEnv):
         all_attributes = self._get_all_attributes()
         if name in all_attributes:  # attribute is present in this wrapper
             attr = getattr(self, name)
-        elif hasattr(self.venv, 'getattr_recursive'):
+        elif hasattr(self.venv, "getattr_recursive"):
             # Attribute not present, child is wrapper. Call getattr_recursive rather than getattr
             # to avoid a duplicate call to getattr_depth_check.
             attr = self.venv.getattr_recursive(name)
@@ -309,7 +317,9 @@ class VecEnvWrapper(VecEnv):
         all_attributes = self._get_all_attributes()
         if name in all_attributes and already_found:
             # this venv's attribute is being hidden because of a higher venv.
-            shadowed_wrapper_class = "{0}.{1}".format(type(self).__module__, type(self).__name__)
+            shadowed_wrapper_class = "{0}.{1}".format(
+                type(self).__module__, type(self).__name__
+            )
         elif name in all_attributes and not already_found:
             # we have found the first reference to the attribute. Now check for duplicates.
             shadowed_wrapper_class = self.venv.getattr_depth_check(name, True)

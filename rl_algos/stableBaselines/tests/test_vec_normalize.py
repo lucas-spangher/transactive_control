@@ -6,11 +6,16 @@ import pytest
 
 from stable_baselines import DDPG, DQN, SAC, TD3
 from stable_baselines.common.running_mean_std import RunningMeanStd
-from stable_baselines.common.vec_env import (DummyVecEnv, VecNormalize, VecFrameStack,
-    sync_envs_normalization, unwrap_vec_normalize)
+from stable_baselines.common.vec_env import (
+    DummyVecEnv,
+    VecNormalize,
+    VecFrameStack,
+    sync_envs_normalization,
+    unwrap_vec_normalize,
+)
 from .test_common import _assert_eq
 
-ENV_ID = 'Pendulum-v0'
+ENV_ID = "Pendulum-v0"
 
 
 def make_env():
@@ -21,7 +26,8 @@ def test_runningmeanstd():
     """Test RunningMeanStd object"""
     for (x_1, x_2, x_3) in [
         (np.random.randn(3), np.random.randn(4), np.random.randn(5)),
-        (np.random.randn(3, 2), np.random.randn(4, 2), np.random.randn(5, 2))]:
+        (np.random.randn(3, 2), np.random.randn(4, 2), np.random.randn(5, 2)),
+    ]:
         rms = RunningMeanStd(epsilon=0.0, shape=x_1.shape[1:])
 
         x_cat = np.concatenate([x_1, x_2, x_3], axis=0)
@@ -64,7 +70,13 @@ def test_vec_env(tmpdir):
     clip_reward = 5.0
 
     orig_venv = DummyVecEnv([make_env])
-    norm_venv = VecNormalize(orig_venv, norm_obs=True, norm_reward=True, clip_obs=clip_obs, clip_reward=clip_reward)
+    norm_venv = VecNormalize(
+        orig_venv,
+        norm_obs=True,
+        norm_reward=True,
+        clip_obs=clip_obs,
+        clip_reward=clip_reward,
+    )
     _, done = norm_venv.reset(), [False]
     while not done[0]:
         actions = [norm_venv.action_space.sample()]
@@ -128,12 +140,14 @@ def test_normalize_external():
 @pytest.mark.parametrize("model_class", [DDPG, DQN, SAC, TD3])
 def test_offpolicy_normalization(model_class):
     if model_class == DQN:
-        env = DummyVecEnv([lambda: gym.make('CartPole-v1')])
+        env = DummyVecEnv([lambda: gym.make("CartPole-v1")])
     else:
         env = DummyVecEnv([make_env])
-    env = VecNormalize(env, norm_obs=True, norm_reward=True, clip_obs=10., clip_reward=10.)
+    env = VecNormalize(
+        env, norm_obs=True, norm_reward=True, clip_obs=10.0, clip_reward=10.0
+    )
 
-    model = model_class('MlpPolicy', env, verbose=1)
+    model = model_class("MlpPolicy", env, verbose=1)
     model.learn(total_timesteps=1000)
     # Check getter
     assert isinstance(model.get_vec_normalize_env(), VecNormalize)
@@ -144,7 +158,9 @@ def test_sync_vec_normalize():
 
     assert unwrap_vec_normalize(env) is None
 
-    env = VecNormalize(env, norm_obs=True, norm_reward=True, clip_obs=10., clip_reward=10.)
+    env = VecNormalize(
+        env, norm_obs=True, norm_reward=True, clip_obs=10.0, clip_reward=10.0
+    )
 
     assert isinstance(unwrap_vec_normalize(env), VecNormalize)
 
@@ -153,7 +169,14 @@ def test_sync_vec_normalize():
     assert isinstance(unwrap_vec_normalize(env), VecNormalize)
 
     eval_env = DummyVecEnv([make_env])
-    eval_env = VecNormalize(eval_env, training=False, norm_obs=True, norm_reward=True, clip_obs=10., clip_reward=10.)
+    eval_env = VecNormalize(
+        eval_env,
+        training=False,
+        norm_obs=True,
+        norm_reward=True,
+        clip_obs=10.0,
+        clip_reward=10.0,
+    )
     eval_env = VecFrameStack(eval_env, 1)
 
     env.reset()
@@ -171,13 +194,24 @@ def test_sync_vec_normalize():
 
     # Now they must be synced
     assert np.allclose(obs, eval_env.normalize_obs(original_obs))
-    assert np.allclose(env.normalize_reward(dummy_rewards), eval_env.normalize_reward(dummy_rewards))
+    assert np.allclose(
+        env.normalize_reward(dummy_rewards), eval_env.normalize_reward(dummy_rewards)
+    )
 
 
 def test_mpi_runningmeanstd():
     """Test RunningMeanStd object for MPI"""
-    return_code = subprocess.call(['mpirun', '--allow-run-as-root', '-np', '2',
-                                   'python', '-m', 'stable_baselines.common.mpi_running_mean_std'])
+    return_code = subprocess.call(
+        [
+            "mpirun",
+            "--allow-run-as-root",
+            "-np",
+            "2",
+            "python",
+            "-m",
+            "stable_baselines.common.mpi_running_mean_std",
+        ]
+    )
     _assert_eq(return_code, 0)
 
 
@@ -185,6 +219,15 @@ def test_mpi_moments():
     """
     test running mean std function
     """
-    subprocess.check_call(['mpirun', '--allow-run-as-root', '-np', '3', 'python', '-c',
-                           'from stable_baselines.common.mpi_moments '
-                           'import _helper_runningmeanstd; _helper_runningmeanstd()'])
+    subprocess.check_call(
+        [
+            "mpirun",
+            "--allow-run-as-root",
+            "-np",
+            "3",
+            "python",
+            "-c",
+            "from stable_baselines.common.mpi_moments "
+            "import _helper_runningmeanstd; _helper_runningmeanstd()",
+        ]
+    )

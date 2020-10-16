@@ -40,7 +40,9 @@ def evaluate_policy(
         returns ([float], [int]) when ``return_episode_rewards`` is True
     """
     if isinstance(env, VecEnv):
-        assert env.num_envs == 1, "You must pass only one environment when using this function"
+        assert (
+            env.num_envs == 1
+        ), "You must pass only one environment when using this function"
 
     episode_rewards, episode_lengths = [], []
     for i in range(n_eval_episodes):
@@ -64,7 +66,11 @@ def evaluate_policy(
     mean_reward = np.mean(episode_rewards)
     std_reward = np.std(episode_rewards)
     if reward_threshold is not None:
-        assert mean_reward > reward_threshold, "Mean reward below threshold: {:.2f} < {:.2f}".format(mean_reward, reward_threshold)
+        assert (
+            mean_reward > reward_threshold
+        ), "Mean reward below threshold: {:.2f} < {:.2f}".format(
+            mean_reward, reward_threshold
+        )
     if return_episode_rewards:
         return episode_rewards, episode_lengths
     return mean_reward, std_reward

@@ -11,7 +11,7 @@ MODEL_LIST = [
     (TD3, dict(train_freq=ROLLOUT_STEPS + 1, learning_starts=0)),
     (SAC, dict(train_freq=ROLLOUT_STEPS + 1, learning_starts=0)),
     (TD3, dict(train_freq=ROLLOUT_STEPS + 1, learning_starts=ROLLOUT_STEPS)),
-    (SAC, dict(train_freq=ROLLOUT_STEPS + 1, learning_starts=ROLLOUT_STEPS))
+    (SAC, dict(train_freq=ROLLOUT_STEPS + 1, learning_starts=ROLLOUT_STEPS)),
 ]
 
 
@@ -30,10 +30,12 @@ def test_buffer_actions_scaling(model_class, model_kwargs):
 
         env = IdentityEnvBox(-2000, 1000)
 
-        model = model_class("MlpPolicy", env, seed=1, random_exploration=random_coeff, **model_kwargs)
+        model = model_class(
+            "MlpPolicy", env, seed=1, random_exploration=random_coeff, **model_kwargs
+        )
         model.learn(total_timesteps=ROLLOUT_STEPS)
 
-        assert hasattr(model, 'replay_buffer')
+        assert hasattr(model, "replay_buffer")
 
         buffer = model.replay_buffer
 

@@ -5,7 +5,11 @@ from copy import deepcopy
 import numpy as np
 
 from stable_baselines.common.vec_env.base_vec_env import VecEnv
-from stable_baselines.common.vec_env.util import copy_obs_dict, dict_to_obs, obs_space_info
+from stable_baselines.common.vec_env.util import (
+    copy_obs_dict,
+    dict_to_obs,
+    obs_space_info,
+)
 
 
 class DummyVecEnv(VecEnv):
@@ -26,9 +30,12 @@ class DummyVecEnv(VecEnv):
         obs_space = env.observation_space
         self.keys, shapes, dtypes = obs_space_info(obs_space)
 
-        self.buf_obs = OrderedDict([
-            (k, np.zeros((self.num_envs,) + tuple(shapes[k]), dtype=dtypes[k]))
-            for k in self.keys])
+        self.buf_obs = OrderedDict(
+            [
+                (k, np.zeros((self.num_envs,) + tuple(shapes[k]), dtype=dtypes[k]))
+                for k in self.keys
+            ]
+        )
         self.buf_dones = np.zeros((self.num_envs,), dtype=np.bool)
         self.buf_rews = np.zeros((self.num_envs,), dtype=np.float32)
         self.buf_infos = [{} for _ in range(self.num_envs)]
@@ -40,15 +47,23 @@ class DummyVecEnv(VecEnv):
 
     def step_wait(self):
         for env_idx in range(self.num_envs):
-            obs, self.buf_rews[env_idx], self.buf_dones[env_idx], self.buf_infos[env_idx] =\
-                self.envs[env_idx].step(self.actions[env_idx])
+            (
+                obs,
+                self.buf_rews[env_idx],
+                self.buf_dones[env_idx],
+                self.buf_infos[env_idx],
+            ) = self.envs[env_idx].step(self.actions[env_idx])
             if self.buf_dones[env_idx]:
                 # save final observation where user can get it, then reset
-                self.buf_infos[env_idx]['terminal_observation'] = obs
+                self.buf_infos[env_idx]["terminal_observation"] = obs
                 obs = self.envs[env_idx].reset()
             self._save_obs(env_idx, obs)
-        return (self._obs_from_buf(), np.copy(self.buf_rews), np.copy(self.buf_dones),
-                deepcopy(self.buf_infos))
+        return (
+            self._obs_from_buf(),
+            np.copy(self.buf_rews),
+            np.copy(self.buf_dones),
+            deepcopy(self.buf_infos),
+        )
 
     def seed(self, seed=None):
         seeds = list()
@@ -67,9 +82,9 @@ class DummyVecEnv(VecEnv):
             env.close()
 
     def get_images(self) -> Sequence[np.ndarray]:
-        return [env.render(mode='rgb_array') for env in self.envs]
+        return [env.render(mode="rgb_array") for env in self.envs]
 
-    def render(self, mode: str = 'human'):
+    def render(self, mode: str = "human"):
         """
         Gym environment rendering. If there are multiple environments then
         they are tiled together in one image via `BaseVecEnv.render()`.
@@ -110,7 +125,10 @@ class DummyVecEnv(VecEnv):
     def env_method(self, method_name, *method_args, indices=None, **method_kwargs):
         """Call instance methods of vectorized environments."""
         target_envs = self._get_target_envs(indices)
-        return [getattr(env_i, method_name)(*method_args, **method_kwargs) for env_i in target_envs]
+        return [
+            getattr(env_i, method_name)(*method_args, **method_kwargs)
+            for env_i in target_envs
+        ]
 
     def _get_target_envs(self, indices):
         indices = self._get_indices(indices)

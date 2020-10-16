@@ -24,15 +24,9 @@ MODEL_LIST = [
     TRPO,
 ]
 
-STORE_METHODS = [
-    "path",
-    "file-like"
-]
+STORE_METHODS = ["path", "file-like"]
 
-STORE_FORMAT = [
-    "zip",
-    "cloudpickle"
-]
+STORE_FORMAT = ["zip", "cloudpickle"]
 
 
 @pytest.mark.slow
@@ -51,7 +45,7 @@ def test_model_manipulation(request, model_class, storage_method, store_format):
     """
 
     # Use postfix ".model" so we can remove the file later
-    model_fname = './test_model_{}.model'.format(request.node.name)
+    model_fname = "./test_model_{}.model".format(request.node.name)
     store_as_cloudpickle = store_format == "cloudpickle"
 
     try:
@@ -62,8 +56,9 @@ def test_model_manipulation(request, model_class, storage_method, store_format):
         model.learn(total_timesteps=10000)
 
         env.envs[0].action_space.seed(0)
-        mean_reward, _ = evaluate_policy(model, env, deterministic=True,
-                                         n_eval_episodes=N_EVAL_EPISODES)
+        mean_reward, _ = evaluate_policy(
+            model, env, deterministic=True, n_eval_episodes=N_EVAL_EPISODES
+        )
 
         # test action probability for given (obs, action) pair
         env = model.get_env()
@@ -91,7 +86,9 @@ def test_model_manipulation(request, model_class, storage_method, store_format):
         if storage_method == "path":  # loading from path
             model = model_class.load(model_fname)
         else:
-            b_io = BytesIO(model_bytes)  # loading from file-like object (BytesIO in this case)
+            b_io = BytesIO(
+                model_bytes
+            )  # loading from file-like object (BytesIO in this case)
             model = model_class.load(b_io)
             b_io.close()
 
@@ -101,20 +98,27 @@ def test_model_manipulation(request, model_class, storage_method, store_format):
 
         # predict the same output before saving
         env.envs[0].action_space.seed(0)
-        loaded_mean_reward, _ = evaluate_policy(model, env, deterministic=True, n_eval_episodes=N_EVAL_EPISODES)
+        loaded_mean_reward, _ = evaluate_policy(
+            model, env, deterministic=True, n_eval_episodes=N_EVAL_EPISODES
+        )
         # Allow 10% diff
-        assert abs((mean_reward - loaded_mean_reward) / mean_reward) < 0.1, "Error: the prediction seems to have changed between " \
-                                                                            "loading and saving"
+        assert abs((mean_reward - loaded_mean_reward) / mean_reward) < 0.1, (
+            "Error: the prediction seems to have changed between " "loading and saving"
+        )
 
         # learn post loading
         model.learn(total_timesteps=100)
 
         # validate no reset post learning
         env.envs[0].action_space.seed(0)
-        loaded_mean_reward, _ = evaluate_policy(model, env, deterministic=True, n_eval_episodes=N_EVAL_EPISODES)
+        loaded_mean_reward, _ = evaluate_policy(
+            model, env, deterministic=True, n_eval_episodes=N_EVAL_EPISODES
+        )
 
-        assert abs((mean_reward - loaded_mean_reward) / mean_reward) < 0.15, "Error: the prediction seems to have changed between " \
-                                                                            "pre learning and post learning"
+        assert abs((mean_reward - loaded_mean_reward) / mean_reward) < 0.15, (
+            "Error: the prediction seems to have changed between "
+            "pre learning and post learning"
+        )
 
         # predict new values
         evaluate_policy(model, env, n_eval_episodes=N_EVAL_EPISODES)
@@ -128,10 +132,21 @@ def test_model_manipulation(request, model_class, storage_method, store_format):
 
 class CustomMlpPolicy(FeedForwardPolicy):
     """A dummy "custom" policy to test out custom_objects"""
-    def __init__(self, sess, ob_space, ac_space, n_env, n_steps, n_batch, reuse=False, **_kwargs):
-        super(CustomMlpPolicy, self).__init__(sess, ob_space, ac_space, n_env, n_steps,
-                                              n_batch, reuse, feature_extraction="mlp",
-                                              **_kwargs)
+
+    def __init__(
+        self, sess, ob_space, ac_space, n_env, n_steps, n_batch, reuse=False, **_kwargs
+    ):
+        super(CustomMlpPolicy, self).__init__(
+            sess,
+            ob_space,
+            ac_space,
+            n_env,
+            n_steps,
+            n_batch,
+            reuse,
+            feature_extraction="mlp",
+            **_kwargs
+        )
 
 
 @pytest.mark.parametrize("model_class", MODEL_LIST)
@@ -143,7 +158,7 @@ def test_save_custom_objects(request, model_class):
     if model_class == DQN:
         return
 
-    model_fname = './test_model_{}.zip'.format(request.node.name)
+    model_fname = "./test_model_{}.zip".format(request.node.name)
 
     try:
         env = DummyVecEnv([lambda: IdentityEnv(10)])
@@ -164,8 +179,8 @@ def test_save_custom_objects(request, model_class):
 
         # Corrupt serialization of the "policy"
         class_data["policy"][":serialized:"] = (
-            "Adding this should break serialization" +
-            class_data["policy"][":serialized:"]
+            "Adding this should break serialization"
+            + class_data["policy"][":serialized:"]
         )
 
         # And dump everything back to the model file
@@ -185,10 +200,7 @@ def test_save_custom_objects(request, model_class):
         # Note: We could load model with just vanilla
         #       MlpPolicy, too.
         model = model_class.load(
-            model_fname,
-            custom_objects={
-                "policy": CustomMlpPolicy
-            }
+            model_fname, custom_objects={"policy": CustomMlpPolicy}
         )
 
         # Make sure we loaded custom MLP policy

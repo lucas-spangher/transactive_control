@@ -12,34 +12,46 @@ import stable_baselines.ppo2.run_atari as ppo2_atari
 import stable_baselines.trpo_mpi.run_atari as trpo_atari
 
 
-ENV_ID = 'BreakoutNoFrameskip-v4'
+ENV_ID = "BreakoutNoFrameskip-v4"
 SEED = 3
 NUM_TIMESTEPS = 500
 NUM_CPU = 2
 
 
 @pytest.mark.slow
-@pytest.mark.parametrize("policy", ['cnn', 'lstm', 'lnlstm'])
+@pytest.mark.parametrize("policy", ["cnn", "lstm", "lnlstm"])
 def test_a2c(policy):
     """
     test A2C on atari
 
     :param policy: (str) the policy to test for A2C
     """
-    a2c_atari.train(env_id=ENV_ID, num_timesteps=NUM_TIMESTEPS, seed=SEED,
-                    policy=policy, lr_schedule='constant', num_env=NUM_CPU)
+    a2c_atari.train(
+        env_id=ENV_ID,
+        num_timesteps=NUM_TIMESTEPS,
+        seed=SEED,
+        policy=policy,
+        lr_schedule="constant",
+        num_env=NUM_CPU,
+    )
 
 
 @pytest.mark.slow
-@pytest.mark.parametrize("policy", ['cnn', 'lstm'])
+@pytest.mark.parametrize("policy", ["cnn", "lstm"])
 def test_acer(policy):
     """
     test ACER on atari
 
     :param policy: (str) the policy to test for ACER
     """
-    acer_atari.train(env_id=ENV_ID, num_timesteps=NUM_TIMESTEPS, seed=SEED,
-                     policy=policy, lr_schedule='constant', num_cpu=NUM_CPU)
+    acer_atari.train(
+        env_id=ENV_ID,
+        num_timesteps=NUM_TIMESTEPS,
+        seed=SEED,
+        policy=policy,
+        lr_schedule="constant",
+        num_cpu=NUM_CPU,
+    )
 
 
 @pytest.mark.slow
@@ -47,7 +59,9 @@ def test_acktr():
     """
     test ACKTR on atari
     """
-    acktr_atari.train(env_id=ENV_ID, num_timesteps=NUM_TIMESTEPS, seed=SEED, num_cpu=NUM_CPU)
+    acktr_atari.train(
+        env_id=ENV_ID, num_timesteps=NUM_TIMESTEPS, seed=SEED, num_cpu=NUM_CPU
+    )
 
 
 @pytest.mark.slow
@@ -61,9 +75,20 @@ def test_deepq():
     env = bench.Monitor(env, logger.get_dir())
     env = wrap_atari_dqn(env)
 
-    model = DQN(env=env, policy=CnnPolicy, learning_rate=1e-4, buffer_size=10000, exploration_fraction=0.1,
-                exploration_final_eps=0.01, train_freq=4, learning_starts=10000, target_network_update_freq=1000,
-                gamma=0.99, prioritized_replay=True, prioritized_replay_alpha=0.6)
+    model = DQN(
+        env=env,
+        policy=CnnPolicy,
+        learning_rate=1e-4,
+        buffer_size=10000,
+        exploration_fraction=0.1,
+        exploration_final_eps=0.01,
+        train_freq=4,
+        learning_starts=10000,
+        target_network_update_freq=1000,
+        gamma=0.99,
+        prioritized_replay=True,
+        prioritized_replay_alpha=0.6,
+    )
     model.learn(total_timesteps=NUM_TIMESTEPS)
 
     env.close()
@@ -79,16 +104,22 @@ def test_ppo1():
 
 
 @pytest.mark.slow
-@pytest.mark.parametrize("policy", ['cnn', 'lstm', 'lnlstm', 'mlp'])
+@pytest.mark.parametrize("policy", ["cnn", "lstm", "lnlstm", "mlp"])
 def test_ppo2(policy):
     """
     test PPO2 on atari
 
     :param policy: (str) the policy to test for PPO2
     """
-    ppo2_atari.train(env_id=ENV_ID, num_timesteps=NUM_TIMESTEPS,
-                     seed=SEED, policy=policy, n_envs=NUM_CPU,
-                     nminibatches=NUM_CPU, n_steps=16)
+    ppo2_atari.train(
+        env_id=ENV_ID,
+        num_timesteps=NUM_TIMESTEPS,
+        seed=SEED,
+        policy=policy,
+        n_envs=NUM_CPU,
+        nminibatches=NUM_CPU,
+        n_steps=16,
+    )
 
 
 @pytest.mark.slow

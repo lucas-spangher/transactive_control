@@ -1,14 +1,19 @@
 import numpy as np
 
-from stable_baselines.common.schedules import ConstantSchedule, PiecewiseSchedule, LinearSchedule
+from stable_baselines.common.schedules import (
+    ConstantSchedule,
+    PiecewiseSchedule,
+    LinearSchedule,
+)
 
 
 def test_piecewise_schedule():
     """
     test PiecewiseSchedule
     """
-    piecewise_sched = PiecewiseSchedule([(-5, 100), (5, 200), (10, 50), (100, 50), (200, -50)],
-                                        outside_value=500)
+    piecewise_sched = PiecewiseSchedule(
+        [(-5, 100), (5, 200), (10, 50), (100, 50), (200, -50)], outside_value=500
+    )
 
     assert np.isclose(piecewise_sched.value(-10), 500)
     assert np.isclose(piecewise_sched.value(0), 150)

@@ -23,16 +23,23 @@ def test_monitor():
         if done:
             menv.reset()
 
-    file_handler = open(mon_file, 'rt')
+    file_handler = open(mon_file, "rt")
 
     firstline = file_handler.readline()
-    assert firstline.startswith('#')
+    assert firstline.startswith("#")
     metadata = json.loads(firstline[1:])
-    assert metadata['env_id'] == "CartPole-v1"
-    assert set(metadata.keys()) == {'env_id', 't_start'}, "Incorrect keys in monitor metadata"
+    assert metadata["env_id"] == "CartPole-v1"
+    assert set(metadata.keys()) == {
+        "env_id",
+        "t_start",
+    }, "Incorrect keys in monitor metadata"
 
     last_logline = pandas.read_csv(file_handler, index_col=None)
-    assert set(last_logline.keys()) == {'l', 't', 'r'}, "Incorrect keys in monitor logline"
+    assert set(last_logline.keys()) == {
+        "l",
+        "t",
+        "r",
+    }, "Incorrect keys in monitor logline"
     file_handler.close()
     os.remove(mon_file)
 
@@ -44,7 +51,9 @@ def test_monitor_load_results(tmp_path):
     tmp_path = str(tmp_path)
     env1 = gym.make("CartPole-v1")
     env1.seed(0)
-    monitor_file1 = os.path.join(tmp_path, "stable_baselines-test-{}.monitor.csv".format(uuid.uuid4()))
+    monitor_file1 = os.path.join(
+        tmp_path, "stable_baselines-test-{}.monitor.csv".format(uuid.uuid4())
+    )
     monitor_env1 = Monitor(env1, monitor_file1)
 
     monitor_files = get_monitor_files(tmp_path)
@@ -64,7 +73,9 @@ def test_monitor_load_results(tmp_path):
 
     env2 = gym.make("CartPole-v1")
     env2.seed(0)
-    monitor_file2 = os.path.join(tmp_path, "stable_baselines-test-{}.monitor.csv".format(uuid.uuid4()))
+    monitor_file2 = os.path.join(
+        tmp_path, "stable_baselines-test-{}.monitor.csv".format(uuid.uuid4())
+    )
     monitor_env2 = Monitor(env2, monitor_file2)
     monitor_files = get_monitor_files(tmp_path)
     assert len(monitor_files) == 2

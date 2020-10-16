@@ -3,8 +3,12 @@ import numpy as np
 
 from stable_baselines import A2C, ACER, ACKTR, DDPG, DQN, PPO1, PPO2, SAC, TRPO, TD3
 from stable_baselines.common.vec_env import DummyVecEnv
-from stable_baselines.common.identity_env import IdentityEnv, IdentityEnvBox, IdentityEnvMultiBinary, \
-    IdentityEnvMultiDiscrete
+from stable_baselines.common.identity_env import (
+    IdentityEnv,
+    IdentityEnvBox,
+    IdentityEnvMultiBinary,
+    IdentityEnvMultiDiscrete,
+)
 from stable_baselines.common.evaluation import evaluate_policy
 
 
@@ -15,8 +19,10 @@ def check_shape(make_env, model_class, shape_1, shape_2):
     env1 = DummyVecEnv([make_env])
 
     for env, expected_shape in [(env0, shape_1), (env1, shape_2)]:
+
         def callback(locals_, _globals):
-            assert np.array(locals_['action']).shape == expected_shape
+            assert np.array(locals_["action"]).shape == expected_shape
+
         evaluate_policy(model, env, n_eval_episodes=5, callback=callback)
 
 

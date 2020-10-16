@@ -29,14 +29,27 @@ def train(env_id, num_timesteps, seed):
     set_global_seeds(workerseed)
     env = make_atari(env_id)
 
-    env = bench.Monitor(env, logger.get_dir() and os.path.join(logger.get_dir(), str(rank)))
+    env = bench.Monitor(
+        env, logger.get_dir() and os.path.join(logger.get_dir(), str(rank))
+    )
     env.seed(workerseed)
 
     env = wrap_deepmind(env)
     env.seed(workerseed)
 
-    model = TRPO(CnnPolicy, env, timesteps_per_batch=512, max_kl=0.001, cg_iters=10, cg_damping=1e-3, entcoeff=0.0,
-                 gamma=0.98, lam=1, vf_iters=3, vf_stepsize=1e-4)
+    model = TRPO(
+        CnnPolicy,
+        env,
+        timesteps_per_batch=512,
+        max_kl=0.001,
+        cg_iters=10,
+        cg_damping=1e-3,
+        entcoeff=0.0,
+        gamma=0.98,
+        lam=1,
+        vf_iters=3,
+        vf_stepsize=1e-4,
+    )
     model.learn(total_timesteps=int(num_timesteps * 1.1))
     env.close()
     # Free memory
