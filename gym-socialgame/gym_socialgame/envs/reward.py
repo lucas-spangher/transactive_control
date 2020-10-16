@@ -96,7 +96,11 @@ class Reward():
 		## ? 
 		scaled_energy = np.squeeze(scaler.fit_transform(self.energy_use.reshape(-1, 1)))
 
-		return -np.log(np.dot(scaled_energy, self.prices)) - 100 * (np.sum(self.energy_use) < (10 * (.5 * self.baseline_max_demand)))
+
+
+		return (-np.log(np.dot(scaled_energy, self.prices)) - 
+			10 * (np.sum(self.energy_use) < (10 * (.5 * self.baseline_max_demand))))  # -
+			#10 * ())
 																			# sigmoid between 10 and 20 so there's a smooth transition 
 																			# - lambd * (difference b/w energy(t)) - put a bound on 
 																			# play with the lipschitz constant 

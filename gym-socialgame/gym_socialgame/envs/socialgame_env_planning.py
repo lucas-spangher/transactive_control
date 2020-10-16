@@ -22,6 +22,7 @@ class SocialGamePlanningEnv(SocialGameEnv):
         yesterday_in_state = False,
         day_of_week = False,
         pricing_type= "TOU",
+        reward_function = "scaled_cost_distance",
         planning_flag = False,
         planning_steps = 0,
         planning_model_type = "Oracle",
@@ -35,6 +36,7 @@ class SocialGamePlanningEnv(SocialGameEnv):
         yesterday_in_state,
         day_of_week,
         pricing_type,
+        reward_function
         )
 
         self.planning_flag = planning_flag
@@ -212,6 +214,8 @@ class SocialGamePlanningEnv(SocialGameEnv):
         #     done = True
         # else:
         #     done = False
+
+        self.action = action
 
         points = self._points_from_action(action)
         

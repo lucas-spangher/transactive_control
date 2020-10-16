@@ -428,6 +428,22 @@ class SAC(OffPolicyRLModel):
 
                 if not self.num_timesteps % (planning_steps + 1):
 
+
+                    if self.num_timesteps ==1: 
+                         # form the control
+                        from sklearn.preprocessing import MinMaxScaler
+                        grid_price = self.non_vec_env.prices[self.non_vec_env.day - 1]
+                        scaler = MinMaxScaler(feature_range = (0, 10))
+                        scaled_grid_price = scaler.fit_transform(np.array(grid_price).reshape(-1, 1))
+                        scaled_grid_price = np.squeeze(scaled_grid_price)
+                        energy_consumptions = self.non_vec_env._simulate_humans(scaled_grid_price)
+                        person_data_dict["control"] = {
+                            "x" : list(range(8, 18)), 
+                            "grid_price" : scaled_grid_price,
+                            "energy_consumption" : energy_consumptions["avg"],
+                            "reward" : self.non_vec_env._get_reward(price = grid_price, energy_consumptions = energy_consumptions),
+                        }
+
                     # form the data_dict
                     if self.num_timesteps in [100, 1000, 9500]:
                         person_data_dict["Step " + str(self.num_timesteps)] = {
@@ -440,19 +456,7 @@ class SAC(OffPolicyRLModel):
 
                     if self.num_timesteps == 9501:
 
-                        # form the control
-                        from sklearn.preprocessing import MinMaxScaler
-                        grid_price = self.non_vec_env.prices[self.non_vec_env.day - 1]
-                        scaler = MinMaxScaler(feature_range = (0, 10))
-                        scaled_grid_price = scaler.fit_transform(np.array(grid_price).reshape(-1, 1))
-                        energy_consumptions = self.non_vec_env._simulate_humans(scaled_grid_price)
-                        person_data_dict["control"] = {
-                            "x" : list(range(8, 18)), 
-                            "grid_price" : scaled_grid_price,
-                            "energy_consumption" : energy_consumptions["avg"],
-                            "reward" : self.non_vec_env._get_reward(price = grid_price, energy_consumptions = energy_consumptions),
-                        }
-
+                       
                         # call the plotting statement 
                         dir_split = own_log_dir.split("/")
                         people_reaction_log_dir = dir_split[0]+ "/people_reaction_dir/" + dir_split[1]
