@@ -113,7 +113,7 @@ class SAC(OffPolicyRLModel):
         self.train_freq = train_freq
         self.batch_size = batch_size
         self.tau = tau
-        # In the original paper, same learning rate is used for all networks
+        # In the original paper, same learning rate is used for all networks TODO @Tarang: What's a network? 
         # self.policy_lr = learning_rate
         # self.qf_lr = learning_rate
         # self.vf_lr = learning_rate
