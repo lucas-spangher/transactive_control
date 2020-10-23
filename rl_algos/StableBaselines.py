@@ -1,23 +1,23 @@
 import argparse
 import gym
-from stableBaselines.stable_baselines.common.vec_env import (  # pylint: disable=import-error, no-name-in-module
+from stableBaselines.stable_baselines.common.vec_env import (
     DummyVecEnv,
     VecCheckNan,
     VecNormalize,
 )
-from stableBaselines.stable_baselines.common.evaluation import (  # pylint: disable=import-error, no-name-in-module
+from stableBaselines.stable_baselines.common.evaluation import (
     evaluate_policy,
 )
-from stableBaselines.stable_baselines.common.env_checker import (  # pylint: disable=import-error, no-name-in-module
+from stableBaselines.stable_baselines.common.env_checker import (
     check_env,
 )
 
 import tensorflow as tf
 
-from tensorboard_logger import (  # pylint: disable=import-error, no-name-in-module
+from tensorboard_logger import (
     configure as tb_configure,
 )
-from tensorboard_logger import (  # pylint: disable=import-error, no-name-in-module
+from tensorboard_logger import (
     log_value as tb_log_value,
 )
 
