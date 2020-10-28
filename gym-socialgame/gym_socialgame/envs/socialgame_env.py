@@ -29,8 +29,7 @@ class SocialGameEnv(gym.Env):
         reward_function="scaled_cost_distance",
     ):
         """
-        SocialGameEnv for an agent determining incentives in a social game. 
-        
+        SocialGameEnv for an agent determining incentives in a social game.
         Note: One-step trajectory (i.e. agent submits a 10-dim vector containing incentives for each hour (8AM - 5PM) each day. 
             Then, environment advances one-day and agent is told that the episode has finished.)
 
@@ -38,7 +37,7 @@ class SocialGameEnv(gym.Env):
             action_space_string: (String) either "continuous", or "multidiscrete"
             response_type_string: (String) either "t", "s", "l" , denoting whether the office's response function is threshold, sinusoidal, or linear
             number_of_participants: (Int) denoting the number of players in the social game (must be > 0 and < 20)
-            one_day: (Int) in range [-1,365] denoting which fixed day to train on . 
+            one_day: (Int) in range [-1,365] denoting which fixed day to train on .
                     Note: -1 = Random Day, 0 = Train over entire Yr, [1,365] = Day of the Year
             energy_in_state: (Boolean) denoting whether (or not) to include the previous day's energy consumption within the state
             yesterday_in_state: (Boolean) denoting whether (or not) to append yesterday's price signal to the state
@@ -125,7 +124,7 @@ class SocialGameEnv(gym.Env):
 
     def _create_observation_space(self):
         """
-        Purpose: Returns the observation space. 
+        Purpose: Returns the observation space.
         If the state space includes yesterday, then it is +10 dim for yesterday's price signal
         If the state space includes energy_in_state, then it is +1 dim for yesterday's energy
 
@@ -133,7 +132,7 @@ class SocialGameEnv(gym.Env):
             None
 
         Returns:
-            Action Space for environment based on action_space_str 
+            Action Space for environment based on action_space_str
         """
 
         # TODO: Normalize obs_space !
@@ -163,12 +162,10 @@ class SocialGameEnv(gym.Env):
 
         Args:
             None
-        
         Returns:
-            Action Space for environment based on action_space_str 
-        
+            Action Space for environment based on action_space_str
         Note: Multidiscrete refers to a 10-dim vector where each action {0,1,2} represents Low, Medium, High points respectively.
-        We pose this option to test whether simplifying the action-space helps the agent. 
+        We pose this option to test whether simplifying the action-space helps the agent.
         """
 
         # Making a symmetric, continuous space to help learning for continuous control (suggested in StableBaselines doc.)
@@ -248,7 +245,6 @@ class SocialGameEnv(gym.Env):
 
         Args:
             None
-            
         Returns: Array containing 365 price signals, where array[day_number] = grid_price for day_number from 8AM - 5PM
 
         """
@@ -290,7 +286,6 @@ class SocialGameEnv(gym.Env):
 
         Args:
             Action: 10-dim vector corresponding to action for each hour 8AM - 5PM
-        
         Returns: Points: 10-dim vector of incentives for game (same incentive for each player)
         """
         if self.action_space_string == "multidiscrete":
@@ -308,8 +303,7 @@ class SocialGameEnv(gym.Env):
 
         Args:
             Action: 10-dim vector corresponding to action for each hour 8AM - 5PM
-        
-        Returns: 
+        Returns:
             Energy_consumption: Dictionary containing the energy usage by player and the average energy used in the office (key = "avg")
         """
 
@@ -344,8 +338,7 @@ class SocialGameEnv(gym.Env):
         Args:
             Price: Price signal vector (10-dim)
             Energy_consumption: Dictionary containing energy usage by player in the office and the average office energy usage
-        
-        Returns: 
+        Returns:
             Energy_consumption: Dictionary containing the energy usage by player and the average energy used in the office (key = "avg")
         """
 
@@ -376,17 +369,15 @@ class SocialGameEnv(gym.Env):
 
     def step(self, action):
         """
-        Purpose: Takes a step in the environment 
+        Purpose: Takes a step in the environment
 
         Args:
             Action: 10-dim vector detailing player incentive for each hour (8AM - 5PM)
-        
-        Returns: 
+        Returns:
             Observation: State for the next day
             Reward: Reward for said action
             Done: Whether or not the day is done (should always be True b/c of 1-step trajectory)
             Info: Other info (primarily for gym env based library compatibility)
-        
         Exceptions:
             raises AssertionError if action is not in the action space
         """
@@ -463,7 +454,7 @@ class SocialGameEnv(gym.Env):
     ):
 
         """
-        Purpose: Verify that all initialization variables are valid 
+        Purpose: Verify that all initialization variables are valid
 
         Args (from initialization):
             action_space_string: String either "continuous" or "discrete" ; Denotes the type of action space
@@ -473,7 +464,7 @@ class SocialGameEnv(gym.Env):
             energy_in_state: Boolean denoting whether (or not) to include the previous day's energy consumption within the state
             yesterday_in_state: Boolean denoting whether (or not) to append yesterday's price signal to the state
 
-        Exceptions: 
+        Exceptions:
             Raises AssertionError if action_space_string is not a String or if it is not either "continuous", or "multidiscrete"
             Raises AssertionError if response_type_string is not a String or it is is not either "t","s","l"
             Raises AssertionError if number_of_participants is not an integer, is less than 1,  or greater than 20 (upper bound set arbitrarily for comp. purposes).
