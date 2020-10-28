@@ -24,6 +24,7 @@ from tensorboard_logger import (
 import utils
 
 import os
+import random, string
 
 
 def train(agent, num_steps, log_dir, planning_steps):
@@ -296,7 +297,7 @@ def parse_args():
         "--own_tb_log",
         help="log directory to store your own tb logs",
         type=str,
-        default="/own_tb_logs/Test/"
+        default="/own_tb_logs/" + ''.join(random.choices(string.ascii_lowercase, k=10))
     )
     parser.add_argument(
         "--pricing_type",
