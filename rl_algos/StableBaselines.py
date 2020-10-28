@@ -348,7 +348,7 @@ def main():
     model = get_agent(env, args, non_vec_env=socialgame_env)
 
     # Train algo, (logging through Tensorboard)
-    print("Beginning Testing!")
+    print("Beginning Training!")
     r_real = train(
         model,
         args.num_steps * (1 + args.planning_steps),
