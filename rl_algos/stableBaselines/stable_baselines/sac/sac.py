@@ -19,6 +19,7 @@ from stable_baselines import logger
 
 from tensorboard_logger import configure as tb_configure
 from tensorboard_logger import log_value as tb_log_value
+from gym_socialgame.envs import reward, reward, reward
 
 
 class SAC(OffPolicyRLModel):

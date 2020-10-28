@@ -49,7 +49,6 @@ def eval_policy(model, env, num_eval_episodes: int, list_reward_per_episode=Fals
         Env: Gym environment for evaluation
         num_eval_episodes: (Int) number of episodes to evaluate policy
         list_reward_per_episode: (Boolean) Whether or not to return a list containing rewards per episode (instead of mean reward over all episodes)
-    
     """
     mean_reward, std_reward = evaluate_policy(
         model, env, num_eval_episodes, return_episode_rewards=list_reward_per_episode
@@ -117,7 +116,6 @@ def get_environment(args, planning=False, include_non_vec_env=False):
 
     Args:
         args
-    
     Returns: Environment with action space compatible with algo
     """
     # Convert string args (which are supposed to be bool) into actual boolean values
@@ -163,10 +161,11 @@ def get_environment(args, planning=False, include_non_vec_env=False):
             yesterday_in_state=args.yesterday,
             energy_in_state=args.energy,
             pricing_type=args.pricing_type,
-            reward_function=reward_function,
+            # reward_function=reward_function,
         )
     else:
         # go into the planning mode
+        print("reward function:", reward_function)
         socialgame_env = gym.make(
             "gym_socialgame:socialgame{}".format("_planning-v0"),
             action_space_string=action_space_string,
@@ -180,7 +179,7 @@ def get_environment(args, planning=False, include_non_vec_env=False):
             planning_steps=args.planning_steps,
             planning_model_type=args.planning_model,
             own_tb_log=log_dir,
-            reward_function=reward_function,
+            # reward_function=reward_function,
         )
 
     # Check to make sure any new changes to environment follow OpenAI Gym API
@@ -248,8 +247,8 @@ def parse_args():
         "--response",
         help="Player response function (l = linear, t = threshold_exponential, s = sinusoidal",
         type=str,
-        default="m",
-        choices=["l", "t", "s", "m"],
+        default="l",
+        choices=["l", "t", "s"],
     )
     parser.add_argument(
         "--one_day",
@@ -294,7 +293,10 @@ def parse_args():
         choices=["Oracle", "Baseline", "LSTM", "OLS"],
     )
     parser.add_argument(
-        "--own_tb_log", help="log directory to store your own tb logs", type=str
+        "--own_tb_log",
+        help="log directory to store your own tb logs",
+        type=str,
+        default="/own_tb_logs/Test/"
     )
     parser.add_argument(
         "--pricing_type",
