@@ -6,7 +6,7 @@ import random
 
 import tensorflow as tf
 
-from gym_socialgame.envs.utils import price_signal
+from gym_socialgame.envs.utils import price_signal, fourier_points_from_action
 from gym_socialgame.envs.agents import *
 from gym_socialgame.envs.reward import Reward
 
@@ -25,6 +25,7 @@ class SocialGameEnv(gym.Env):
         day_of_week = False,
         pricing_type="TOU",
         reward_function = "scaled_cost_distance",
+        fourier_basis_size = 10,
         ):
         """
         SocialGameEnv for an agent determining incentives in a social game. 
@@ -59,6 +60,7 @@ class SocialGameEnv(gym.Env):
         self.energy_in_state = energy_in_state
         self.yesterday_in_state = yesterday_in_state
         self.reward_function = reward_function
+        self.fourier_basis_size = fourier_basis_size
 
         self.day = 0
         self.days_of_week = [0, 1, 2, 3, 4]
@@ -84,6 +86,7 @@ class SocialGameEnv(gym.Env):
         self.curr_iter = 0
 
         #Create Action Space
+        self.points_length = 10
         self.action_length = 10
         self.action_subspace = 3
         self.action_space = self._create_action_space()
@@ -144,6 +147,8 @@ class SocialGameEnv(gym.Env):
             else:
                 return spaces.Box(low=-np.inf, high=np.inf, shape=(10,), dtype=np.float32)
 
+
+
     def _create_action_space(self):
         """
         Purpose: Return action space of type specified by self.action_space_string
@@ -165,6 +170,12 @@ class SocialGameEnv(gym.Env):
         elif self.action_space_string == "multidiscrete":
             discrete_space = [self.action_subspace] * self.action_length
             return spaces.MultiDiscrete(discrete_space)
+
+        elif self.action_space_string == "fourier":
+            return spaces.Box(
+                low=-2, high=2, shape=(2*self.fourier_basis_size - 1,), dtype=np.float32
+            )
+
 
 
     def _create_agents(self):
@@ -257,7 +268,10 @@ class SocialGameEnv(gym.Env):
         elif self.action_space_string == 'continuous':
             #Continuous space is symmetric [-1,1], we map to -> [0,10] by adding 1 and multiplying by 5
             points = 5 * (action + np.ones_like(action))
-        
+
+        elif self.action_space_string == "fourier":
+            points = fourier_points_from_action(action, self.points_length, self.fourier_basis_size)
+
         return points
     
     def _simulate_humans(self, action):
@@ -427,7 +441,7 @@ class SocialGameEnv(gym.Env):
         #Checking that action_space_string is valid
         assert isinstance(action_space_string, str), "action_space_str is not of type String. Instead got type {}".format(type(action_space_string))
         action_space_string = action_space_string.lower()
-        assert action_space_string in ["continuous", "multidiscrete"], "action_space_str is not continuous or discrete. Instead got value {}".format(action_space_string)
+        assert action_space_string in ["continuous", "multidiscrete", "fourier"], "action_space_str is not continuous or discrete. Instead got value {}".format(action_space_string)
 
         #Checking that response_type_string is valid
         assert isinstance(response_type_string, str), "Variable response_type_string should be of type String. Instead got type {}".format(type(response_type_string))

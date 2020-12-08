@@ -88,6 +88,18 @@ def price_signal(day = 45, type_of_DR = "real_time_pricing"):
         return "error!!!"
 
 
+def fourier_points_from_action(action, points_length, fourier_basis_size):
+    assert fourier_basis_size == (action.size + 1) // 2, "Incorrect fourier basis size for actions"
+    root_points = (action[0]/2)*np.ones(points_length)
+    inp = np.linspace(0, 1, points_length)
+    for k in range(1, fourier_basis_size):
+        ak, bk = action[2*k - 1], action[2*k]
+        root_points += ak * np.sin(2*np.pi*k*inp) + bk * np.cos(2*np.pi*k*inp)
+
+    points = root_points**2
+    #TODO: More elegant solution than clipping
+    points = np.clip(points, 0, 10)
+    return points
 
 
 

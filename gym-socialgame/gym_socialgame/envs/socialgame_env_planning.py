@@ -27,7 +27,8 @@ class SocialGamePlanningEnv(SocialGameEnv):
         planning_flag = False,
         planning_steps = 0,
         planning_model_type = "Oracle",
-        own_tb_log = None):
+        own_tb_log = None,
+        fourier_basis_size = 10):
 
         super().__init__(action_space_string, 
         response_type_string, 
@@ -37,7 +38,8 @@ class SocialGamePlanningEnv(SocialGameEnv):
         yesterday_in_state,
         day_of_week,
         pricing_type,
-        reward_function
+        reward_function,
+        fourier_basis_size,
         )
 
         self.planning_flag = planning_flag

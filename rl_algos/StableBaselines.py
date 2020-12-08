@@ -127,7 +127,10 @@ def get_environment(args, planning=False, include_non_vec_env=False):
 
     # SAC only works in continuous environment
     if args.algo == "sac":
-        action_space_string = "continuous"
+        if args.action_space == "fourier":
+            action_space_string = "fourier"
+        else:
+            action_space_string = "continuous"
 
     # For algos (e.g. ppo) which can handle discrete or continuous case
     # Note: PPO typically uses normalized environment (#TODO)
@@ -164,6 +167,7 @@ def get_environment(args, planning=False, include_non_vec_env=False):
             energy_in_state=args.energy,
             pricing_type=args.pricing_type,
             reward_function=reward_function,
+            fourier_basis_size=args.fourier_basis_size
         )
     else:
         # go into the planning mode
@@ -215,9 +219,11 @@ def parse_args():
         choices=["v0", "monthly"],
         default="v0",
     )
+
     parser.add_argument(
         "algo", help="Stable Baselines Algorithm", type=str, choices=["sac", "ppo"]
     )
+    
     parser.add_argument(
         "--batch_size",
         help="Batch Size for sampling from replay buffer",
@@ -242,7 +248,7 @@ def parse_args():
         "--action_space",
         help="Action Space for Algo (only used for algos that are compatable with both discrete & cont",
         default="c",
-        choices=["c", "d"],
+        choices=["c", "d", "fourier"],
     )
     parser.add_argument(
         "--response",
@@ -296,6 +302,7 @@ def parse_args():
     parser.add_argument(
         "--own_tb_log", help="log directory to store your own tb logs", type=str
     )
+
     parser.add_argument(
         "--pricing_type",
         help="time of use or real time pricing",
@@ -317,6 +324,12 @@ def parse_args():
         default="scaled_cost_distance",
         choices=["scaled_cost_distance", "log_cost_regularized", "scd", "lcr"],
     )
+    parser.add_argument(
+        "--fourier_basis_size",
+        help="Fourier basis size to use when using fourier action space",
+        type=int,
+        default=4,
+        choices=list(range(100)))
 
     args = parser.parse_args()
 

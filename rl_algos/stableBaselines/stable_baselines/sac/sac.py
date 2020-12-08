@@ -491,6 +491,11 @@ class SAC(OffPolicyRLModel):
                 tb_log_value("reward_planning", reward_, self.num_timesteps)
                 self.num_timesteps += 1
 
+                if not self.num_timesteps % 20:
+                    print("observation: " + str(new_obs))
+                    print("reward: " + str(reward))
+                    print("done: " + str(done))
+
                 # Store transition in the replay buffer.
                 self.replay_buffer_add(obs_, action, reward_, new_obs_, done, info)
                 obs = new_obs
