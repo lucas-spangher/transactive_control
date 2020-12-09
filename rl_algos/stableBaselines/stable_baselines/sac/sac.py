@@ -426,45 +426,45 @@ class SAC(OffPolicyRLModel):
                 #     new_obs, reward, done, info = self.env.step(unscaled_action)
                 # else: 
 
-                if not self.num_timesteps % (planning_steps + 1):
+                # if not self.num_timesteps % (planning_steps + 1):
 
 
-                    if self.num_timesteps ==1: 
-                         # form the control
-                        from sklearn.preprocessing import MinMaxScaler
-                        grid_price = self.non_vec_env.prices[self.non_vec_env.day - 1]
-                        scaler = MinMaxScaler(feature_range = (0, 10))
-                        scaled_grid_price = scaler.fit_transform(np.array(grid_price).reshape(-1, 1))
-                        scaled_grid_price = np.squeeze(scaled_grid_price)
-                        energy_consumptions = self.non_vec_env._simulate_humans(scaled_grid_price)
-                        person_data_dict["control"] = {
-                            "x" : list(range(8, 18)), 
-                            "grid_price" : scaled_grid_price,
-                            "energy_consumption" : energy_consumptions["avg"],
-                            "reward" : self.non_vec_env._get_reward(price = grid_price, energy_consumptions = energy_consumptions),
-                        }
+                    # if self.num_timesteps ==1: 
+                    #      # form the control
+                    #     from sklearn.preprocessing import MinMaxScaler
+                    #     grid_price = self.non_vec_env.prices[self.non_vec_env.day - 1]
+                    #     scaler = MinMaxScaler(feature_range = (0, 10))
+                    #     scaled_grid_price = scaler.fit_transform(np.array(grid_price).reshape(-1, 1))
+                    #     scaled_grid_price = np.squeeze(scaled_grid_price)
+                    #     energy_consumptions = self.non_vec_env._simulate_humans(scaled_grid_price)
+                    #     person_data_dict["control"] = {
+                    #         "x" : list(range(8, 18)), 
+                    #         "grid_price" : scaled_grid_price,
+                    #         "energy_consumption" : energy_consumptions["avg"],
+                    #         "reward" : self.non_vec_env._get_reward(price = grid_price, energy_consumptions = energy_consumptions),
+                    #     }
 
-                    # form the data_dict
-                    if self.num_timesteps in [100, 1000, 9500]:
-                        person_data_dict["Step " + str(self.num_timesteps)] = {
-                            "x" : list(range(8, 18)),
-                            "grid_price" : self.non_vec_env.prices[self.non_vec_env.day - 1],
-                            "points" : self.non_vec_env.action,
-                            "energy_consumption" : self.non_vec_env.prev_energy,
-                            "reward" : reward,
-                        }
+                    # # form the data_dict
+                    # if self.num_timesteps in [100, 1000, 9500]:
+                    #     person_data_dict["Step " + str(self.num_timesteps)] = {
+                    #         "x" : list(range(8, 18)),
+                    #         "grid_price" : self.non_vec_env.prices[self.non_vec_env.day - 1],
+                    #         "points" : self.non_vec_env.action,
+                    #         "energy_consumption" : self.non_vec_env.prev_energy,
+                    #         "reward" : reward,
+                    #     }
 
-                    if self.num_timesteps == 9501:
+                    # if self.num_timesteps == 9501:
 
                        
-                        # call the plotting statement 
-                        dir_split = own_log_dir.split("/")
-                        people_reaction_log_dir = dir_split[0]+ "/people_reaction_dir/" + dir_split[1]
-                        self.plotter_person_reaction(person_data_dict, people_reaction_log_dir)
+                    #     # call the plotting statement 
+                    #     dir_split = own_log_dir.split("/")
+                    #     people_reaction_log_dir = dir_split[0]+ "/people_reaction_dir/" + dir_split[1]
+                    #     self.plotter_person_reaction(person_data_dict, people_reaction_log_dir)
 
 
-                    new_obs, reward, done, info = self.env.step(unscaled_action) #, step_num = self.num_timesteps)
-                    steps_in_real_env +=1
+                    # new_obs, reward, done, info = self.env.step(unscaled_action) #, step_num = self.num_timesteps)
+                    # steps_in_real_env +=1
 
                 else: 
                     print("planning step")
