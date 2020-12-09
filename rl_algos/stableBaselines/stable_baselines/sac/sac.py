@@ -426,7 +426,7 @@ class SAC(OffPolicyRLModel):
                 #     new_obs, reward, done, info = self.env.step(unscaled_action)
                 # else: 
 
-                # if not self.num_timesteps % (planning_steps + 1):
+                if not self.num_timesteps % (planning_steps + 1):
 
 
                     # if self.num_timesteps ==1: 
@@ -463,8 +463,8 @@ class SAC(OffPolicyRLModel):
                     #     self.plotter_person_reaction(person_data_dict, people_reaction_log_dir)
 
 
-                    # new_obs, reward, done, info = self.env.step(unscaled_action) #, step_num = self.num_timesteps)
-                    # steps_in_real_env +=1
+                    new_obs, reward, done, info = self.env.step(unscaled_action) #, step_num = self.num_timesteps)
+                    steps_in_real_env +=1
 
                 else: 
                     print("planning step")
