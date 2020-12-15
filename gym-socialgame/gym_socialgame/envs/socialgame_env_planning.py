@@ -28,7 +28,7 @@ class SocialGamePlanningEnv(SocialGameEnv):
         planning_steps = 0,
         planning_model_type = "Oracle",
         own_tb_log = None,
-        fourier_basis_size = 10):
+        fourier_basis_size = 10,):
 
         super().__init__(action_space_string, 
         response_type_string, 

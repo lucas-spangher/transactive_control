@@ -185,6 +185,7 @@ def get_environment(args, planning=False, include_non_vec_env=False):
             planning_model_type=args.planning_model,
             own_tb_log=log_dir,
             reward_function=reward_function,
+            fourier_basis_size=args.fourier_basis_size,
         )
 
     # Check to make sure any new changes to environment follow OpenAI Gym API

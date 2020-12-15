@@ -270,7 +270,25 @@ class SocialGameEnv(gym.Env):
             points = 5 * (action + np.ones_like(action))
 
         elif self.action_space_string == "fourier":
+            print("--"*10)
+            print("--"*10)
+            print("--"*10)
+            print("--"*10)
+            print("--"*10)
+            print("action")
+            print(action)
+            print("--"*10)
+            print("--"*10)
+            print("--"*10)
+            print("--"*10)
+            print("--"*10)
             points = fourier_points_from_action(action, self.points_length, self.fourier_basis_size)
+            print(points)
+            print("--"*10)
+            print("--"*10)
+            print("--"*10)
+            print("--"*10)
+            print("--"*10)
 
         return points
     
