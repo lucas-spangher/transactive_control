@@ -1,9 +1,13 @@
 # transactive_control
 Code meant to support and simulate the Social Game that will be launched in 2020. Elements of transactive control and behavioral engineering will be tested and designed here 
 
+# 12/20/2020
+
+This repository has been cleaned and updated for use. It contains: (1) The OpenAI gym environment "OfficeLearn", in the "gym-socialgame" folder, and (2) implementations of Reinforcement learning algorithms in "rl_algos" folder. In the "simulations" folder are various datasets for setting up and training models associated with the gym simulation. 
+
 # 9/1/2020
 
-The most recent running of the code involves navigating to the rl_algos/ directory, then running the python command for the vanilla version: 
+Here is how to instantite, train, and execute the RL agent. (0) Make sure you have python3.6 installed, and (1) Clone this repo, (2) Navigate to the rl_algos/ directory, then running the python command for the vanilla version: 
 
 python StableBaselines.py sac
 
