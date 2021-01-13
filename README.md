@@ -7,11 +7,11 @@ This repository has been cleaned and updated for use. It contains: (1) The OpenA
 
 # 9/1/2020
 
-Here is how to instantite, train, and execute the RL agent. (0) Make sure you have python3.6 installed, and (1) Clone this repo, (2) Navigate to the rl_algos/ directory, then running the python command for the vanilla version: 
+Here is how to instantite, train, and execute the RL agent. (0) Make sure you have python3.6 installed, and (1) Clone this repo, (2) Navigate to the rl_algos/ directory, then run the python command for the vanilla version: 
 
 python StableBaselines.py sac
 
-Adding in the planning model can be done with the following flags:
+Of course, you will need to install python packages required. Adding in the planning model can be done with the following flags:
 
 python StableBaselines.py sac --planning_steps=10 --planning_model=Oracle --num_steps=10000
 
