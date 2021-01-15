@@ -27,7 +27,7 @@ class SocialGameEnvHourly(SocialGameEnv):
         Note: One-step trajectory (i.e. agent submits a 10-dim vector containing incentives for each hour (8AM - 5PM) each day. 
             Agent provides incentives per hour until the end-of-the-day, when episode is finished.
 
-        Args: (same as SocialGameEnv excluding action_length)
+        Args: (same as SocialGameEnv)
             action_space_string: (String) either "continuous", or "multidiscrete"
             response_type_string: (String) either "t", "s", "l" , denoting whether the office's response function is threshold, sinusoidal, or linear
             number_of_participants: (Int) denoting the number of players in the social game (must be > 0 and < 20)
