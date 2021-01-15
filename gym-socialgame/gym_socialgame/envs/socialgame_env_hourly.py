@@ -39,7 +39,6 @@ class SocialGameEnvHourly(SocialGameEnv):
         """
         super(SocialGameEnvHourly, self).__init__(
             action_space_string=action_space_string,
-            action_length=1,
             response_type_string=response_type_string,
             number_of_participants=number_of_participants,
             one_price=one_price,
@@ -47,6 +46,7 @@ class SocialGameEnvHourly(SocialGameEnv):
             yesterday_in_state=yesterday_in_state,
         )
 
+        self.action_length = 1
         self.prev_energy = np.zeros(10) #Stores full energy consumption vector from previous day
         self.hour = 0 #Goes from [0,10] (indicating 8AM - 5PM)
         self.points = np.zeros(10) #Array which accumulates points for the entire day
@@ -71,6 +71,29 @@ class SocialGameEnvHourly(SocialGameEnv):
             points = 5 * (action + np.ones_like(action))
 
         return points
+    
+    def _create_action_space(self):
+        """
+        Purpose: Return action space of type specified by self.action_space_string
+
+        Args:
+            None
+        
+        Returns:
+            Action Space for environment based on action_space_str 
+        
+        Note: Multidiscrete refers to a 10-dim vector where each action {0,1,2} represents Low, Medium, High points respectively.
+        We pose this option to test whether simplifying the action-space helps the agent. 
+        """
+
+        #Making a symmetric, continuous space to help learning for continuous control (suggested in StableBaselines doc.)
+        if self.action_space_string == "continuous":
+            return spaces.Box(low=-1, high=1, shape=(1,), dtype=np.float32)
+
+        elif self.action_space_string == "multidiscrete":
+            discrete_space = [self.action_subspace] * 1
+            return spaces.MultiDiscrete(discrete_space)
+
 
     def _get_observation(self):
         """ Returns observation for current hour """
