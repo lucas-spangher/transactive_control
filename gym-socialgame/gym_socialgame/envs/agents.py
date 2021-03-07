@@ -278,7 +278,7 @@ class RandomizedFunctionPerson(DeterministicFunctionPerson):
 
 # utkarsha's person 
 
-class CurtailandShiftPerson(Person):
+class CurtailAndShiftPerson(Person):
 	def __init__(self, baseline_energy_df, points_multiplier = 1):
 		super().__init__(baseline_energy_df, points_multiplier)
 		self.shiftableLoadFraction = 0.1

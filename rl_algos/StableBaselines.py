@@ -13,6 +13,7 @@ from stableBaselines.stable_baselines.common.env_checker import (  # pylint: dis
 )
 
 import tensorflow as tf
+tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 
 from tensorboard_logger import (  # pylint: disable=import-error, no-name-in-module
     configure as tb_configure,
@@ -22,8 +23,11 @@ from tensorboard_logger import (  # pylint: disable=import-error, no-name-in-mod
 )
 
 import utils
-
 import os
+import IPython
+import datetime as dt
+
+import wandb
 
 
 def train(agent, num_steps, log_dir, planning_steps):
@@ -73,12 +77,13 @@ def get_agent(env, args, non_vec_env=None):
         from stable_baselines.sac.policies import MlpPolicy as policy
 
         return mySAC(
-            policy,
-            env,
+            policy = policy,
+            env = env,
             non_vec_env=non_vec_env,
             batch_size=args.batch_size,
             learning_starts=30,
             verbose=0,
+            learning_rate = args.learning_rate,
             tensorboard_log="./rl_tensorboard_logs/",
             plotter_person_reaction=utils.plotter_person_reaction,
         )
@@ -86,14 +91,18 @@ def get_agent(env, args, non_vec_env=None):
     # I (Akash) still need to study PPO to understand it, I implemented b/c I know Joe's work used PPO
     elif args.algo == "ppo":
         from stable_baselines import PPO2
-
+        from stableBaselines.stable_baselines.ppo2.ppo2 import PPO2 as myPPO2
+        
         if args.policy_type == "mlp":
             from stable_baselines.common.policies import MlpPolicy as policy
 
         elif args.policy_type == "lstm":
             from stable_baselines.common.policies import MlpLstmPolicy as policy
 
-        return PPO2(policy, env, verbose=0, tensorboard_log="./rl_tensorboard_logs/")
+        return myPPO2(policy, 
+                env, 
+                verbose=0, 
+                tensorboard_log="./rl_tensorboard_logs/")
 
     else:
         raise NotImplementedError("Algorithm {} not supported. :( ".format(args.algo))
@@ -103,13 +112,14 @@ def args_convert_bool(args):
     """
     Purpose: Convert args which are specified as strings (e.g. yesterday, energy) into boolean to work with environment
     """
-    if not isinstance(args.yesterday, (bool)):
-        args.yesterday = utils.string2bool(args.yesterday)
-    if not isinstance(args.energy, (bool)):
-        args.energy = utils.string2bool(args.energy)
+    if not isinstance(args.price_in_state, (bool)):
+        args.price_in_state = utils.string2bool(args.price_in_state)
+    if not isinstance(args.energy_in_state, (bool)):
+        args.energy_in_state = utils.string2bool(args.energy_in_state)
     if not isinstance(args.test_planning_env, (bool)):
         args.test_planning_env = utils.string2bool(args.test_planning_env)
-
+    if not isinstance(args.bin_observation_space, (bool)):
+        args.bin_observation_space = utils.string2bool(args.bin_observation_space)
 
 def get_environment(args, planning=False, include_non_vec_env=False):
     """
@@ -123,7 +133,7 @@ def get_environment(args, planning=False, include_non_vec_env=False):
     # Convert string args (which are supposed to be bool) into actual boolean values
     args_convert_bool(args)
 
-    log_dir = "own_tb_logs/" + args.own_tb_log
+    log_dir = "exps/" + args.exp_name
 
     # SAC only works in continuous environment
     if args.algo == "sac":
@@ -140,8 +150,9 @@ def get_environment(args, planning=False, include_non_vec_env=False):
         )
         action_space_string = convert_action_space_str(args.action_space)
 
-    planning_flag = args.planning_steps > 0
-
+    print(args.planning_steps, args.test_planning_env)
+    planning_flag = ((args.planning_steps > 0) or args.test_planning_env)
+    
     if args.env_id == "hourly":
         env_id = "_hourly-v0"
     elif args.env_id == "monthly":
@@ -156,18 +167,20 @@ def get_environment(args, planning=False, include_non_vec_env=False):
     else:
         reward_function = args.reward_function
 
-    if not planning:
+
+    if not planning_flag:
         socialgame_env = gym.make(
             "gym_socialgame:socialgame{}".format(env_id),
             action_space_string=action_space_string,
             response_type_string=args.response,
             one_day=args.one_day,
             number_of_participants=args.num_players,
-            yesterday_in_state=args.yesterday,
-            energy_in_state=args.energy,
+            price_in_state = args.price_in_state,
+            energy_in_state=args.energy_in_state,
             pricing_type=args.pricing_type,
             reward_function=reward_function,
-            fourier_basis_size=args.fourier_basis_size
+            fourier_basis_size=args.fourier_basis_size,
+            bin_observation_space = args.bin_observation_space,
         )
     else:
         # go into the planning mode
@@ -177,8 +190,7 @@ def get_environment(args, planning=False, include_non_vec_env=False):
             response_type_string=args.response,
             one_day=args.one_day,
             number_of_participants=args.num_players,
-            yesterday_in_state=args.yesterday,
-            energy_in_state=args.energy,
+            energy_in_state=args.energy_in_state,
             pricing_type=args.pricing_type,
             planning_flag=planning_flag,
             planning_steps=args.planning_steps,
@@ -236,7 +248,7 @@ def parse_args():
         "--num_steps",
         help="Number of timesteps to train algo",
         type=int,
-        default=1000000,
+        default=50000,
     )
     # Note: only some algos (e.g. PPO) can use LSTM Policy the feature below is for future testing
     parser.add_argument(
@@ -262,7 +274,7 @@ def parse_args():
         "--one_day",
         help="Specific Day of the year to Train on (default = None, train over entire yr)",
         type=int,
-        default=-1,
+        default=15,
         choices=[i for i in range(-1, 366)],
     )
     parser.add_argument(
@@ -272,15 +284,17 @@ def parse_args():
         default=1,
         choices=[i for i in range(1, 21)],
     )
+
     parser.add_argument(
-        "--yesterday",
-        help="Whether to include yesterday in state (default = F)",
-        type=str,
-        default="F",
-        choices=["T", "F"],
+        "--price_in_state",
+        help = "Is price in the state",
+        type = str,
+        default = "F",
+        choices = ["T", "F"]
     )
+
     parser.add_argument(
-        "--energy",
+        "--energy_in_state",
         help="Whether to include energy in state (default = F)",
         type=str,
         default="F",
@@ -301,7 +315,10 @@ def parse_args():
         choices=["Oracle", "Baseline", "LSTM", "OLS"],
     )
     parser.add_argument(
-        "--own_tb_log", help="log directory to store your own tb logs", type=str
+        "--exp_name", 
+        help="experiment_name", 
+        type=str,
+        default=str(dt.datetime.today())
     )
 
     parser.add_argument(
@@ -322,7 +339,7 @@ def parse_args():
         "--reward_function",
         help="reward function to test",
         type=str,
-        default="scaled_cost_distance",
+        default="lcr",
         choices=["scaled_cost_distance", "log_cost_regularized", "scd", "lcr"],
     )
     parser.add_argument(
@@ -332,12 +349,30 @@ def parse_args():
         default=4,
         choices=list(range(100)))
 
+    parser.add_argument(
+        "--bin_observation_space",
+        help = "Bin the observations",
+        type = str,
+        default = "F",
+        choices = ["T", "F"]
+    )
+
+    parser.add_argument(
+        "--learning_rate",
+        type = float,
+        default = 3e-4,
+        )
+
     args = parser.parse_args()
 
     return args
 
 
 def main():
+
+    # set up logging 
+    wandb.init(project="energy-demand-response-game", entity="social-game-rl", sync_tensorboard=True)
+
     # Get args
     args = parse_args()
 
@@ -346,7 +381,7 @@ def main():
 
     # Create environments
 
-    log_dir = "own_tb_logs/" + args.own_tb_log
+    log_dir = "exps/" + args.exp_name
 
     if os.path.exists(log_dir):
         print("Choose a new name for the training dir!")
@@ -363,6 +398,7 @@ def main():
 
     # Train algo, (logging through Tensorboard)
     print("Beginning Testing!")
+
     r_real = train(
         model,
         args.num_steps * (1 + args.planning_steps),
