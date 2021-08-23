@@ -52,7 +52,7 @@ jupyter-client==5.3.1
 jupyter-console==6.0.0
 jupyter-core==4.5.0
 jupyter-kite==1.0.0
-jupyterlab==2.2.1
+jupyterlab==2.2.10
 jupyterlab-server==1.2.0
 Keras==2.3.1
 Keras-Applications==1.0.8
