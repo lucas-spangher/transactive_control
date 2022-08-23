@@ -70,7 +70,7 @@ moviepy==1.0.0
 mpi4py==3.0.3
 mujoco-py==2.0.2.10
 multiprocess==0.70.8
-nbconvert==5.5.0
+nbconvert==6.5.1
 nbformat==4.4.0
 notebook==6.0.0
 numpy==1.17.2
